@@ -32,20 +32,27 @@ namespace TickZoom.Properties
 {
 
 	[Serializable]
-	public class ProfitLossDefault : ProfitLoss {
+	public class ProfitLossDefault : ProfitLoss2 {
 		SymbolInfo symbol;
 		double slippage = 0D;
 		double commission = 0D;
 		
 		public ProfitLossDefault() {
 		}
+
+        public void CalculateProfit(TransactionPairBinary trade, out double grossProfit, out double costs)
+        {
+            costs = (slippage + commission) * symbol.FullPointValue * Math.Abs(trade.Direction);
+            var grossPoints = (trade.ExitPrice - trade.AverageEntryPrice)*trade.CurrentPosition;
+            grossProfit = Math.Round(grossPoints,symbol.MinimumTickPrecision) * symbol.FullPointValue;
+        }
 		
 		
 		public double CalculateProfit( double position, double entry, double exit) {
 			double transactionCosts = (slippage + commission)*symbol.FullPointValue*Math.Abs(position);
 			double pnl = ((exit - entry) * position * symbol.FullPointValue) - transactionCosts;
 			return pnl.Round();
-		}
+        }
 		
 		public SymbolInfo Symbol {
 			get { return symbol; }

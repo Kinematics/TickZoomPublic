@@ -309,7 +309,7 @@ namespace TickZoom.TickUtil
 				minimumTick*=10;
 				priceDecimals++;
 			}
-			var temp = Math.Pow( 0.1, priceDecimals);
+			var temp = Math.Pow( 0.1, symbol.MinimumTickPrecision);
 			pricePrecision = temp.ToLong();
 		}
 

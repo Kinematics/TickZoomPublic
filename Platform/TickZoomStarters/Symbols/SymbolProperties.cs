@@ -65,7 +65,8 @@ namespace TickZoom.Symbols
 		private double maxPositionSize = double.MaxValue;
 		private double maxOrderSize = double.MaxValue;
 		private double maxValidPrice = double.MaxValue;
-	    private LimitOrderQuoteSimulation _limitOrderQuoteSimulation = LimitOrderQuoteSimulation.OppositeQuoteTouch;
+        private int minimumTickPrecision;
+        private LimitOrderQuoteSimulation _limitOrderQuoteSimulation = LimitOrderQuoteSimulation.OppositeQuoteTouch;
 	    private LimitOrderTradeSimulation _limitOrderTradeSimulation = LimitOrderTradeSimulation.TradeTouch;
 
 		public SymbolProperties Copy()
@@ -108,9 +109,23 @@ namespace TickZoom.Symbols
 		
 		public double MinimumTick {
 			get { return minimumTick; }
-			set { minimumTick = value; }
+			set {
+                minimumTick = value; 
+                SetPrecision();
+            }
 		}
-		
+
+        private void SetPrecision()
+        {
+            var minimumTick = this.minimumTick;
+            minimumTickPrecision = 0;
+            while ((long)minimumTick != minimumTick)
+            {
+                minimumTick *= 10;
+                minimumTickPrecision ++;
+            }
+        }
+
 		public double FullPointValue {
 			get { return fullPointValue; }
 			set { fullPointValue = value; }
@@ -251,6 +266,11 @@ namespace TickZoom.Symbols
 	    {
 	        get { return _limitOrderTradeSimulation; }
 	        set { _limitOrderTradeSimulation = value; }
+	    }
+
+	    public int MinimumTickPrecision
+	    {
+	        get { return minimumTickPrecision; }
 	    }
 	}
 }

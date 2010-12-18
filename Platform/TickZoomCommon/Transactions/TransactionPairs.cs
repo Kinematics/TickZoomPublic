@@ -39,7 +39,13 @@ namespace TickZoom.Transactions
 		TransactionPairsBinary transactionPairs;
 		int totalProfit = 0;
 		ProfitLoss profitLossCalculation;
+        ProfitLoss2 profitLoss2Calculation;
 		Func<double,double> currentPrice;
+
+	    public TransactionPairBinary Tail
+	    {
+            get { return transactionPairs.Tail;  }
+	    }
 		
 		public BinaryStore TradeData {
 			get { return transactionPairs.TradeData; }
@@ -48,13 +54,13 @@ namespace TickZoom.Transactions
 		public TransactionPairs(Func<double,double> currentPrice, ProfitLoss pnl)
 		{
 			this.currentPrice = currentPrice;
-			profitLossCalculation = pnl;
+			ProfitLossCalculation = pnl;
 			this.transactionPairs = new TransactionPairsBinary(TradeData);
 		}
 		public TransactionPairs(Func<double,double> currentPrice, ProfitLoss pnl,TransactionPairsBinary transactionPairs)
 		{
 			this.currentPrice = currentPrice;
-			profitLossCalculation = pnl;
+			ProfitLossCalculation = pnl;
 			this.transactionPairs = transactionPairs;
 		}
 		
@@ -115,12 +121,29 @@ namespace TickZoom.Transactions
        			ProfitInPosition(index,transactionPairs[index].MinPrice);
 			return Math.Round(value,3);
 		}
+
+        private double CalcProfitLoss( TransactionPairBinary binary)
+        {
+            double result;
+            if (profitLoss2Calculation == null)
+            {
+                result = profitLossCalculation.CalculateProfit(binary.Direction, binary.EntryPrice, binary.ExitPrice);
+            }
+            else
+            {
+                double profitLoss;
+                double costs;
+                profitLoss2Calculation.CalculateProfit(binary, out profitLoss, out costs);
+                result = profitLoss - costs;
+            }
+            return result.Round();
+        }
 		
 		internal double ProfitInPosition( TransactionPairBinary binary, double price) {
-			if( binary.Completed) {
-				price = binary.ExitPrice;
+			if( !binary.Completed) {
+			    binary.ExitPrice = price;
 			}
-			return profitLossCalculation.CalculateProfit( binary.Direction, binary.EntryPrice, price);
+		    return CalcProfitLoss(binary);
 		}
 		
 		public double ProfitInPosition( int index, double price) {
@@ -129,7 +152,8 @@ namespace TickZoom.Transactions
 			if( binary.Direction == 0) {
 				throw new ApplicationException("Direction not set for profit loss calculation.");
 			}
-			return profitLossCalculation.CalculateProfit( binary.Direction, binary.EntryPrice, price);
+            binary.ExitPrice = price;
+            return CalcProfitLoss(binary);
 		}
 		
 		public TransactionPair this [int index] {
@@ -161,7 +185,9 @@ namespace TickZoom.Transactions
 		
 		public ProfitLoss ProfitLossCalculation {
 			get { return profitLossCalculation; }
-			set { profitLossCalculation = value; }
+			set { profitLossCalculation = value;
+			    profitLoss2Calculation = value as ProfitLoss2; 
+			}
 		}
 		
 		public IEnumerator GetEnumerator()

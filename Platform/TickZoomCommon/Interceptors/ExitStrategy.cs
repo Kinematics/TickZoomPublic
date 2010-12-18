@@ -252,13 +252,21 @@ namespace TickZoom.Interceptors
 		
 		private void processStopLoss(Tick tick) {
 			if( position.IsShort) {
-				buyStopLossOrder.Price = entryPrice + stopLoss;
+				var price = entryPrice + stopLoss;
+				if( double.IsNaN(price) || double.IsInfinity(price)) {
+					throw new OverflowException( "StopLoss value " + stopLoss + " from entry price " + entryPrice + " created an overflow.");
+				}
+				buyStopLossOrder.Price = price;
 				buyStopLossOrder.Status = OrderStatus.Active;
 			} else {
 				buyStopLossOrder.Status = OrderStatus.Inactive;
 			}
 			if( position.IsLong) {
-				sellStopLossOrder.Price = entryPrice - stopLoss;
+				var price = entryPrice - stopLoss;
+				if( double.IsNaN(price) || double.IsInfinity(price)) {
+					throw new OverflowException( "StopLoss value " + stopLoss + " from entry price " + entryPrice + " created an overflow.");
+				}
+				sellStopLossOrder.Price = price;
 				sellStopLossOrder.Status = OrderStatus.Active;
 			} else {
 				sellStopLossOrder.Status = OrderStatus.Inactive;

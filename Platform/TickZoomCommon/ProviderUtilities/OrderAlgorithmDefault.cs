@@ -263,8 +263,9 @@ namespace TickZoom.Common
 			var delta = logicalPosition - strategyPosition;
 			var difference = delta - physicalPosition;
 			if( debug) log.Debug("PhysicalChange("+logical.SerialNumber+") delta="+delta+", strategyPosition="+strategyPosition+", difference="+difference);
-			if( delta == 0 || strategyPosition == 0) {
-				if( debug) log.Debug("(Flat) Canceling: " + physical);
+//			if( delta == 0 || strategyPosition == 0) {
+			if( delta == 0) {
+				if( debug) log.Debug("(Delta=0) Canceling: " + physical);
 				TryCancelBrokerOrder(physical);
 			} else if( difference != 0) {
 				var origBrokerOrder = physical.BrokerOrder;
@@ -404,9 +405,7 @@ namespace TickZoom.Common
 					}
 					break;
 				case TradeDirection.Change:
-					if( logical.StrategyPosition != 0) {
-						ProcessMissingPhysical(logical);
-					}
+					ProcessMissingPhysical(logical);
 					break;
 				default:
 					throw new ApplicationException("Unknown trade direction: " + logical.TradeDirection);

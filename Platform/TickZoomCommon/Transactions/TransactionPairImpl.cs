@@ -25,6 +25,7 @@
 #endregion
 
 using System;
+using TickZoom.Api;
 
 namespace TickZoom.Transactions
 {

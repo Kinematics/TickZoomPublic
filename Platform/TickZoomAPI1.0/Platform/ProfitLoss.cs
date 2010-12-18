@@ -24,12 +24,11 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
 
 namespace TickZoom.Api
 {
-	/// <summary>
+    /// <summary>
 	/// Description of Class1.
 	/// </summary>
 	public interface ProfitLoss {
@@ -39,4 +38,9 @@ namespace TickZoom.Api
 			set;
 		}
 	}
+
+    public interface ProfitLoss2 : ProfitLoss
+    {
+        void CalculateProfit(TransactionPairBinary transaction, out double profit, out double costs);
+    }
 }

@@ -30,19 +30,24 @@ using TickZoom.Api;
 
 namespace TickZoom.Statistics
 {
-	public class ProfitLossIB : ProfitLoss {
+	public class ProfitLossIB : ProfitLoss2 {
 		SymbolInfo symbol;
 		double slippage = 0;
 		double commission = 0;
 		
 		public ProfitLossIB() {
 		}
-		
-		public double CalculateProfit( double position, double entry, double exit) {
-			double transactionCosts = (slippage + commission)*symbol.FullPointValue*Math.Abs(position);
-			double pnl = ((exit - entry) * position * symbol.FullPointValue) - transactionCosts;
-			return pnl.Round();
-		}
+
+        public void CalculateProfit(TransactionPairBinary trade, out double grossProfit, out double costs)
+        {
+            costs = (slippage + commission) * symbol.FullPointValue * trade.Volume;
+            grossProfit = ((trade.ExitPrice - trade.AverageEntryPrice) * trade.CurrentPosition * symbol.FullPointValue);
+        }
+
+        public double CalculateProfit(double position, double entry, double exit)
+        {
+            throw new NotImplementedException("Please use the other CalculateProfit method.");
+        }
 		
 		public SymbolInfo Symbol {
 			get { return symbol; }

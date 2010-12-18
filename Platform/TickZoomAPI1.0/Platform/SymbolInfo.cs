@@ -82,6 +82,11 @@ namespace TickZoom.Api
 		double MinimumTick {
 			get;
 		}
+
+        /// <summary>
+        /// Provides the number of digits after the decimal point for the minimum tick.
+        /// </summary>
+	    int MinimumTickPrecision { get; }
 		
 		/// <summary>
 		/// The currency value of a full point of a symbol in its denominated currency.

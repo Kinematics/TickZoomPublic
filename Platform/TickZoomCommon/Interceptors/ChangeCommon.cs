@@ -134,8 +134,12 @@ namespace TickZoom.Interceptors
 	        ///  use PositionSize.Size.</param>
 	
 	        public void BuyLimit( double price, double lots) {
-	        	if( !Strategy.Position.HasPosition) {
-	        		throw new TickZoomException("Strategy must have a position before a change buy limit.");
+	        	if( Strategy.Performance.ComboTrades.Count == 0) {
+	        		throw new TickZoomException("Strategy must have an open combo trade to set a change sell limit.");
+	        	}
+	        	var trade = Strategy.Performance.ComboTrades[Strategy.Performance.ComboTrades.Current];
+	        	if( trade.Completed ) {
+	        		throw new TickZoomException("Strategy must have an open combo trade to set a change sell limit.");
 	        	}
 	        	orders.BuyLimit.Price = price;
 	        	orders.BuyLimit.Position = (int) lots;
@@ -158,8 +162,12 @@ namespace TickZoom.Interceptors
 	        ///  use PositionSize.Size.</param>
 	
 	        public void SellLimit( double price, double lots) {
-	        	if( !Strategy.Position.HasPosition) {
-	        		throw new TickZoomException("Strategy must have a position before a change sell limit.");
+	        	if( Strategy.Performance.ComboTrades.Count == 0) {
+	        		throw new TickZoomException("Strategy must have an open combo trade to set a change sell limit.");
+	        	}
+	        	var trade = Strategy.Performance.ComboTrades[Strategy.Performance.ComboTrades.Current];
+	        	if( trade.Completed ) {
+	        		throw new TickZoomException("Strategy must have an open combo trade to set a change sell limit.");
 	        	}
 	        	orders.SellLimit.Price = price;
 	        	orders.SellLimit.Position = (int) lots;
@@ -168,7 +176,7 @@ namespace TickZoom.Interceptors
 	        	} else {
 	        		orders.SellLimit.Status = OrderStatus.Active;
 	        	}
-		}
+			}
 	        
 	        public void BuyStop( double price) {
 	        	BuyStop( price, 1);
@@ -192,7 +200,7 @@ namespace TickZoom.Interceptors
 	        	} else {
 	        		orders.BuyStop.Status = OrderStatus.Active;
 	        	}
-		}
+			}
 	
 	        public void SellStop( double price) {
 	        	SellStop( price, 1);

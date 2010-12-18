@@ -196,6 +196,7 @@
     <Compile Include="Platform\SymbolInfo.cs" />
     <Compile Include="Platform\TickReader.cs" />
     <Compile Include="Platform\TickWriter.cs" />
+    <Compile Include="Platform\TransactionPairBinary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Provider\AsyncProviderAware.cs" />
     <Compile Include="Provider\BreakPointInterface.cs" />

@@ -129,7 +129,19 @@ namespace TickZoom.Statistics
 			
 			if( fill.Position != position.Current) {
 				if( position.IsFlat) {
-					EnterComboTrade(fill);
+					if( model is Strategy && comboTradesBinary.Count > 0) {
+						var comboTrade = comboTradesBinary.Tail;
+						var strategy = model as Strategy;
+						LogicalOrder filledOrder;
+						strategy.TryGetOrderById( fill.OrderId, out filledOrder);
+						if( !comboTrade.Completed && filledOrder.TradeDirection == TradeDirection.Change) {
+							ChangeComboSize(fill);
+						} else {
+							EnterComboTrade(fill);
+						}
+					} else {
+						EnterComboTrade(fill);
+					}
 				} else if( fill.Position == 0) {
 					if( model is Strategy) {
 						var strategy = model as Strategy;
@@ -213,7 +225,18 @@ namespace TickZoom.Statistics
 			TransactionPairBinary comboTrade = comboTradesBinary.Tail;
 			comboTrade.Exit( fill.Price, fill.Time, fill.PostedTime, model.Chart.ChartBars.BarCount, fill.OrderId, fill.OrderSerialNumber);
 			comboTradesBinary.Tail = comboTrade;
-			double pnl = profitLoss.CalculateProfit(comboTrade.Direction,comboTrade.EntryPrice,comboTrade.ExitPrice);
+		    var profitLoss2 = profitLoss as ProfitLoss2;
+		    double pnl = 0D;
+            if( profitLoss2 == null)
+            {
+                pnl = profitLoss.CalculateProfit(comboTrade.CurrentPosition, comboTrade.AverageEntryPrice, comboTrade.ExitPrice);
+            }
+            else
+            {
+                double costs;
+                profitLoss2.CalculateProfit(comboTrade, out pnl, out costs);
+                pnl = pnl - costs;
+            }
 			pnl = Math.Round(pnl,2);
 			Equity.OnChangeClosedEquity( pnl);
 			if( trace) {
@@ -225,6 +248,10 @@ namespace TickZoom.Statistics
 				LogicalOrder filledOrder;
 				if( !strategy.TryGetOrderById( fill.OrderId, out filledOrder)) {
 					throw new ApplicationException("A fill for order id: " + fill.OrderId + " was incorrectly routed to: " + strategy.Name);
+				}
+				if( model is Portfolio) {
+					var portfolio = (Portfolio) model;
+					portfolio.OnExitTrade();
 				}
 				strategy.OnExitTrade(fill,filledOrder);
 			}

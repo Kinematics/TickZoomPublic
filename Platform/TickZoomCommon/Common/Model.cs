@@ -152,7 +152,12 @@ namespace TickZoom.Common
 			throw new NotImplementedException("The performance object ignores this method unless you override and provide your own implementation.");
 		}
 
-		[Browsable(false)]
+        public virtual void OnCalculateProfitLoss(TransactionPairBinary trade, out double grossProfit, out double costs)
+        {
+            throw new NotImplementedException("The performance object ignores this method unless you override and provide your own implementation.");
+        }
+
+        [Browsable(false)]
 		public virtual Interval IntervalDefault {
 			get { return intervalDefault; }
 			set { intervalDefault = value; }
