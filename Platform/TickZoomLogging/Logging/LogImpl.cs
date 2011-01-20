@@ -255,7 +255,7 @@ namespace TickZoom.Logging
         	var msg = messageQueue.Dequeue();
         	return new LogEventDefault() {
         		IsAudioAlarm = msg.Level >= Level.Error,
-				MessageObject = msg.MessageObject
+				MessageObject = msg.RenderedMessage,
         	};
         }
         
@@ -379,7 +379,8 @@ namespace TickZoom.Logging
 		{
 			if (IsNoticeEnabled)
 			{
-				LoggingEvent loggingEvent = new LoggingEvent(callingType, log.Logger.Repository, log.Logger.Name, Level.Notice, message, t);
+				var data = BuildEventData(log.Logger.Name, Level.Notice, message, t);
+				var loggingEvent = new LoggingEvent( callingType, log.Logger.Repository, data);
 				if( t!=null) {
 					System.Diagnostics.Debug.WriteLine(message + "\n" + t);
 				}
@@ -393,7 +394,8 @@ namespace TickZoom.Logging
 		{
 			if (IsTraceEnabled)
 			{
-				LoggingEvent loggingEvent = new LoggingEvent(callingType, log.Logger.Repository, log.Logger.Name, Level.Trace, message, t);
+				var data = BuildEventData(log.Logger.Name, Level.Trace, message, t);
+				var loggingEvent = new LoggingEvent( callingType, log.Logger.Repository, data);
 				if( t!=null) {
 					System.Diagnostics.Debug.WriteLine(message + "\n" + t);
 				}
@@ -484,7 +486,8 @@ namespace TickZoom.Logging
 		{
 			if (IsDebugEnabled)
 			{
-				LoggingEvent loggingEvent = new LoggingEvent(callingType, log.Logger.Repository, log.Logger.Name, Level.Debug, message, t);
+				var data = BuildEventData(log.Logger.Name, Level.Debug, message, t);
+				var loggingEvent = new LoggingEvent( callingType, log.Logger.Repository, data);
 				if( t!=null) {
 					System.Diagnostics.Debug.WriteLine(message + "\n" + t);
 				}
@@ -497,7 +500,8 @@ namespace TickZoom.Logging
 		{
 			if (IsInfoEnabled)
 			{
-				LoggingEvent loggingEvent = new LoggingEvent(callingType, log.Logger.Repository, log.Logger.Name, Level.Info, message, t);
+				var data = BuildEventData(log.Logger.Name, Level.Info, message, t);
+				var loggingEvent = new LoggingEvent( callingType, log.Logger.Repository, data);
 				if( t!=null) {
 					System.Diagnostics.Debug.WriteLine(message + "\n" + t);
 				}
@@ -506,11 +510,29 @@ namespace TickZoom.Logging
 			}
 		}
 		
+		private LoggingEventData BuildEventData(string logger, Level level, object message, Exception exception)
+		{
+			string exceptionString = null;
+			if( exception != null) {
+				exceptionString = exception.ToString();
+			}
+			var data = new LoggingEventData() {
+				LoggerName = logger,
+				Level = level, 
+				Message = message.ToString(),
+				ThreadName = Thread.CurrentThread.Name,
+				TimeStamp = TimeStamp.UtcNow.DateTime,
+				ExceptionString = exceptionString,
+			};
+			return data;
+		}
+		
 		public void Warn(object message, Exception t)
 		{
 			if (IsWarnEnabled)
 			{
-				LoggingEvent loggingEvent = new LoggingEvent(callingType, log.Logger.Repository, log.Logger.Name, Level.Warn, message, t);
+				var data = BuildEventData(log.Logger.Name, Level.Warn, message, t);
+				var loggingEvent = new LoggingEvent( callingType, log.Logger.Repository, data);
 				if( t!=null) {
 					System.Diagnostics.Debug.WriteLine(message + "\n" + t);
 				}
@@ -524,7 +546,8 @@ namespace TickZoom.Logging
 		{
 			if (IsErrorEnabled)
 			{
-				LoggingEvent loggingEvent = new LoggingEvent(callingType, log.Logger.Repository, log.Logger.Name, Level.Error, message, t);
+				var data = BuildEventData(log.Logger.Name, Level.Error, message, t);
+				var loggingEvent = new LoggingEvent( callingType, log.Logger.Repository, data);
 				if( t!=null) {
 					System.Diagnostics.Debug.WriteLine(message + "\n" + t);
 				}
@@ -568,9 +591,9 @@ namespace TickZoom.Logging
 		}
 
 		private void SetProperties(LoggingEvent loggingEvent) {
-			loggingEvent.Properties["TimeStamp"] = CheckNull(log4net.MDC.Get("TimeStamp"));
-			loggingEvent.Properties["Symbol"] = CheckNull(log4net.MDC.Get("Symbol"));
-			loggingEvent.Properties["CurrentBar"] = CheckNull(log4net.MDC.Get("CurrentBar"));
+//			loggingEvent.Properties["TimeStamp"] = CheckNull(log4net.MDC.Get("TimeStamp");
+//			loggingEvent.Properties["Symbol"] = CheckNull(log4net.MDC.Get("Symbol"));
+//			loggingEvent.Properties["CurrentBar"] = CheckNull(log4net.MDC.Get("CurrentBar"));
 		}
 		
 		private string CheckNull(string value) {

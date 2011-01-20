@@ -373,5 +373,10 @@ namespace TickZoom.Presentation
             lastTime = series.Time[0].ToOADate();
             lastBar = series.CurrentBar;
         }
+    	
+		public void UpdateTick()
+		{
+			throw new NotImplementedException();
+		}
     }
 }

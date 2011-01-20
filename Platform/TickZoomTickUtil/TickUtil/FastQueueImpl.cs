@@ -50,6 +50,7 @@ namespace TickZoom.TickUtil
 		private readonly bool debug = log.IsDebugEnabled;
 		private readonly bool trace = log.IsTraceEnabled;
 		private readonly Log instanceLog;
+		private Action hasItem;
 		string name;
 		long lockSpins = 0;
 		long lockCount = 0;
@@ -121,6 +122,10 @@ namespace TickZoom.TickUtil
         	return TryEnqueueStruct(ref tick);
         }
         
+	    public void Connect(Action action) {
+	    	this.hasItem = action;
+	    }
+	    
 	    public bool TryEnqueueStruct(ref T tick)
 	    {
             if( terminate) {
@@ -131,14 +136,23 @@ namespace TickZoom.TickUtil
 	    		}
             }
             // If the queue is full, wait for an item to be removed
-            if( queue == null || queue.Count>=maxSize) return false;
+            if( queue == null ) return false;
+            if( queue.Count>=maxSize) {
+	            if( hasItem != null) hasItem();
+            	return false;
+            }
             if( !SpinLockNB()) return false;
             try { 
-	            if( queue == null || queue.Count>=maxSize) return false;
+	            if( queue == null ) return false;
+	            if( queue.Count>=maxSize) {
+		            if( hasItem != null) hasItem();
+	            	return false;
+	            }
 	           	queue.Enqueue(tick);
             } finally {
 	            SpinUnLock();
             }
+            if( hasItem != null) hasItem();
 	        return true;
 	    }
 	    
@@ -221,6 +235,7 @@ namespace TickZoom.TickUtil
 	    
 	    public void Terminate() {
 	    	terminate = true;
+	    	hasItem = null;
 	        if( queue!=null) {
 	    		while( !SpinLockNB()) ;
 		        QueuePool.Free(queue);
@@ -351,6 +366,10 @@ namespace TickZoom.TickUtil
 		
 		public bool IsFull {
 			get { return queue.Count >= maxSize; }
+		}
+		
+		public bool IsEmpty {
+			get { return queue.Count == 0; }
 		}
 	}
 }

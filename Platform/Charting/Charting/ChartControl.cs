@@ -530,6 +530,14 @@ namespace TickZoom
 			}
 		}
 
+		public void UpdateTick() {
+            if (trace) log.Trace("UpdateTick()");
+			if( !isBusy) {
+				isBusy = true;
+				execute.OnUIThread(AddBarPrivate);
+			}
+		}
+		
         private volatile bool addBarOccurred = false;
 		private void AddBarPrivate() {
             if (trace) log.Trace("AddBarPrivate()");
@@ -801,7 +809,10 @@ namespace TickZoom
 			if( lastHigh > yUpperLimit ) {
 				if( lastHigh > yScale.Max - symbol.MinimumTick) {
 					// Major jump in market, rapidly scale to fit it on the chart!
-					yScale.Max = lastHigh + symbol.MinimumTick;
+					var yMax = lastHigh + symbol.MinimumTick;
+					if( !double.IsNaN(yMax)) {
+						yScale.Max = yMax;
+					}
 				} else {
 					// Market is moving, smoothly scroll it.
 					float resetYScale = -1;
@@ -815,7 +826,10 @@ namespace TickZoom
 			
 			if( lastLow < yLowerLimit) {
 				if( lastLow < yScale.Min - symbol.MinimumTick) {
-					yScale.Min = lastLow - symbol.MinimumTick;
+					var yMin = lastLow - symbol.MinimumTick;
+					if( !double.IsNaN( yMin)) {
+						yScale.Min = yMin;
+					}
 				} else {
 					float resetYScale = 1;
 					double yMin = MoveByPixels(yScale,yScale.Min,resetYScaleSpeed*resetYScale);

@@ -58,6 +58,11 @@ namespace TickZoom.Api
 		void AddBar( Bars updateSeries, Bars displaySeries);
 		
 		void AddBar( Bars chartBars);
+		/// <summary>
+		/// The engine calls this message on every tick during real time processing when the bar or indicator values change.
+		/// </summary>
+		/// <param name="chartBars"></param>
+		void UpdateTick();
 		int DrawText(string text, Color color, int bar, double y, Positioning orient);
 		int DrawLine( Color color, int bar1, double y1, int bar2, double y2, LineStyle style);
 		[Obsolete("Please use the overloaded DrawArrow() instead.",true)]
