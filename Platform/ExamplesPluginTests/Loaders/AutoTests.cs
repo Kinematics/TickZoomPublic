@@ -226,8 +226,9 @@ namespace Loaders
 				EndTime = new TimeStamp( 2009, 6, 10),
 				IntervalDefault = Intervals.Minute1,
 			});
-			
-			list.Add( new AutoTestSettings {
+
+			// Fast Running CSCO real time tests...
+			var cscoRealTime = new AutoTestSettings {
 			    Mode = AutoTestMode.Default,
 			    Name = "RealTimeLimitOrderTest",
 			    Loader = new TestLimitOrderLoader(),
@@ -236,20 +237,37 @@ namespace Loaders
 				ShowCharts = showCharts,
 				EndTime = new TimeStamp( 2011,1,15,1,30,0),
 				IntervalDefault = Intervals.Minute1,
-			});
+			};
+			list.Add(cscoRealTime);
 			
+			// Real time (slow running) CSCO real time test.
+			cscoRealTime = cscoRealTime.Copy();
+			cscoRealTime.Mode = AutoTestMode.None;
 			var endTime = TimeStamp.UtcNow;
-			endTime.AddHours(24);
-			list.Add( new AutoTestSettings {
-			    Mode = AutoTestMode.None,
-			    Name = "RealTimeLimitOrderTest",
+			endTime.AddHours(2);
+			cscoRealTime.EndTime = endTime;
+			list.Add( cscoRealTime);
+			
+			// Fast Running CSCO real time tests...
+			var spyRealTime = new AutoTestSettings {
+			    Mode = AutoTestMode.Default,
+			    Name = "RealTimeSPYLimitOrderTest",
 			    Loader = new TestLimitOrderLoader(),
-				Symbols = "CSCO",
+				Symbols = "SPYTest",
 				StoreKnownGood = storeKnownGood,
 				ShowCharts = showCharts,
-				EndTime = endTime,
-				IntervalDefault = Intervals.Minute1,
-			});
+				EndTime = new TimeStamp( 2011,1,19,21,00,00),
+				IntervalDefault = Intervals.Second10,
+			};
+			list.Add(spyRealTime);
+			
+			// Real time (slow running) CSCO real time test.
+			spyRealTime = spyRealTime.Copy();
+			spyRealTime.Mode = AutoTestMode.FIXPlayBack;
+			endTime = TimeStamp.UtcNow;
+			endTime.AddMinutes(5);
+			spyRealTime.EndTime = endTime;
+			list.Add( spyRealTime);
 			
 			return list.ToArray();
 		}

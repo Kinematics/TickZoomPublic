@@ -36,16 +36,80 @@ namespace Loaders
 		Stats = 0x01,
 		BarData = 0x02,
 	}
+	public struct AutoTestSettingsBinary {
+		public TestType ignoreTests;
+		public AutoTestMode mode;
+		public string name;
+		public ModelLoaderInterface loader;
+		public string symbols;
+		public bool storeKnownGood;
+		public bool showCharts;
+		public TimeStamp startTime;
+		public TimeStamp endTime;
+		public Interval intervalDefault;
+	}
 	public class AutoTestSettings {
-		public TestType IgnoreTests;
-		public AutoTestMode Mode;
-		public string Name;
-		public ModelLoaderInterface Loader;
-		public string Symbols;
-		public bool StoreKnownGood;
-		public bool ShowCharts;
-		public TimeStamp StartTime;
-		public TimeStamp EndTime = TimeStamp.MaxValue;
-		public Interval IntervalDefault;
+		AutoTestSettingsBinary binary;
+		public AutoTestSettings() {
+			binary.endTime = TimeStamp.MaxValue;
+		}
+		
+		public AutoTestSettings(AutoTestSettingsBinary binary) {
+			this.binary = binary;
+		}
+		
+		public AutoTestSettings Copy() {
+			return new AutoTestSettings( binary);
+		}
+		
+		public TestType IgnoreTests {
+			get { return binary.ignoreTests; }
+			set { binary.ignoreTests = value; }
+		}
+		
+		public AutoTestMode Mode {
+			get { return binary.mode; }
+			set { binary.mode = value; }
+		}
+		
+		public string Name {
+			get { return binary.name; }
+			set { binary.name = value; }
+		}
+		
+		public ModelLoaderInterface Loader {
+			get { return binary.loader; }
+			set { binary.loader = value; }
+		}
+		
+		public string Symbols {
+			get { return binary.symbols; }
+			set { binary.symbols = value; }
+		}
+		
+		public bool StoreKnownGood {
+			get { return binary.storeKnownGood; }
+			set { binary.storeKnownGood = value; }
+		}
+		
+		public bool ShowCharts {
+			get { return binary.showCharts; }
+			set { binary.showCharts = value; }
+		}
+		
+		public TimeStamp StartTime {
+			get { return binary.startTime; }
+			set { binary.startTime = value; }
+		}
+		
+		public TimeStamp EndTime {
+			get { return binary.endTime; }
+			set { binary.endTime = value; }
+		}
+		
+		public Interval IntervalDefault {
+			get { return binary.intervalDefault; }
+			set { binary.intervalDefault = value; }
+		}
 	}
 }

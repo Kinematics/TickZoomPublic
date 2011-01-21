@@ -526,7 +526,8 @@ namespace TickZoom
             if (trace) log.Trace("AddBar()");
 			if( !isBusy) {
 				isBusy = true;
-				execute.OnUIThreadSync(AddBarPrivate);
+//				execute.OnUIThreadSync(AddBarPrivate);
+				AddBarPrivate();
 			}
 		}
 
@@ -534,7 +535,8 @@ namespace TickZoom
             if (trace) log.Trace("UpdateTick()");
 			if( !isBusy) {
 				isBusy = true;
-				execute.OnUIThread(AddBarPrivate);
+//				execute.OnUIThread(AddBarPrivate);
+				AddBarPrivate();
 			}
 		}
 		

@@ -79,6 +79,10 @@ namespace TickZoom.Api
 			get { return (int) ( (elapsed / MicrosecondsPerMillisecond) % MillisecondsPerSecond); }
 		}
 		
+		public int Microseconds {
+			get { return (int) (elapsed % MicrosecondsPerMillisecond); }
+		}
+		
 		public long TotalSeconds {
 			get { return (long) (elapsed / MicrosecondsPerSecond); }
 		}

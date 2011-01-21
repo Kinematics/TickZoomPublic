@@ -171,6 +171,7 @@ namespace TickZoom.Common
 			set { logicalOrderHandler = value; }
 		}
 		
+		
 		public double Position {
 			get { return position; }
 		}

@@ -141,6 +141,7 @@ namespace TickZoom.TickUtil
 		protected virtual void StartAppendThread() {
 			string baseName = Path.GetFileNameWithoutExtension(fileName);
 			appendTask = Factory.Parallel.Loop(baseName + " writer",OnException, AppendData);
+			writeQueue.Connect(appendTask.Resume);
 		}
 		
 		TickBinary tick = new TickBinary();
@@ -149,7 +150,8 @@ namespace TickZoom.TickUtil
 		protected virtual Yield AppendData() {
 			try {
 				if( writeQueue.Count == 0) {
-					return Yield.NoWork.Repeat;
+					appendTask.Pause();
+					return Yield.DidWork.Repeat;
 				}
 				if( !keepFileOpen) {
 	    			fs = new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.Read);
