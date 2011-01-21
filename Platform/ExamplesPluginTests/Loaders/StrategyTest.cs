@@ -75,6 +75,7 @@ namespace Loaders
 		protected bool testFailed = false;		
 		private TimeStamp startTime = new TimeStamp(1800,1,1);
 		private TimeStamp endTime = TimeStamp.UtcNow;
+		private Elapsed relativeEndTime = default(Elapsed);
 		private Interval intervalDefault = Intervals.Minute1;
 		private ModelInterface topModel = null;
 		private AutoTestMode autoTestMode = AutoTestMode.Historical;
@@ -88,6 +89,7 @@ namespace Loaders
 			this.ShowCharts = testSettings.ShowCharts;
 			this.startTime = testSettings.StartTime;
 			this.endTime = testSettings.EndTime;
+			this.relativeEndTime = testSettings.RelativeEndTime;
  			this.testFileName = testSettings.Name;
  			this.intervalDefault = testSettings.IntervalDefault;
 			createStarterCallback = CreateStarter;
@@ -127,8 +129,12 @@ namespace Loaders
 		}
 		
 		public StarterConfig SetupConfigStarter(AutoTestMode autoTestMode) {
+			// Set run properties 
 			var config = new StarterConfig("test");
 			config.ServicePort = 6490;
+    		config.EndDateTime = endTime.DateTime;
+			config.StartDateTime = startTime.DateTime;
+			
 			switch( autoTestMode) {
 				case AutoTestMode.Historical:
 					config.StarterName = "HistoricalStarter";
@@ -141,14 +147,16 @@ namespace Loaders
                     break;			
 				case AutoTestMode.FIXPlayBack:
 					config.StarterName = "FIXPlayBackStarter";
+					if( relativeEndTime != default(Elapsed)) {
+						var relative = TimeStamp.UtcNow;
+						relative.Add( relativeEndTime);
+						config.EndDateTime = relative.DateTime;
+					}
                     break;			
 				default:
 					throw new ApplicationException("AutoTestMode " + autoTestMode + " is unknown.");
 			}
 			
-			// Set run properties as in the GUI.
-			config.StartDateTime = startTime.DateTime;
-    		config.EndDateTime = endTime.DateTime;
     		if( ShowCharts) {
 	    		config.CreateChart = HistoricalCreateChart;
 	    		config.ShowChart = HistoricalShowChart;
@@ -903,6 +911,7 @@ namespace Loaders
 					BarInfo testInfo = testBarData[i];
 					BarInfo goodInfo = goodBarData[i];
 					goodInfo.Time += realTimeOffset;
+					goodInfo.EndTime += realTimeOffset;
 					var assertFlag = false;
 					AssertEqual(ref assertFlag, goodInfo.Time,testInfo.Time,"Time at bar " + i );
                     AssertEqual(ref assertFlag, goodInfo.EndTime, testInfo.EndTime, "End Time at bar " + i);					AssertEqual(ref assertFlag, goodInfo.Open,testInfo.Open,"Open at bar " + i + " " + testInfo.Time);

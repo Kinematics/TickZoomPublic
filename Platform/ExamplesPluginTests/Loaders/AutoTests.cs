@@ -243,9 +243,7 @@ namespace Loaders
 			// Real time (slow running) CSCO real time test.
 			cscoRealTime = cscoRealTime.Copy();
 			cscoRealTime.Mode = AutoTestMode.None;
-			var endTime = TimeStamp.UtcNow;
-			endTime.AddHours(2);
-			cscoRealTime.EndTime = endTime;
+			cscoRealTime.RelativeEndTime = new Elapsed(2,0,0);
 			list.Add( cscoRealTime);
 			
 			// Fast Running CSCO real time tests...
@@ -264,9 +262,7 @@ namespace Loaders
 			// Real time (slow running) CSCO real time test.
 			spyRealTime = spyRealTime.Copy();
 			spyRealTime.Mode = AutoTestMode.FIXPlayBack;
-			endTime = TimeStamp.UtcNow;
-			endTime.AddMinutes(5);
-			spyRealTime.EndTime = endTime;
+			spyRealTime.RelativeEndTime = new Elapsed(0,5,0);
 			list.Add( spyRealTime);
 			
 			return list.ToArray();

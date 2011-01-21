@@ -46,6 +46,7 @@ namespace Loaders
 		public bool showCharts;
 		public TimeStamp startTime;
 		public TimeStamp endTime;
+		public Elapsed relativeEndTime;
 		public Interval intervalDefault;
 	}
 	public class AutoTestSettings {
@@ -110,6 +111,11 @@ namespace Loaders
 		public Interval IntervalDefault {
 			get { return binary.intervalDefault; }
 			set { binary.intervalDefault = value; }
+		}
+		
+		public Elapsed RelativeEndTime {
+			get { return binary.relativeEndTime; }
+			set { binary.relativeEndTime = value; }
 		}
 	}
 }
