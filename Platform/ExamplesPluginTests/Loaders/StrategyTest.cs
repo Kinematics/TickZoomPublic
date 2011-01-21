@@ -157,10 +157,10 @@ namespace Loaders
 					throw new ApplicationException("AutoTestMode " + autoTestMode + " is unknown.");
 			}
 			
-    		if( ShowCharts) {
+//    		if( ShowCharts) {
 	    		config.CreateChart = HistoricalCreateChart;
 	    		config.ShowChart = HistoricalShowChart;
-    		}
+//    		}
     		
     		config.DataSubFolder = "Test\\DataCache";
     		config.SymbolList = Symbols;

@@ -39,7 +39,7 @@ namespace Loaders
 		public AutoTestSettings[] GetAutoTestSettings() {
 			var list = new System.Collections.Generic.List<AutoTestSettings>();
 			var storeKnownGood = false;
-			var showCharts = false;
+			var showCharts = true;
 			var primarySymbol = "USD/JPY";
 			try { 
 				list.Add( new AutoTestSettings {
@@ -248,7 +248,7 @@ namespace Loaders
 			
 			// Fast Running CSCO real time tests...
 			var spyRealTime = new AutoTestSettings {
-			    Mode = AutoTestMode.Default,
+			    Mode = AutoTestMode.Historical,
 			    Name = "RealTimeSPYLimitOrderTest",
 			    Loader = new TestLimitOrderLoader(),
 				Symbols = "SPYTest",
