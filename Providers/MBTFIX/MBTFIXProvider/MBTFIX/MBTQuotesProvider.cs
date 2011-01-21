@@ -378,22 +378,27 @@ namespace TickZoom.MBTQuotes
 		
 		
         private SymbolHandler GetSymbolHandler(SymbolInfo symbol, Receiver receiver) {
-        	SymbolHandler symbolHandler;
-        	if( symbolHandlers.TryGetValue(symbol.BinaryIdentifier,out symbolHandler)) {
-        		symbolHandler.Start();
-        		return symbolHandler;
-        	} else {
-    	    	symbolHandler = Factory.Utility.SymbolHandler(symbol,receiver);
-    	    	symbolHandlers.Add(symbol.BinaryIdentifier,symbolHandler);
-    	    	symbolHandler.Start();
-    	    	return symbolHandler;
-        	}
+			lock( symbolHandlersLocker) {
+	        	SymbolHandler symbolHandler;
+	        	if( symbolHandlers.TryGetValue(symbol.BinaryIdentifier,out symbolHandler)) {
+	        		symbolHandler.Start();
+	        		return symbolHandler;
+	        	} else {
+	    	    	symbolHandler = Factory.Utility.SymbolHandler(symbol,receiver);
+	    	    	symbolHandlers.Add(symbol.BinaryIdentifier,symbolHandler);
+	    	    	symbolHandler.Start();
+	    	    	return symbolHandler;
+	        	}
+			}
         }
 
+		private object symbolHandlersLocker = new object();
         private void RemoveSymbolHandler(SymbolInfo symbol) {
-        	if( symbolHandlers.ContainsKey(symbol.BinaryIdentifier) ) {
-        		symbolHandlers.Remove(symbol.BinaryIdentifier);
-        	}
+			lock( symbolHandlersLocker) {
+	        	if( symbolHandlers.ContainsKey(symbol.BinaryIdentifier) ) {
+	        		symbolHandlers.Remove(symbol.BinaryIdentifier);
+	        	}
+			}
         }
         
 		public static string Hash(string password) {
