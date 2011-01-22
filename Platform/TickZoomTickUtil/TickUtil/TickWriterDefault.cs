@@ -141,7 +141,13 @@ namespace TickZoom.TickUtil
 		protected virtual void StartAppendThread() {
 			string baseName = Path.GetFileNameWithoutExtension(fileName);
 			appendTask = Factory.Parallel.Loop(baseName + " writer",OnException, AppendData);
-			writeQueue.Connect(appendTask.Resume);
+			appendTask.IsActivityEnabled = true;
+			writeQueue.Connect(HasItem);
+			appendTask.Start();
+		}
+		
+		private void HasItem(object source) {
+			appendTask.IncreaseActivity();
 		}
 		
 		TickBinary tick = new TickBinary();
@@ -159,6 +165,7 @@ namespace TickZoom.TickUtil
 	    			memory = new MemoryStream();
 				}
 				while( writeQueue.TryDequeue(ref tick)) {
+					appendTask.DecreaseActivity();
 					tickIO.Inject(tick);
 					if( trace) {
 						log.Trace("Writing to file: " + tickIO);
@@ -172,6 +179,7 @@ namespace TickZoom.TickUtil
 		    	}
 	    		return Yield.DidWork.Repeat;
 		    } catch (QueueException ex) {
+				appendTask.DecreaseActivity();
 				if( ex.EntryType == EventType.Terminate) {
 					log.Debug("Exiting, queue terminated.");
 					if( fs != null) {

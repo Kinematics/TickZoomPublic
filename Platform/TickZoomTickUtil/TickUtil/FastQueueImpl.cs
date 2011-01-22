@@ -50,7 +50,7 @@ namespace TickZoom.TickUtil
 		private readonly bool debug = log.IsDebugEnabled;
 		private readonly bool trace = log.IsTraceEnabled;
 		private readonly Log instanceLog;
-		private Action hasItem;
+		private Action<object> hasItem;
 		string name;
 		long lockSpins = 0;
 		long lockCount = 0;
@@ -104,6 +104,11 @@ namespace TickZoom.TickUtil
 				 queueList.Add(this);
 			}
 	    }
+        
+		public override string ToString()
+		{
+			return name;
+		}
 	    
 		private bool SpinLockNB() {
         	for( int i=0; i<100000; i++) {
@@ -122,7 +127,7 @@ namespace TickZoom.TickUtil
         	return TryEnqueueStruct(ref tick);
         }
         
-	    public void Connect(Action action) {
+	    public void Connect(Action<object> action) {
 	    	this.hasItem = action;
 	    }
 	    
@@ -138,21 +143,19 @@ namespace TickZoom.TickUtil
             // If the queue is full, wait for an item to be removed
             if( queue == null ) return false;
             if( queue.Count>=maxSize) {
-	            if( hasItem != null) hasItem();
             	return false;
             }
             if( !SpinLockNB()) return false;
             try { 
 	            if( queue == null ) return false;
 	            if( queue.Count>=maxSize) {
-		            if( hasItem != null) hasItem();
 	            	return false;
 	            }
 	           	queue.Enqueue(tick);
             } finally {
 	            SpinUnLock();
             }
-            if( hasItem != null) hasItem();
+            if( hasItem != null) hasItem(this);
 	        return true;
 	    }
 	    

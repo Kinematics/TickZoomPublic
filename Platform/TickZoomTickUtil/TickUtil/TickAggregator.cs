@@ -72,6 +72,7 @@ namespace TickZoom.TickUtil
 				this.receiver = receiver;
 		        isStarted = true;
 		        runTask = Factory.Parallel.Loop(tick,OnException,Process);
+				runTask.Start();
 			}
 		}
 		

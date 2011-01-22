@@ -29,6 +29,7 @@ using System;
 namespace TickZoom.Api
 {
 	public interface Task {
+		void Start();
 		void Stop();
 		void Join();
 		void Pause();
@@ -39,6 +40,11 @@ namespace TickZoom.Api
 		/// out the queue.
 		/// </summary>
 		void Boost();
+		void IncreaseActivity();
+		void DecreaseActivity();
+		bool HasActivity {
+			get;
+		}
 		bool IsAlive {
 			get;
 		}
@@ -50,6 +56,11 @@ namespace TickZoom.Api
 			set;
 		}
 		Action<Exception> OnException {
+			get;
+			set;
+		}
+		
+		bool IsActivityEnabled {
 			get;
 			set;
 		}

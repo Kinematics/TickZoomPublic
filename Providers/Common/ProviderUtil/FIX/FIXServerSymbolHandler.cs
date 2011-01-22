@@ -66,6 +66,7 @@ namespace TickZoom.FIX
 			tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			tickSync.ForceClear();
 			queueTask = Factory.Parallel.Loop("FIXServerSymbol-"+symbolString, OnException, ProcessQueue);
+			queueTask.Start();
 			firstHearbeat = true;
 		}
 		

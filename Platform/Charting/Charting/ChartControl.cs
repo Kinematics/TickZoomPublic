@@ -862,10 +862,12 @@ namespace TickZoom
 					log.Debug("resetXScaleSpeed = " + resetXScaleSpeed);
 				}
 				if( !double.IsNaN(xScale.Min)) {
-					xScale.Min = MoveByPixels(xScale,xScale.Min,resetXScaleSpeed);
+					var _min = MoveByPixels(xScale,xScale.Min,resetXScaleSpeed);
+					xScale.Min = _min;
 				}
 				if( !double.IsNaN(xScale.Mag)) {
-					xScale.Max = MoveByPixels(xScale,xScale.Max,resetXScaleSpeed);
+					var _min = MoveByPixels(xScale,xScale.Max,resetXScaleSpeed);
+					xScale.Max = _min;
 				}
 				reset = true;
 			} else {

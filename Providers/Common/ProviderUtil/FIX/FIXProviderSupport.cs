@@ -92,6 +92,7 @@ namespace TickZoom.FIX
 			selector.Start();
 			RegenerateSocket();
 			socketTask = Factory.Parallel.Loop(GetType().Name, OnException, SocketTask);
+			socketTask.Start();
   			string logRecoveryString = Factory.Settings["LogRecovery"];
   			logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
         }

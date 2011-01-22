@@ -157,10 +157,8 @@ namespace Loaders
 					throw new ApplicationException("AutoTestMode " + autoTestMode + " is unknown.");
 			}
 			
-//    		if( ShowCharts) {
-	    		config.CreateChart = HistoricalCreateChart;
-	    		config.ShowChart = HistoricalShowChart;
-//    		}
+    		config.CreateChart = HistoricalCreateChart;
+    		config.ShowChart = HistoricalShowChart;
     		
     		config.DataSubFolder = "Test\\DataCache";
     		config.SymbolList = Symbols;
@@ -821,11 +819,11 @@ namespace Loaders
 			if( !a.Equals(b)) {
 				assertFlag = true;				
 				log.Error("Mismatch:\nExpected '" + a + "'\n but was '" + b + "': " + message);
-				if( a is TimeStamp) {
-					var ats = (TimeStamp) a;
-					var bts = (TimeStamp) b;
-					log.Info("Expected: " + ats.Internal + " but was " + bts.Internal);
-				}
+//				if( a is TimeStamp) {
+//					var ats = (TimeStamp) a;
+//					var bts = (TimeStamp) b;
+//					log.Info("Expected: " + ats.Internal + " but was " + bts.Internal);
+//				}
 			}
 		}
 		
@@ -913,18 +911,19 @@ namespace Loaders
 					goodInfo.Time += realTimeOffset;
 					goodInfo.EndTime += realTimeOffset;
 					var assertFlag = false;
-					AssertEqual(ref assertFlag, goodInfo.Time,testInfo.Time,"Time at bar " + i );
-                    AssertEqual(ref assertFlag, goodInfo.EndTime, testInfo.EndTime, "End Time at bar " + i);					AssertEqual(ref assertFlag, goodInfo.Open,testInfo.Open,"Open at bar " + i + " " + testInfo.Time);
-					AssertEqual(ref assertFlag, goodInfo.High,testInfo.High,"High at bar " + i + " " + testInfo.Time);
-					AssertEqual(ref assertFlag, goodInfo.Low,testInfo.Low,"Low at bar " + i + " " + testInfo.Time);
-					AssertEqual(ref assertFlag, goodInfo.Close,testInfo.Close,"Close at bar " + i + " " + testInfo.Time);
+					AssertEqual(ref assertFlag, goodInfo.Time,testInfo.Time,strategyName + ": Time at bar " + i );
+                    AssertEqual(ref assertFlag, goodInfo.EndTime, testInfo.EndTime,strategyName + ": End Time at bar " + i);
+                    AssertEqual(ref assertFlag, goodInfo.Open,testInfo.Open,strategyName + ": Open at bar " + i + " " + testInfo.Time);
+					AssertEqual(ref assertFlag, goodInfo.High,testInfo.High,strategyName + ": High at bar " + i + " " + testInfo.Time);
+					AssertEqual(ref assertFlag, goodInfo.Low,testInfo.Low,strategyName + ": Low at bar " + i + " " + testInfo.Time);
+					AssertEqual(ref assertFlag, goodInfo.Close,testInfo.Close,strategyName + ": Close at bar " + i + " " + testInfo.Time);
 					if( assertFlag) {
 						errorCount++;
 					}
 				}
 				var extraTestBars = (testBarData.Count-i);
 				if( extraTestBars > 0) {
-					log.Error( extraTestBars + " extra test bars. Listing first 10.");
+					log.Error( extraTestBars + " extra " + strategyName + " test bars. Listing first 10.");
 				}
 				for( var j=0; i<testBarData.Count && j<10; i++, j++) {
 					BarInfo testInfo = testBarData[i];
@@ -934,7 +933,7 @@ namespace Loaders
 				
 				var extraGoodBars = (goodBarData.Count-i);
 				if( extraGoodBars > 0) {
-					log.Error( extraGoodBars + " extra good bars. Listing first 10.");
+					log.Error( extraGoodBars + " extra " + strategyName + " good bars. Listing first 10.");
 				}
 				for( var j=0; i<goodBarData.Count && j<10; i++, j++) {
 					BarInfo goodInfo = goodBarData[i];

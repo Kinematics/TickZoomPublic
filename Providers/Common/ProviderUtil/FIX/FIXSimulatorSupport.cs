@@ -106,6 +106,7 @@ namespace TickZoom.FIX
 			StartFIXSimulation();
 			if( task == null) {
 				task = Factory.Parallel.Loop("FIXSimulator", OnException, MainLoop);
+				task.Start();
 			}
 		}
 
@@ -119,6 +120,7 @@ namespace TickZoom.FIX
 			StartQuoteSimulation();
 			if( task == null) {
 				task = Factory.Parallel.Loop("FIXSimulator", OnException, MainLoop);
+				task.Start();
 			}
 		}
 

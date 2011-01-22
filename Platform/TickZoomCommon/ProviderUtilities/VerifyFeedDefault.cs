@@ -330,6 +330,7 @@ namespace TickZoom.Common
 			count = 0;
 			countLog = 0;
 			task = Factory.Parallel.Loop(this, OnException, TimeTheFeedTask);
+			task.Start();
 		}
 		
 		private Exception propagateException = null;

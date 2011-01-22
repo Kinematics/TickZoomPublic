@@ -39,7 +39,7 @@ namespace TickZoom.Api
 
     public interface FastQueue<T>
 	{
-		void Connect(Action hasItem);
+		void Connect(Action<object> hasItem);
 		bool EnqueueStruct(ref T tick);
 		bool DequeueStruct(ref T tick);
 		bool PeekStruct(ref T tick);

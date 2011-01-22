@@ -205,6 +205,7 @@ namespace TickZoom.TickUtil
 				log.Debug("Start called.");
 			start = Factory.TickCount;
 			fileReaderTask = Factory.Parallel.Loop(this, OnException, FileReader);
+			fileReaderTask.Start();
 		}
 
 		private void OnException(Exception ex)
@@ -461,6 +462,7 @@ namespace TickZoom.TickUtil
 			if (!receiver.OnEvent(symbol, (int)EventType.EndHistorical, null)) {
 				return Yield.NoWork.Repeat;
 			} else {
+				log.Info("EndHistorical for " + symbol);
 				return Yield.DidWork.Invoke(FinishTask);
 			}
 		}

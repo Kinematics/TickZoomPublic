@@ -79,9 +79,10 @@ namespace TickZoom.MBTQuotes
 			selector.Start();
 			RegenerateSocket();
 			socketTask = Factory.Parallel.Loop("SocketTask", OnException, SocketTask);
-	  			string logRecoveryString = Factory.Settings["LogRecovery"];
-	  			logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
-	        }
+			socketTask.Start();
+	  		string logRecoveryString = Factory.Settings["LogRecovery"];
+	  		logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
+	    }
 		
 		private void RegenerateSocket() {
 			Socket old = socket;
