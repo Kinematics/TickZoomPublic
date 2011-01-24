@@ -289,14 +289,14 @@ namespace TickZoom.TradingFramework
 		public void SessionClose()
 		{
 			Bar expected = new Bar();
-			expected.Time = new TimeStamp(2005,5,30,6,20,0,0);
-			expected.EndTime = new TimeStamp(2005,5,30,15,0,0);
-			expected.TickTime = new TimeStamp("2005-05-30 11:59:43.211");
+			expected.Time = new TimeStamp(2005,5,31,6,20,0,0);
+			expected.EndTime = new TimeStamp(2005,5,31,15,0,0);
+			expected.TickTime = new TimeStamp("2005-05-31 15:58:52.848");
 			BarsList bars = weeklogic.closeSessionBars;
-			expected.Open = 107.84;
-			expected.High = 107.97;
-			expected.Low = 107.81;
-			expected.Close = 107.88;
+			expected.Open = 108.00;
+			expected.High = 108.32;
+			expected.Low = 107.71;
+			expected.Close = 108.30;
 			TestBar(bars,expected,bars[0]);
 		}
 		
