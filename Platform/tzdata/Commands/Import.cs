@@ -18,6 +18,7 @@ namespace TickZoom.TZData
 	public class Import : Command
 	{
 		string assemblyName;
+		string dataFolder = "DataCache";
 
 		// Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 		TimeStamp tickTime;
@@ -87,7 +88,7 @@ namespace TickZoom.TZData
 		symbol = symbolParam;
 		
 
-		string path = Factory.Settings["AppDataFolder"] + @"\DataCache\";		// *** specify the path to the input file here
+		string path = Factory.Settings["AppDataFolder"] + @"\" + dataFolder + @"\";		// *** specify the path to the input file here
 		// SymbolInfo symbol;									// take user input symbol
 		string ext = ".txt";							// *** specify input file extension here
 		
@@ -294,5 +295,9 @@ namespace TickZoom.TZData
 			set { assemblyName = value; }
 		}
 		
+		public string DataFolder {
+			get { return dataFolder; }
+			set { dataFolder = value; }
+		}
 	}
 }

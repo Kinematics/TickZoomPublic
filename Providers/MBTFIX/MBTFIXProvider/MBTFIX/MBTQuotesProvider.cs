@@ -36,9 +36,9 @@ namespace TickZoom.MBTQuotes
 	[SkipDynamicLoad]
 	public class MBTQuotesProvider : MBTQuoteProviderSupport
 	{
-		private static readonly Log log = Factory.SysLog.GetLogger(typeof(MBTQuotesProvider));
-		private static readonly bool debug = log.IsDebugEnabled;
-		private static readonly bool trace = log.IsTraceEnabled;
+		private static Log log = Factory.SysLog.GetLogger(typeof(MBTQuotesProvider));
+		private bool debug = log.IsDebugEnabled;
+		private bool trace = log.IsTraceEnabled;
         private Dictionary<long,SymbolHandler> symbolHandlers = new Dictionary<long,SymbolHandler>();	
 		private TimeStamp prevTime;		
 		

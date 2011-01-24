@@ -30,9 +30,11 @@ using TickZoom.Api;
 namespace TickZoom.Common
 {
 	public class SymbolHandlerDefault : SymbolHandler {
-		private static readonly Log log = Factory.SysLog.GetLogger(typeof(SymbolHandlerDefault));
-		private readonly bool debug = log.IsDebugEnabled;
-		private readonly bool trace = log.IsTraceEnabled;
+		private LatencyMetric salesLatency;
+		private LatencyMetric quotesLatency;
+		private static Log log = Factory.SysLog.GetLogger(typeof(SymbolHandlerDefault));
+		private bool debug = log.IsDebugEnabled;
+		private bool trace = log.IsTraceEnabled;
 		private TickIO tickIO = Factory.TickUtil.TickIO();
 		private Receiver receiver;
 		private SymbolInfo symbol;
@@ -63,6 +65,8 @@ namespace TickZoom.Common
 		public SymbolHandlerDefault(SymbolInfo symbol, Receiver receiver) {
         	this.symbol = symbol;
 			this.receiver = receiver;
+			this.quotesLatency = new LatencyMetric( "SymbolHandler-Quotes-" + symbol.Symbol.StripInvalidPathChars());
+			this.salesLatency = new LatencyMetric( "SymbolHandler-Sales-" + symbol.Symbol.StripInvalidPathChars());
 		}
 		
 		bool errorWrongLevel1Type = false;
@@ -87,6 +91,7 @@ namespace TickZoom.Common
 						tickIO.SetQuote(Bid,Ask,(short)BidSize,(short)AskSize);
 						var box = tickPool.Create();
 						box.TickBinary = tickIO.Extract();
+						quotesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
 						receiver.OnEvent(symbol,(int)EventType.Tick,box);
 						if( trace) log.Trace("Sent tick for " + symbol + ": " + tickIO);
 					}
@@ -162,6 +167,7 @@ namespace TickZoom.Common
 				if( tickIO.IsTrade && tickIO.Price == 0D) {
 					log.Warn("Found trade tick with zero price: " + tickIO);
 				}
+				salesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
 				receiver.OnEvent(symbol,(int)EventType.Tick,box);
 			}
 		}

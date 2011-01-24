@@ -32,6 +32,7 @@ using System.Xml;
 
 namespace TickZoom.Api
 {
+
 	/// <summary>
 	/// Description of SettingsFile.
 	/// </summary>

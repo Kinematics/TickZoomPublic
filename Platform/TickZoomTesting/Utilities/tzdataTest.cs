@@ -73,6 +73,7 @@ namespace TickZoom.Utilities
 				storageFolder + @"\Test\\ImportData\KC.csv",
 			};
 	       	var import = new Import();
+	       	import.DataFolder = @"Test\DataCache";
 	       	import.AssemblyName = "tzdata";
 	       	import.Run(args);
 	       	
@@ -168,8 +169,8 @@ namespace TickZoom.Utilities
 Version: 8
 Ticks: 15683
 Trade Only: 15683
-From: 2010-02-16 16:49:28.769.0
-To: 2010-02-16 16:59:56.140.0
+From: 2010-02-16 16:49:28.769.0 (local), 2010-02-16 21:49:28.769.0 (UTC)
+  To: 2010-02-16 16:59:56.140.0 (local), 2010-02-16 21:59:56.140.0 (UTC)
 Prices duplicates: 14489
 ";
 			string output = query.ToString();

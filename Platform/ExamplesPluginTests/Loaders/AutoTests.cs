@@ -261,7 +261,7 @@ namespace Loaders
 			
 			// Real time (slow running) CSCO real time test.
 			spyRealTime = spyRealTime.Copy();
-			spyRealTime.Mode = AutoTestMode.FIXPlayBack;
+			spyRealTime.Mode = AutoTestMode.None;
 			spyRealTime.RelativeEndTime = new Elapsed(0,5,0);
 			list.Add( spyRealTime);
 			

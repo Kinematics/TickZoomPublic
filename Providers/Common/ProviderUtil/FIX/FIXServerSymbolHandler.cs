@@ -47,6 +47,7 @@ namespace TickZoom.FIX
 		private TimeStamp heartbeatTimer;
 		private bool firstHearbeat = true;
 		private FIXSimulatorSupport fixSimulatorSupport;
+		private LatencyMetric latency;
 		
 		public FIXServerSymbolHandler( FIXSimulatorSupport fixSimulatorSupport, 
 			    bool isPlayBack, string symbolString,
@@ -67,6 +68,7 @@ namespace TickZoom.FIX
 			tickSync.ForceClear();
 			queueTask = Factory.Parallel.Loop("FIXServerSymbol-"+symbolString, OnException, ProcessQueue);
 			queueTask.Start();
+			latency = new LatencyMetric("FIXServerSymbolHandler-"+symbolString.StripInvalidPathChars());
 			firstHearbeat = true;
 		}
 		
@@ -126,15 +128,19 @@ namespace TickZoom.FIX
 							playbackOffset = fixSimulatorSupport.GetRealTimeOffset(binary.UtcTime);
 						}
 						binary.UtcTime += playbackOffset;
-					}
+						var time = new TimeStamp( binary.UtcTime);
+				   	} 
 				   	nextTick.Inject( binary);
 				   	tickSync.AddTick();
-				   	if( isFirstTick) {
-					   	fillSimulator.StartTick( nextTick);
-				   		isFirstTick = false;
-				   	} else { 
-				   		fillSimulator.ProcessOrders();
+				   	if( !isPlayBack) {
+					   	if( isFirstTick) {
+						   	fillSimulator.StartTick( nextTick);
+					   		isFirstTick = false;
+					   	} else { 
+					   		fillSimulator.ProcessOrders();
+					   	}
 				   	}
+				   	if( trace) log.Trace("Dequeue tick " + nextTick.UtcTime);
 				   	result = Yield.DidWork.Invoke(ProcessTick);
 				}
 			} catch( QueueException ex) {
@@ -170,9 +176,9 @@ namespace TickZoom.FIX
 
 		private volatile TickStatus tickStatus = TickStatus.None;
 		private Yield ProcessTick() {
+			var result = Yield.NoWork.Repeat;
 			if( isPlayBack ) {
 				var currentTime = TimeStamp.UtcNow;
-				TryRequestHeartbeat(currentTime);
 				switch( tickStatus) {
 					case TickStatus.None:
 						var overlapp = 5000L;
@@ -182,7 +188,8 @@ namespace TickZoom.FIX
 							tickStatus = TickStatus.Timer;
 						} else {
 							if( trace) log.Trace("Current time " + currentTime + " was greater than tick time " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
-							onTick( symbol, nextTick);
+							SendPlayBackTick();
+							result = Yield.DidWork.Return;
 							try { 
 								var binary = new TickBinary();
 								if( reader.ReadQueue.TryDequeue( ref binary)) {
@@ -190,29 +197,43 @@ namespace TickZoom.FIX
 								   	nextTick.Inject( binary);
 									if( trace) log.Trace("Found another tick on the queue at " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
 								   	tickSync.AddTick();
-							   		fillSimulator.ProcessOrders();
-									return Yield.DidWork.Repeat;
+									result = Yield.DidWork.Repeat;
 								}
 							} catch( QueueException ex) {
 								if( ex.EntryType != EventType.EndHistorical) {
 									throw;
 								}
 							}
-							return Yield.DidWork.Return;
 						}		
 						break;
 					case TickStatus.Sent:
 						tickStatus = TickStatus.None;
-						return Yield.DidWork.Return;
+						result = Yield.DidWork.Return;
+						break;
 				}
-				return Yield.NoWork.Repeat;
+				TryRequestHeartbeat(currentTime);
+				return result;
 			} else {
 				return onTick( symbol, nextTick);
 			}
 		}
 		
-		private void PlayBackTick() {
+		private void SendPlayBackTick() {
+		   	if( isFirstTick) {
+			   	fillSimulator.StartTick( nextTick);
+		   		isFirstTick = false;
+		   	} else { 
+		   		fillSimulator.ProcessOrders();
+		   	}
+			var time = nextTick.UtcTime;
+			var latencyUs = TimeStamp.UtcNow.Internal - nextTick.UtcTime.Internal;
+			if( trace) log.Trace("Updating latency " + time + "." + time.Microsecond + " latency = " + latencyUs);
+			latency.TryUpdate( nextTick.lSymbol, nextTick.UtcTime.Internal);
 			onTick( symbol, nextTick);
+		}
+		
+		private void PlayBackTick() {
+			SendPlayBackTick();
 			tickStatus = TickStatus.Sent;
 			queueTask.Boost();
 		}
