@@ -179,7 +179,6 @@ namespace TickZoom.TickUtil
 		    	}
 	    		return Yield.DidWork.Repeat;
 		    } catch (QueueException ex) {
-				appendTask.DecreaseActivity();
 				if( ex.EntryType == EventType.Terminate) {
 					log.Debug("Exiting, queue terminated.");
 					if( fs != null) {
