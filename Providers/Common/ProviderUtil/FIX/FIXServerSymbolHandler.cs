@@ -67,9 +67,17 @@ namespace TickZoom.FIX
 			tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			tickSync.ForceClear();
 			queueTask = Factory.Parallel.Loop("FIXServerSymbol-"+symbolString, OnException, ProcessQueue);
+			queueTask.IsActivityEnabled = true;
+			reader.ReadQueue.Connect( HasItem);
 			queueTask.Start();
 			latency = new LatencyMetric("FIXServerSymbolHandler-"+symbolString.StripInvalidPathChars());
 			firstHearbeat = true;
+			reader.ReadQueue.StartEnqueue();
+		}
+		
+		private void HasItem( object source) {
+//			if( trace) log.Trace( source + " send has item event.");
+			queueTask.IncreaseActivity();
 		}
 		
 	    private void TryCompleteTick() {
@@ -117,23 +125,38 @@ namespace TickZoom.FIX
 			return Yield.DidWork.Invoke(DequeueTick);
 		}
 
+		private long intervalTime = 1000000;
+		private long prevTickTime;
+		private bool isVolumeTest = true;
+		private long tickCounter = 0;
 		private Yield DequeueTick() {
 			var result = Yield.NoWork.Repeat;
 			var binary = new TickBinary();
 			
 			try { 
 				if( reader.ReadQueue.TryDequeue( ref binary)) {
+					tickCounter++;
 				   	if( isPlayBack) {
 						if( isFirstTick) {
 							playbackOffset = fixSimulatorSupport.GetRealTimeOffset(binary.UtcTime);
+							prevTickTime = TimeStamp.UtcNow.Internal + 5000000;
+					   		isFirstTick = false;
 						}
-						binary.UtcTime += playbackOffset;
+						if( isVolumeTest) {
+							prevTickTime += intervalTime;
+							binary.UtcTime = prevTickTime;
+						} else {
+							binary.UtcTime += playbackOffset;
+						}
+						if( tickCounter > 10) {
+							intervalTime = 500;
+						}
 						var time = new TimeStamp( binary.UtcTime);
 				   	} 
 				   	nextTick.Inject( binary);
 				   	tickSync.AddTick();
 				   	if( !isPlayBack) {
-					   	if( isFirstTick) {
+				   		if( isFirstTick) {
 						   	fillSimulator.StartTick( nextTick);
 					   		isFirstTick = false;
 					   	} else { 
@@ -144,6 +167,7 @@ namespace TickZoom.FIX
 				   	result = Yield.DidWork.Invoke(ProcessTick);
 				}
 			} catch( QueueException ex) {
+				queueTask.DecreaseActivity();
 				if( ex.EntryType != EventType.EndHistorical) {
 					throw;
 				}
@@ -190,20 +214,6 @@ namespace TickZoom.FIX
 							if( trace) log.Trace("Current time " + currentTime + " was greater than tick time " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
 							SendPlayBackTick();
 							result = Yield.DidWork.Return;
-							try { 
-								var binary = new TickBinary();
-								if( reader.ReadQueue.TryDequeue( ref binary)) {
-									binary.UtcTime += playbackOffset;
-								   	nextTick.Inject( binary);
-									if( trace) log.Trace("Found another tick on the queue at " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
-								   	tickSync.AddTick();
-									result = Yield.DidWork.Repeat;
-								}
-							} catch( QueueException ex) {
-								if( ex.EntryType != EventType.EndHistorical) {
-									throw;
-								}
-							}
 						}		
 						break;
 					case TickStatus.Sent:
@@ -214,11 +224,14 @@ namespace TickZoom.FIX
 				TryRequestHeartbeat(currentTime);
 				return result;
 			} else {
-				return onTick( symbol, nextTick);
+					queueTask.DecreaseActivity();
+					return onTick( symbol, nextTick);
+				}
 			}
-		}
 		
 		private void SendPlayBackTick() {
+			latency.TryUpdate( nextTick.lSymbol, nextTick.UtcTime.Internal);
+			queueTask.DecreaseActivity();
 		   	if( isFirstTick) {
 			   	fillSimulator.StartTick( nextTick);
 		   		isFirstTick = false;
@@ -228,13 +241,15 @@ namespace TickZoom.FIX
 			var time = nextTick.UtcTime;
 			var latencyUs = TimeStamp.UtcNow.Internal - nextTick.UtcTime.Internal;
 			if( trace) log.Trace("Updating latency " + time + "." + time.Microsecond + " latency = " + latencyUs);
-			latency.TryUpdate( nextTick.lSymbol, nextTick.UtcTime.Internal);
 			onTick( symbol, nextTick);
 		}
 		
 		private void PlayBackTick() {
 			SendPlayBackTick();
 			tickStatus = TickStatus.Sent;
+//			if( trace) {
+//				queueTask.IsLogging = true;
+//			}
 			queueTask.Boost();
 		}
 		

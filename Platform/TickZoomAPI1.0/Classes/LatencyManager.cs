@@ -33,6 +33,7 @@ namespace TickZoom.Api
 {
 	public class LatencyManager : IDisposable {
 		private static int count;
+		private object listMapLocker = new object();
 		private Dictionary<long,LinkedList<LatencyMetric>> listMap = new Dictionary<long,LinkedList<LatencyMetric>>();
 		private static LatencyManager instance;
 		
@@ -42,20 +43,23 @@ namespace TickZoom.Api
 			}
 			return instance;
 		}
-		public static LatencyManager Register(LatencyMetric metric, out int id, out int count) {
-			GetInstance().Register(metric);
+		public static LatencyManager Register(LatencyMetric metric, out int id, out int count, out LatencyMetric previous) {
+			GetInstance().Register(metric, out previous);
 			id = instance.GetNextId();
 			count = instance.Count;
 			return instance;
 		}
 		
-		private void Register( LatencyMetric metric) {
+		private void Register( LatencyMetric metric, out LatencyMetric previous) {
 			LinkedList<LatencyMetric> list;
-			if( !listMap.TryGetValue(metric.Symbol, out list)) {
-				list = new LinkedList<LatencyMetric>();
-				listMap[metric.Symbol] = list;
+			lock( listMapLocker) {
+				if( !listMap.TryGetValue(metric.Symbol, out list)) {
+					list = new LinkedList<LatencyMetric>();
+					listMap[metric.Symbol] = list;
+				}
+				previous = list.Count > 0 ? list.Last.Value : null;
+				list.AddLast( metric);
 			}
-			list.AddLast( metric);
 		}
 		
 		public int GetNextId() {
@@ -89,19 +93,17 @@ namespace TickZoom.Api
 	    
 	    public string GetStats() {
 	    	var sb = new StringBuilder();
-	    	foreach( var kvp in listMap) {
-	        	var symbol = kvp.Key;
-	        	var list = kvp.Value;
-	        	var previous = list.First.Value.Average;
-	        	foreach( var metric in list) {
-	        		sb.Append( metric.GetStats());
-	        		sb.Append( ", self ");
-	        		if( metric.Average != 0) {
-		        		sb.Append( metric.Average - previous);
+	    	lock( listMapLocker) {
+		    	foreach( var kvp in listMap) {
+		        	var symbol = kvp.Key;
+		        	var list = kvp.Value;
+		        	var previous = list.First.Value;
+		        	foreach( var metric in list) {
+		        		sb.Append( metric.GetStats(previous));
 		        		sb.AppendLine();
-	        		}
-	        		previous = metric.Average;	
-	        	}
+		        		previous = metric;	
+		        	}
+		    	}
 	    	}
 	    	return sb.ToString();
 	    }

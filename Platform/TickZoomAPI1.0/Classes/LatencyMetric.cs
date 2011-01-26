@@ -30,12 +30,17 @@ using System.Text;
 namespace TickZoom.Api
 {
 	public class LatencyMetric {
+		private LatencyMetric previous;
 		private Log log;
 		private bool debug;
 		private bool trace;
 		private int id = int.MinValue;
 		private long symbol;
-		private long totalMicroseconds;
+		private const int averageLength = 10;
+		private Longs latencies = Factory.Engine.Longs(100);
+		private long lastSelf;
+		private long total;
+		private long totalSelf;
 		private long count;
 		private long tickCount;
 		private int metricCount;
@@ -53,7 +58,7 @@ namespace TickZoom.Api
 			if( debug) {
 			    if( id == int.MinValue) {
 					this.symbol = symbol;
-					this.manager = LatencyManager.Register(this, out id, out metricCount);
+					this.manager = LatencyManager.Register(this, out id, out metricCount, out previous);
 					if( trace) log.Trace( "Registered " + name + " metric (" + id + ") on tick " + new TimeStamp( timeStamp) + ")");
 				}
 				Update( timeStamp);
@@ -66,41 +71,77 @@ namespace TickZoom.Api
 			var latency = current - timeStamp;
 			metricCount = manager.Count;
 			
-			if( count > 10) {
-				var average = totalMicroseconds / count;
-				totalMicroseconds -= average;
-				totalMicroseconds += latency;
+			latencies.Add(latency);
+			if( previous == null) {
 			} else {
-				totalMicroseconds += latency;
-				count++;
+				lastSelf = latency - previous.latencies[(int) (previous.count - count)];
+			}
+			total += latency;
+			if( latencies.Count > averageLength) {
+				total -= latencies[averageLength];
+			} else {
+				count ++;
+			}
+			if( previous != null) {
+				totalSelf = total - previous.total;
 			}
 		}
 		
 		public long Average {
 			get {
-				return count == 0 ? 0 : totalMicroseconds / count;
+				return count == 0 ? 0 : total / Math.Min(latencies.Count,averageLength);
 			}
 		}
 		
-		public string GetStats()
+		public long AverageSelf {
+			get {
+				return count == 0 || previous == null ? 0 : totalSelf / Math.Min(latencies.Count,averageLength);
+			}
+		}
+		
+		public string GetStats(LatencyMetric previous)
 		{
 			var sb = new StringBuilder();
 			sb.Append( name);
 			sb.Append( " (");
 			sb.Append( id);
 			sb.Append( "): ");
-			sb.Append( ", tick count " );
+			sb.Append( "tick count " );
 			sb.Append( tickCount);
 			sb.Append( ", count " );
 			sb.Append( count);
 			sb.Append( ", total " );
-			sb.Append( totalMicroseconds);
+			sb.Append( total);
+			if( previous != null) {
+				sb.Append( " (self ");
+				sb.Append( totalSelf);
+				sb.Append( ")");
+			}
+			sb.Append( ", last " );
+			sb.Append( latencies[0]);
+			if( previous != null) {
+				sb.Append( " (self ");
+				sb.Append( lastSelf);
+				sb.Append( ")");
+			}
 			sb.Append( ", average " );
 			var average = Average;
-			if( average != 0) {
+			if( average != 0 && previous.Average != 0) {
 				sb.Append( Average);
+				sb.Append( " (self ");
+				sb.Append( AverageSelf);
+				sb.Append( ")");
 			} else {
 				sb.Append( "Initializing...");
+			}
+			if( AverageSelf > 1000 || (id == 0 && Average > 1000) ) {
+				sb.AppendLine();
+				sb.Append("Latencies: ");
+				for( var i = 0; i<latencies.Count; i++) {
+					if( i!=0) sb.Append(", ");
+					var latencySelf = id == 0 ? latencies[i] : latencies[i] - previous.latencies[i];
+					sb.Append( latencySelf );
+				}
 			}
 			
 			return sb.ToString();

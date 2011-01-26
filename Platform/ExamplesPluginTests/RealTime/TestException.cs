@@ -59,7 +59,9 @@ namespace MockProvider
 	
 			} catch( Exception ex) {
 				string expectedMessage = @"System.InvalidOperationException: Test of Exception Propagation";
-				Assert.IsTrue(ex.InnerException.Message.StartsWith(expectedMessage));
+				if( !ex.InnerException.Message.StartsWith(expectedMessage)) {
+					Assert.AreEqual(expectedMessage,ex.InnerException.Message);
+				}
 			}
 		}
 		

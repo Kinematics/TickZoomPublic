@@ -108,6 +108,7 @@ namespace TickZoom.Api
 	{
 		void Once(object creator, Action<Exception> onException, Action once);
 		Task Loop(object creator, Action<Exception> onException, YieldMethod loop);
+		Task IOLoop(object creator, Action<Exception> onException, YieldMethod loop);
 		ForLoop ForLoop(object creator, int start, int count);
 		void While(object creator, Action<Exception> onException, Func<bool> loop);
 	}

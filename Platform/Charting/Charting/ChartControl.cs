@@ -863,11 +863,15 @@ namespace TickZoom
 				}
 				if( !double.IsNaN(xScale.Min)) {
 					var _min = MoveByPixels(xScale,xScale.Min,resetXScaleSpeed);
-					xScale.Min = _min;
+					if( !double.IsNaN(_min)) {
+						xScale.Min = _min;
+					}
 				}
-				if( !double.IsNaN(xScale.Mag)) {
-					var _min = MoveByPixels(xScale,xScale.Max,resetXScaleSpeed);
-					xScale.Max = _min;
+				if( !double.IsNaN(xScale.Max)) {
+					var _max = MoveByPixels(xScale,xScale.Max,resetXScaleSpeed);
+					if( !double.IsNaN(_max)) {
+						xScale.Max = _max;
+					}
 				}
 				reset = true;
 			} else {

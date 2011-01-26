@@ -75,6 +75,16 @@ namespace TickZoom.Logging
 			
 			}
 			
+			private static readonly Level[] levels = new Level[] {
+				Level.Trace,
+				Level.Debug,
+				Level.Info,
+				Level.Notice,
+				Level.Warn,
+				Level.Error,
+				Level.Fatal
+			};
+			
 			protected override void ReloadLevels(log4net.Repository.ILoggerRepository repository)
 			{
 				base.ReloadLevels(repository);
@@ -85,6 +95,7 @@ namespace TickZoom.Logging
 				m_levelWarn = repository.LevelMap.LookupWithDefault(Level.Warn);
 				m_levelError = repository.LevelMap.LookupWithDefault(Level.Error);
 				m_levelFatal = repository.LevelMap.LookupWithDefault(Level.Fatal);
+				FindAnyEnabled();
 				trace = IsAnyEnabledFor(m_levelTrace);
 				debug = IsAnyEnabledFor(m_levelDebug);
 				info = IsAnyEnabledFor(m_levelInfo);
@@ -137,22 +148,41 @@ namespace TickZoom.Logging
 					}
 				}
 			}
+
+			private Dictionary<Level,int> childrenByLevel;
 			
-			private bool CheckAnyEnabled( Level level) {
-				foreach ( var child in Logger.Repository.GetCurrentLoggers()) {
-					if( child.Name.StartsWith(Logger.Name)) {
-						if( child.IsEnabledFor(level)) {
-							return true;
-						}
-					}
-					var wildcard = new Wildcard(child.Name, RegexOptions.IgnoreCase);
-					if( wildcard.IsMatch(Logger.Name)) {
-					   	if( child.IsEnabledFor(level)) {
-					   		return true;
-					   	}
+			private void FindAnyEnabled() {
+				childrenByLevel = new Dictionary<Level,int>();
+				foreach( var level in levels) {
+					childrenByLevel[level] = 0;
+				}
+				ILogger[] loggers = null;
+				while( loggers == null) {
+					try {
+						loggers = Logger.Repository.GetCurrentLoggers();
+					} catch( InvalidOperationException) {
+						
 					}
 				}
-				return false;
+				for( var i=0; i<loggers.Length; i++) {
+					var child = loggers[i];
+					foreach( var level in levels) {
+						if( child.IsEnabledFor(level)) {
+							if( child.Name.StartsWith(Logger.Name)) {
+						        childrenByLevel[level]++;
+							} else if( child.Name.Contains("*") || child.Name.Contains("?")) {
+								var wildcard = new Wildcard(child.Name, RegexOptions.IgnoreCase);
+								if( wildcard.IsMatch(Logger.Name)) {
+									childrenByLevel[level]++;
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			private bool CheckAnyEnabled(Level level) {
+				return childrenByLevel[level] > 0;
 			}
 		}
 		

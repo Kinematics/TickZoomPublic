@@ -949,6 +949,7 @@ namespace TickZoom.Api
 			fmtStr.Replace( "mm", minute.ToString("d2") );
 			fmtStr.Replace( "ss", second.ToString("d2") );
 			fmtStr.Replace( "fff", ((int)millisecond).ToString("d3") );
+			fmtStr.Replace( "uuu", ((int)microsecond).ToString("d3") );
 			
 //			if ( _fmtStr.IndexOf("d") >= 0 )
 //			{

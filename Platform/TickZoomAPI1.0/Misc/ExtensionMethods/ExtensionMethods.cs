@@ -40,7 +40,7 @@ namespace TickZoom.Api
 		public static long ToLong( this double value) {
 			try { 
 				return Convert.ToInt64(Math.Round(value,PricePrecision)*ConvertDouble);
-			} catch( OverflowException ex) {
+			} catch( OverflowException) {
 				throw new OverflowException( value + " created an overflow when converted to long with fixed precision 9.");
 			}
 		}

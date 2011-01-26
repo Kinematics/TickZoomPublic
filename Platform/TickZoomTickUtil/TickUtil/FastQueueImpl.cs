@@ -274,7 +274,7 @@ namespace TickZoom.TickUtil
 			if( !SpinLockNB()) return false;
 			isStarted = true;
 			if( StartEnqueue != null) {
-		    	if( debug) log.Debug("Calling StartEnqueue called");
+		    	if( debug) log.Debug("Calling StartEnqueue");
 				StartEnqueue();
 			}
 	        SpinUnLock();			

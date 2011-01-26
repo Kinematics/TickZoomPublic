@@ -200,12 +200,15 @@ namespace TickZoom.TickUtil
 			if( !isTaskPrepared) {
 				throw new ApplicationException("Read must be Initialized before Start() can be called and after GetLastTick() the reader must be disposed.");
 			}
-			this.receiver = receiver;
-			if (debug)
-				log.Debug("Start called.");
-			start = Factory.TickCount;
-			fileReaderTask = Factory.Parallel.Loop(this, OnException, FileReader);
-			fileReaderTask.Start();
+			if( !isStarted) {
+				this.receiver = receiver;
+				if (debug)
+					log.Debug("Start called.");
+				start = Factory.TickCount;
+				fileReaderTask = Factory.Parallel.IOLoop(this, OnException, FileReader);
+				fileReaderTask.Start();
+				isStarted = true;
+			} 
 		}
 
 		private void OnException(Exception ex)
@@ -251,6 +254,7 @@ namespace TickZoom.TickUtil
 		protected volatile int tickCount = 0;
 		long start;
 		bool isTaskPrepared = false;
+		bool isStarted = false;
 		
 		private bool PrepareTask()
 		{
@@ -422,12 +426,6 @@ namespace TickZoom.TickUtil
 					}
 				} catch (ObjectDisposedException) {
 					return Yield.DidWork.Invoke(SendFinishMethod);
-//				} catch( ApplicationException ex) {
-					////					dataIn.BaseStream.Position = position + 1;
-//					return Yield.DidWork.Invoke(SendFinish);
-//				} catch( ArgumentOutOfRangeException) {
-					////					dataIn.BaseStream.Position = position + 1;
-//					return Yield.DidWork.Invoke(SendFinish);
 				}
 				return Yield.DidWork.Repeat;
 			}
