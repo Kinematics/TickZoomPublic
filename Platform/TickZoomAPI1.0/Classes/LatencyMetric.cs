@@ -134,13 +134,16 @@ namespace TickZoom.Api
 			} else {
 				sb.Append( "Initializing...");
 			}
-			if( AverageSelf > 1000 || (id == 0 && Average > 1000) ) {
+			if( lastSelf > 1000 || AverageSelf > 1000 || (id == 0 && Average > 1000) ) {
 				sb.AppendLine();
 				sb.Append("Latencies: ");
 				for( var i = 0; i<latencies.Count; i++) {
 					if( i!=0) sb.Append(", ");
-					var latencySelf = id == 0 ? latencies[i] : latencies[i] - previous.latencies[i];
-					sb.Append( latencySelf );
+				    var prevIndex = (int) (previous.count - count);
+				    if( i+prevIndex < previous.latencies.Count) {
+						var latencySelf = id == 0 ? latencies[i] : latencies[i] - previous.latencies[i+prevIndex];
+						sb.Append( latencySelf );
+				    }
 				}
 			}
 			

@@ -33,5 +33,6 @@ namespace TickZoom.Api
 		void AddReader(Socket socket);
 		void AddWriter(Socket socket);
 		void Start();
+		string GetStats();
 	}
 }

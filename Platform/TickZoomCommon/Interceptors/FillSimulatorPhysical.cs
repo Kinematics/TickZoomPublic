@@ -515,6 +515,9 @@ namespace TickZoom.Interceptors
 		
 		private bool ProcessSellMarket(PhysicalOrder order, Tick tick)
 		{
+			if( !tick.IsQuote && !tick.IsTrade) {
+				throw new ApplicationException("tick w/o either trade or quote data? " + tick);
+			}
 			double price = tick.IsQuote ? tick.Bid : tick.Price;
 			CreatePhysicalFillHelper(-order.Size, price, tick.Time, tick.UtcTime, order);
 			return true;

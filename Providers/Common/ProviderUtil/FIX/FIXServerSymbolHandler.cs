@@ -67,7 +67,7 @@ namespace TickZoom.FIX
 			tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			tickSync.ForceClear();
 			queueTask = Factory.Parallel.Loop("FIXServerSymbol-"+symbolString, OnException, ProcessQueue);
-			queueTask.IsActivityEnabled = true;
+//			queueTask.IsActivityEnabled = true;
 			reader.ReadQueue.Connect( HasItem);
 			queueTask.Start();
 			latency = new LatencyMetric("FIXServerSymbolHandler-"+symbolString.StripInvalidPathChars());
@@ -213,7 +213,7 @@ namespace TickZoom.FIX
 						} else {
 							if( trace) log.Trace("Current time " + currentTime + " was greater than tick time " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
 							SendPlayBackTick();
-							result = Yield.DidWork.Return;
+							result = Yield.DidWork.Invoke(DequeueTick);
 						}		
 						break;
 					case TickStatus.Sent:
