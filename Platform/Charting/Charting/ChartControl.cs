@@ -55,7 +55,6 @@ namespace TickZoom
 		private static Log log;
 		private bool debug;
 		private bool trace;
-		private object chartRenderLock = new object();
 	    TimeStamp firstTime;
 		StockPointList stockPointList;
 		List<PointPairList> lineList;
@@ -526,8 +525,8 @@ namespace TickZoom
             if (trace) log.Trace("AddBar()");
 			if( !isBusy) {
 				isBusy = true;
-//				execute.OnUIThreadSync(AddBarPrivate);
 				AddBarPrivate();
+	            addBarOccurred = true;
 			}
 		}
 
@@ -535,7 +534,6 @@ namespace TickZoom
             if (trace) log.Trace("UpdateTick()");
 			if( !isBusy) {
 				isBusy = true;
-//				execute.OnUIThread(AddBarPrivate);
 				AddBarPrivate();
 			}
 		}
@@ -552,17 +550,14 @@ namespace TickZoom
 	        //if price is increasing color=black, else color=red
 	        lastColorValue = chartBars.Close[0] > chartBars.Open[0] ? 0 : 1;
 			
-			lock( chartRenderLock) {
-				UpdateIndicators(chartBars);
-		    
-			    if( showPriceGraph) {
-			    	UpdatePriceGraph(chartBars,chartBars);
-			    }
-	        }
-            addBarOccurred = true;
+			UpdateIndicators(chartBars);
+	    
+		    if( showPriceGraph) {
+		    	UpdatePriceGraph(chartBars,chartBars);
+		    }
 			isBusy = false;
 		}
-		
+
 		string paintBarName = "";
 				
 		// Update lines for all indicators.
@@ -1159,7 +1154,7 @@ namespace TickZoom
                         if (trace) log.Trace("dragging=" + isScrolling + ", AutoScroll = " + isAutoScroll);
                         if (!isScrolling && isAutoScroll)
                         {
-                            timer.Interval = 20;
+                            timer.Interval = 200;
 							bool reset = false;
 							if( KeepWithinScale()) {
 								reset = true;	
@@ -1419,11 +1414,6 @@ namespace TickZoom
 		public bool ShowTradeTips {
 			get { return showTradeTips; }
 			set { showTradeTips = value; }
-		}
-		
-		public object ChartRenderLock {
-			get { return chartRenderLock; }
-			set { chartRenderLock = value; }
 		}
 		
 		public bool IsDrawn {
