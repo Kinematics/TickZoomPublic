@@ -152,10 +152,10 @@ namespace TickZoom.TickUtil
 	            	return false;
 	            }
 	           	queue.Enqueue(tick);
+	            if( hasItem != null) hasItem(this);
             } finally {
 	            SpinUnLock();
             }
-            if( hasItem != null) hasItem(this);
 	        return true;
 	    }
 	    
