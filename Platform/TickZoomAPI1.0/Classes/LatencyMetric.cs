@@ -72,9 +72,11 @@ namespace TickZoom.Api
 			metricCount = manager.Count;
 			
 			latencies.Add(latency);
-			if( previous == null) {
-			} else {
-				lastSelf = latency - previous.latencies[(int) (previous.count - count)];
+			if( previous != null) {
+				var prevIndex = (int) (previous.count - count);
+				if( prevIndex < previous.latencies.Count) {
+					lastSelf = latency - previous.latencies[prevIndex];
+				}
 			}
 			total += latency;
 			if( latencies.Count > averageLength) {

@@ -248,6 +248,8 @@ namespace Other
 		{
 			try {
 				using( var config = CreateSimulateConfig()) {
+		            StarterConfigView form;
+		            StartGUI(config, out form);
 					config.SymbolList = "/ESZ9";
 					config.DefaultPeriod = 1;
 					config.DefaultBarUnit = BarUnit.Minute.ToString();
@@ -257,7 +259,7 @@ namespace Other
 					config.Start();
 					config.WaitComplete(10);
 					config.Stop();
-					config.WaitComplete(120, () => { return !config.CommandWorker.IsBusy; } );
+					config.WaitComplete(1200, () => { return !config.CommandWorker.IsBusy; } );
 					Assert.IsFalse(config.CommandWorker.IsBusy,"ProcessWorker.Busy");
 					string appData = Factory.Settings["AppDataFolder"];
 					string compareFile1 = appData + @"\Test\MockProviderData\ESZ9.tck";
