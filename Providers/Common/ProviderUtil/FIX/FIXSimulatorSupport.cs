@@ -44,7 +44,7 @@ namespace TickZoom.FIX
 
 		// FIX fields.
 		private ushort fixPort = 0;
-		private Selector fixSelector;
+		private Socket fixListener;
 		protected Socket fixSocket;
 		private Packet fixReadPacket;
 		private Packet fixWritePacket;
@@ -54,7 +54,7 @@ namespace TickZoom.FIX
 
 		// Quote fields.
 		private ushort quotesPort = 0;
-		private Selector quoteSelector;
+		private Socket quoteListener;
 		protected Socket quoteSocket;
 		private Packet quoteReadPacket;
 		private Packet quoteWritePacket;
@@ -77,22 +77,26 @@ namespace TickZoom.FIX
 		private void ListenToFIX(ushort fixPort)
 		{
 			this.fixPort = fixPort;
-			fixSelector = Factory.Provider.Selector(localAddress, fixPort, 0, OnException);
-			fixSelector.OnConnect = OnConnectFIX;
-			fixSelector.OnDisconnect = OnDisconnectFIX;
-			fixSelector.Start();
-			fixPort = fixSelector.ListenPort;
+			fixListener = Factory.Provider.Socket(typeof(FIXSimulatorSupport).Name);
+			fixListener.Bind( localAddress, fixPort);
+			fixListener.Listen( 5);
+			fixListener.OnConnect = OnConnectFIX;
+			fixListener.OnDisconnect = OnDisconnectFIX;
+			Factory.Provider.Manager.AddReader( fixListener);
+			fixPort = fixListener.Port;
 			log.Info("Listening to " + localAddress + " on port " + fixPort);
 		}
 
 		private void ListenToQuotes(ushort quotesPort)
 		{
 			this.quotesPort = quotesPort;
-			quoteSelector = Factory.Provider.Selector(localAddress, quotesPort, 0, OnException);
-			quoteSelector.OnConnect = OnConnectQuotes;
-			quoteSelector.OnDisconnect = OnDisconnectQuotes;
-			quoteSelector.Start();
-			quotesPort = quoteSelector.ListenPort;
+			quoteListener = Factory.Provider.Socket(typeof(FIXSimulatorSupport).Name);
+			quoteListener.Bind( localAddress, quotesPort);
+			quoteListener.Listen( 5);
+			quoteListener.OnConnect = OnConnectQuotes;
+			quoteListener.OnDisconnect = OnDisconnectQuotes;
+			Factory.Provider.Manager.AddReader(quoteListener);
+			quotesPort = quoteListener.Port;
 			log.Info("Listening to " + localAddress + " on port " + quotesPort);
 		}
 
@@ -100,8 +104,8 @@ namespace TickZoom.FIX
 		{
 			fixSocket = socket;
 			fixSocket.PacketFactory = fixPacketFactory;
-			fixSelector.AddReader(socket);
-			fixSelector.AddWriter(socket);
+			Factory.Provider.Manager.AddReader(socket);
+			Factory.Provider.Manager.AddWriter(socket);
 			log.Info("Received FIX connection: " + socket);
 			StartFIXSimulation();
 			if( task == null) {
@@ -114,8 +118,8 @@ namespace TickZoom.FIX
 		{
 			quoteSocket = socket;
 			quoteSocket.PacketFactory = quotePacketFactory;
-			quoteSelector.AddReader(socket);
-			quoteSelector.AddWriter(socket);
+			Factory.Provider.Manager.AddReader(socket);
+			Factory.Provider.Manager.AddWriter(socket);
 			log.Info("Received quotes connection: " + socket);
 			StartQuoteSimulation();
 			if( task == null) {
@@ -430,8 +434,8 @@ namespace TickZoom.FIX
 					if (task != null) {
 						task.Stop();
 					}
-					if (fixSelector != null) {
-						fixSelector.Dispose();
+					if (fixListener != null) {
+						fixListener.Dispose();
 					}
 					if (fixSocket != null) {
 						fixSocket.Dispose();
@@ -442,8 +446,8 @@ namespace TickZoom.FIX
 					if( quotePacketQueue != null) {
 						quotePacketQueue.Clear();
 					}
-					if (quoteSelector != null) {
-						quoteSelector.Dispose();
+					if (quoteListener != null) {
+						quoteListener.Dispose();
 					}
 					if (quoteSocket != null) {
 						quoteSocket.Dispose();

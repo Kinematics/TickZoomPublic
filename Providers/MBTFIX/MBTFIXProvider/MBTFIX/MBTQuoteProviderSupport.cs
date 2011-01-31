@@ -43,7 +43,6 @@ namespace TickZoom.MBTQuotes
 		private static long nextConnectTime = 0L;
 		protected readonly object symbolsRequestedLocker = new object();
 		protected Dictionary<long,SymbolInfo> symbolsRequested = new Dictionary<long, SymbolInfo>();
-		private Selector selector;
 		private Socket socket;
 		private Task socketTask;
 		private string failedFile;
@@ -74,9 +73,6 @@ namespace TickZoom.MBTQuotes
 			debug = log.IsDebugEnabled;
 			trace = log.IsTraceEnabled;
 	        log.Info(providerName+" Startup");
-			selector = Factory.Provider.Selector( OnException);
-			selector.OnDisconnect = OnDisconnect;
-			selector.Start();
 			RegenerateSocket();
 			socketTask = Factory.Parallel.Loop("SocketTask", OnException, SocketTask);
 			socketTask.Start();
@@ -90,6 +86,7 @@ namespace TickZoom.MBTQuotes
 				socket.Dispose();
 			}
 			socket = Factory.Provider.Socket("MBTFIXSocket");
+			socket.OnDisconnect = OnDisconnect;
 			socket.PacketFactory = new PacketFactoryMBTQuotes();
 			if( debug) log.Debug("Created new " + socket);
 			connectionStatus = Status.New;
@@ -125,7 +122,7 @@ namespace TickZoom.MBTQuotes
         	// Initiate socket connection.
         	while( true) {
         		try { 
-				selector.AddWriter(socket);
+				Factory.Provider.Manager.AddWriter(socket);
 				socket.Connect(addrStr,port);
 				if( debug) log.Debug("Requested Connect for " + socket);
 				return;
@@ -235,7 +232,7 @@ namespace TickZoom.MBTQuotes
 						case Status.Connected:
 							connectionStatus = Status.PendingLogin;
 							if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
-							selector.AddReader(socket);
+							Factory.Provider.Manager.AddReader(socket);
 							IncreaseRetryTimeout();
 							Yield result = OnLogin();
 							return result;
@@ -477,9 +474,6 @@ namespace TickZoom.MBTQuotes
 	            if (disposing) {
 	            	if( socketTask != null) {
 		            	socketTask.Stop();
-	            	}
-	            	if( selector != null) {
-		            	selector.Dispose();
 	            	}
 	            	if( socket != null) {
 		            	socket.Dispose();

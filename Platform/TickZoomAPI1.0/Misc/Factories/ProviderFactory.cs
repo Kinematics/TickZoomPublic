@@ -47,8 +47,9 @@ namespace TickZoom.Api
 		ServiceConnection ConnectionManager();
 		Serializers Serializers();
 		Socket Socket(string name);
-		Selector Selector(string address, ushort port, long timeout, Action<Exception> onException);
-		Selector Selector(Action<Exception> onException);
+		Selector Manager {
+			get;
+		}
 		EventLog EventLog {
 			get;
 		}

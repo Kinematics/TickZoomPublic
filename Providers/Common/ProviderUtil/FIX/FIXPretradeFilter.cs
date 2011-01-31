@@ -38,9 +38,8 @@ namespace TickZoom.FIX
 		private static Log log = Factory.SysLog.GetLogger(typeof(FIXPretradeFilter));
 		private static bool trace = log.IsTraceEnabled;
 		private static bool debug = log.IsDebugEnabled;
-		private Selector localSelector;
+		private Socket listener;
 		private Socket localSocket;
-		private Selector remoteSelector;
 		private Socket remoteSocket;
 		private Packet remotePacket;
 		private Packet localPacket;
@@ -59,11 +58,13 @@ namespace TickZoom.FIX
 		}
 		
 		private void ListenToLocal() {
-			localSelector = Factory.Provider.Selector(localAddress, localPort, 0, OnException);
-			localSelector.OnConnect = OnConnect;
-			localSelector.OnDisconnect = OnDisconnect;
-			localSelector.Start();
-			localPort = localSelector.ListenPort;
+			listener = Factory.Provider.Socket(typeof(FIXPretradeFilter).Name);
+			listener.Bind(localAddress,localPort);
+			listener.Listen(5);
+			listener.OnConnect = OnConnect;
+			listener.OnDisconnect = OnDisconnect;
+			Factory.Provider.Manager.AddReader(listener);
+			localPort = listener.Port;
 			log.Info("Listening to " + localAddress + " on port " + localPort);
 		}
 		
@@ -78,8 +79,8 @@ namespace TickZoom.FIX
 		private void OnConnectLocal( Socket socket) {
 			localSocket = socket;
 			localSocket.PacketFactory = new PacketFactoryFIX4_4();
-			localSelector.AddReader(socket);
-			localSelector.AddWriter(socket);
+			Factory.Provider.Manager.AddReader(socket);
+			Factory.Provider.Manager.AddWriter(socket);
 			log.Info("Received local connection: " + socket);
 			RequestRemoteConnect();
 			localTask = Factory.Parallel.Loop( "FilterLocalRead", OnException, LocalReadLoop);
@@ -101,20 +102,17 @@ namespace TickZoom.FIX
 			if( remoteTask != null) remoteTask.Stop();
 			if( localTask != null) localTask.Stop();
 			if( remoteSocket != null) remoteSocket.Dispose();
-			if( remoteSelector != null) remoteSelector.Dispose();
 			if( localSocket != null) localSocket.Dispose();
 		}
 		
 		private void RequestRemoteConnect() {
-			remoteSelector = Factory.Provider.Selector( OnException);
-			remoteSelector.OnConnect = OnConnect;
-			remoteSelector.OnDisconnect = OnDisconnect;
-			remoteSelector.Start();
 			
 			remoteSocket = Factory.Provider.Socket("FilterRemoteSocket");
 			remoteSocket.PacketFactory = new PacketFactoryFIX4_4();
+			remoteSocket.OnConnect = OnConnect;
+			remoteSocket.OnDisconnect = OnDisconnect;
 			remoteSocket.Connect( remoteAddress,remotePort);
-			remoteSelector.AddWriter(remoteSocket);
+			Factory.Provider.Manager.AddWriter(remoteSocket);
 			
 			remoteConnectTimeout = Factory.TickCount + 2000;
 		}
@@ -122,7 +120,7 @@ namespace TickZoom.FIX
 		private long remoteConnectTimeout;
 		
 		private void OnConnectRemote() {
-			remoteSelector.AddReader(remoteSocket);
+			Factory.Provider.Manager.AddReader(remoteSocket);
 			remoteTask = Factory.Parallel.Loop( "FilterRemoteRead", OnException, RemoteReadLoop);
 			remoteTask.Start();
 			fixContext = new FIXContextDefault( localSocket, remoteSocket);
@@ -209,11 +207,8 @@ namespace TickZoom.FIX
 	            	if( remoteTask != null) {
 	            		remoteTask.Stop();
 	            	}
-	            	if( localSelector != null) {
-	            		localSelector.Dispose();
-	            	}
-	            	if( remoteSelector != null) {
-		            	remoteSelector.Dispose();
+	            	if( listener != null) {
+	            		listener.Dispose();
 	            	}
 	            	if( localSocket != null) {
 		            	localSocket.Dispose();

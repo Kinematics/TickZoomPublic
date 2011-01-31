@@ -178,15 +178,13 @@ namespace Test
 			string password = "1step2wax";
 //			string userName = "DEMOXJRX";
 //			string password = "1clock2bird";
-			using( Selector selector = Factory.Provider.Selector( OnException))
 			using( Socket socket = Factory.Provider.Socket("TestSocket")) {
 				socket.PacketFactory = new PacketFactoryMBTQuotes();
-				selector.Start();
 				socket.SetBlocking(true);
 				socket.Connect(addrStr,port);
 				socket.SetBlocking(false);
-				selector.AddReader(socket);
-				selector.AddWriter(socket);
+				Factory.Provider.Manager.AddReader(socket);
+				Factory.Provider.Manager.AddWriter(socket);
 		
 				
 				Packet packet = socket.CreatePacket();

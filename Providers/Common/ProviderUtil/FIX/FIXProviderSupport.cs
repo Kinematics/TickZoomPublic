@@ -45,7 +45,6 @@ namespace TickZoom.FIX
 		private static long nextConnectTime = 0L;
 		protected readonly object symbolsRequestedLocker = new object();
 		protected Dictionary<long,SymbolInfo> symbolsRequested = new Dictionary<long, SymbolInfo>();
-		private Selector selector;
 		private Socket socket;
 		private Task socketTask;
 		private string failedFile;
@@ -87,9 +86,6 @@ namespace TickZoom.FIX
 			debug = log.IsDebugEnabled;
 			trace = log.IsTraceEnabled;
         	log.Info(providerName+" Startup");
-			selector = Factory.Provider.Selector( OnException);
-			selector.OnDisconnect = OnDisconnect;
-			selector.Start();
 			RegenerateSocket();
 			socketTask = Factory.Parallel.Loop(GetType().Name, OnException, SocketTask);
 			socketTask.Start();
@@ -106,6 +102,7 @@ namespace TickZoom.FIX
 				fixFilterController.Dispose();
 			}
 			socket = Factory.Provider.Socket("MBTFIXSocket");
+			socket.OnDisconnect = OnDisconnect;
 			socket.PacketFactory = new PacketFactoryFIX4_4();
 			if( debug) log.Debug("Created new " + socket);
 			connectionStatus = Status.New;
@@ -141,7 +138,7 @@ namespace TickZoom.FIX
         			fixFilterController.Filter = fixFilter;
 					socket.Connect("127.0.0.1",fixFilterController.LocalPort);
 //					socket.Connect("127.0.0.1",port);
-					selector.AddWriter(socket);
+					Factory.Provider.Manager.AddWriter(socket);
 					if( debug) log.Debug("Requested Connect for " + socket);
 					return;
         		} catch( SocketErrorException ex) {
@@ -254,7 +251,7 @@ namespace TickZoom.FIX
 						case Status.Connected:
 							connectionStatus = Status.PendingLogin;
 							if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
-							selector.AddReader(socket);
+							Factory.Provider.Manager.AddReader(socket);
 							IncreaseRetryTimeout();
 							var result = OnLogin();
 							return result;
@@ -532,9 +529,6 @@ namespace TickZoom.FIX
 	            	if( debug) log.Debug("Dispose()");
 	            	if( socketTask != null) {
 		            	socketTask.Stop();
-	            	}
-	            	if( selector != null) {
-		            	selector.Dispose();
 	            	}
 	            	if( socket != null) {
 		            	socket.Dispose();

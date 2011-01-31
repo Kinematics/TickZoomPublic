@@ -40,11 +40,15 @@ namespace TickZoom.Api
 	public interface Socket : IDisposable {
 		void SetBlocking(bool enable);
 		void Connect(string addrStr, ushort port);
+		void Bind(string addrStr, ushort port);
+		void Listen(int queue);
 		Packet CreatePacket();
 		bool TrySendPacket(Packet packet);
 		bool TryGetPacket(out Packet packet);
 		PacketFactory PacketFactory { get; set;	}
 		SocketState State { get; }
 		ushort Port { get; }
+		Action<Socket> OnConnect { get; set; }
+		Action<Socket> OnDisconnect { get; set; }
 	}
 }

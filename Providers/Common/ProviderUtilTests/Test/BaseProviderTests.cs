@@ -92,18 +92,19 @@ namespace TickZoom.Test
 		public virtual void TearDown() {
 			long start = Factory.TickCount;
 			long elapsed = 0;
-			if( Factory.Parallel.Tasks.Length > 0) {
+			var maxTasks = 1; // For Selector task
+			if( Factory.Parallel.Tasks.Length > maxTasks) {
 				log.Warn("Found " + Factory.Parallel.Tasks.Length + " Parallel tasks still running...");
 			}
-			while( elapsed < 10000 && Factory.Parallel.Tasks.Length > 0) {
+			while( elapsed < 10000 && Factory.Parallel.Tasks.Length > maxTasks) {
 				Thread.Sleep(1000);
 				elapsed = Factory.TickCount - start;
 			}
-			if( Factory.Parallel.Tasks.Length > 0) {
+			if( Factory.Parallel.Tasks.Length > maxTasks) {
 				log.Error("These tasks still running after " + elapsed + "ms.");
 				log.Error(Factory.Parallel.GetStats());
 			}
-			Assert.AreEqual(0,Factory.Parallel.Tasks.Length,"running tasks");
+			Assert.LessOrEqual(Factory.Parallel.Tasks.Length,maxTasks,"running tasks");
 		}
 		
 		public void SetSymbol( string symbolString) {

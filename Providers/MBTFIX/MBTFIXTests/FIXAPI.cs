@@ -135,15 +135,13 @@ namespace Test
 			string password = "1lake2dust";
 			string userName = "DEMOXJSPFIX";
 			using( var filter = new FIXPretradeFilter(addrStr,port))
-			using( Selector selector = Factory.Provider.Selector( OnException))
 			using( Socket socket = Factory.Provider.Socket("TestSocket")) {
 				socket.PacketFactory = new PacketFactoryFIX4_4();
-				selector.Start();
 				socket.SetBlocking(true);
 				socket.Connect("127.0.0.1",filter.LocalPort);
 				socket.SetBlocking(false);
-				selector.AddReader(socket);
-				selector.AddWriter(socket);
+				Factory.Provider.Manager.AddReader(socket);
+				Factory.Provider.Manager.AddWriter(socket);
 		
 				Packet packet = socket.CreatePacket();
 				string hashPassword = MBTQuotesProvider.Hash(password);
@@ -195,16 +193,14 @@ namespace Test
 			ushort port = 5679;
 			string password = "badpassword";
 			string userName = "DEMOXJSPFIX";
-			using( Selector selector = Factory.Provider.Selector( OnException))
 			using( Socket socket = Factory.Provider.Socket("TestSocket")) {
 				socket.PacketFactory = new PacketFactoryFIX4_4();
-				selector.Start();
-				selector.OnDisconnect = OnDisconnect;
+				socket.OnDisconnect = OnDisconnect;
 				socket.SetBlocking(true);
 				socket.Connect(addrStr,port);
 				socket.SetBlocking(false);
-				selector.AddReader(socket);
-				selector.AddWriter(socket);
+				Factory.Provider.Manager.AddReader(socket);
+				Factory.Provider.Manager.AddWriter(socket);
 		
 				Packet packet = socket.CreatePacket();
 				string hashPassword = MBTQuotesProvider.Hash(password);

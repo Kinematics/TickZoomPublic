@@ -33,8 +33,5 @@ namespace TickZoom.Api
 		void AddReader(Socket socket);
 		void AddWriter(Socket socket);
 		void Start();
-		Action<Socket> OnConnect { get; set; }
-		Action<Socket> OnDisconnect { get; set; }
-		ushort ListenPort { get; }
 	}
 }
