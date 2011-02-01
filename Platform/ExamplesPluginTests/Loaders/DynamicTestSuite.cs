@@ -64,8 +64,10 @@ namespace Loaders
 			foreach( var testSettings in autoTestFixture.GetAutoTestSettings() ) {
 				if( (testSettings.Mode & autoTestMode) != autoTestMode) continue;
 				testSettings.Mode = autoTestMode;
-//				testSettings.StoreKnownGood = testSettings.StoreKnownGood && testSettings.Mode == AutoTestMode.Historical;
 				var fixture = new NUnitTestFixture(userFixtureType, new object[] { testSettings } );
+				foreach( var category in testSettings.Categories) {
+					fixture.Categories.Add( category);
+				}
 				fixture.TestName.Name = testSettings.Name;
 				suite.Add(fixture);
 				AddStrategyTestCases(fixture, testSettings);
@@ -79,6 +81,9 @@ namespace Loaders
 			var strategyTest = (StrategyTest) Reflect.Construct(userFixtureType, new object[] { testSettings } );
 			foreach( var modelName in strategyTest.GetModelNames()) {
 				var paramaterizedTest = new ParameterizedMethodSuite(modelName);
+				foreach( var category in testSettings.Categories) {
+					paramaterizedTest.Categories.Add( category);
+				}
 				fixture.Add(paramaterizedTest);
 				var parms = new ParameterSet();
 				parms.Arguments = new object[] { modelName };
@@ -120,6 +125,9 @@ namespace Loaders
 			var strategyTest = (StrategyTest) Reflect.Construct(userFixtureType, new object[] { testSettings } );
 			foreach( var symbol in strategyTest.GetSymbols()) {
 				var paramaterizedTest = new ParameterizedMethodSuite(symbol.Symbol);
+				foreach( var category in testSettings.Categories) {
+					paramaterizedTest.Categories.Add( category);
+				}
 				fixture.Add(paramaterizedTest);
 				var parms = new ParameterSet();
 				parms.Arguments = new object[] { symbol };

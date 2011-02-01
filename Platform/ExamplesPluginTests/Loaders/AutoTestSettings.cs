@@ -26,6 +26,7 @@
 
 
 using System;
+using System.Collections.Generic;
 using TickZoom.Api;
 
 namespace Loaders
@@ -48,11 +49,13 @@ namespace Loaders
 		public TimeStamp endTime;
 		public Elapsed relativeEndTime;
 		public Interval intervalDefault;
+		public IList<string> categories;
 	}
 	public class AutoTestSettings {
 		AutoTestSettingsBinary binary;
 		public AutoTestSettings() {
 			binary.endTime = TimeStamp.MaxValue;
+			binary.categories = new List<string>();
 		}
 		
 		public AutoTestSettings(AutoTestSettingsBinary binary) {
@@ -61,6 +64,11 @@ namespace Loaders
 		
 		public AutoTestSettings Copy() {
 			return new AutoTestSettings( binary);
+		}
+		
+		public IList<string> Categories {
+			get { return binary.categories; }
+			set { binary.categories = value; }
 		}
 		
 		public TestType IgnoreTests {
