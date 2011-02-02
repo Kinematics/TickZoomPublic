@@ -51,6 +51,10 @@ namespace TickZoom.Api
 		bool IsActive {
 			get;
 		}
+		bool IsLogging {
+			get;
+			set;
+		}
 		object Tag {
 			get;
 			set;
