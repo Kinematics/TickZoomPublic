@@ -67,7 +67,7 @@ namespace TickZoom.FIX
 			tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			tickSync.ForceClear();
 			queueTask = Factory.Parallel.Loop("FIXServerSymbol-"+symbolString, OnException, ProcessQueue);
-//			queueTask.IsActivityEnabled = true;
+			queueTask.IsActivityEnabled = true;
 			reader.ReadQueue.Connect( HasItem);
 			queueTask.Start();
 			latency = new LatencyMetric("FIXServerSymbolHandler-"+symbolString.StripInvalidPathChars());
