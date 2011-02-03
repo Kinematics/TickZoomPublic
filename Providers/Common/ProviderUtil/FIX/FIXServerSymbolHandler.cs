@@ -149,7 +149,7 @@ namespace TickZoom.FIX
 							binary.UtcTime += playbackOffset;
 						}
 						if( tickCounter > 10) {
-							intervalTime = 500;
+							intervalTime = 1000;
 						}
 						var time = new TimeStamp( binary.UtcTime);
 				   	} 
@@ -205,7 +205,7 @@ namespace TickZoom.FIX
 				var currentTime = TimeStamp.UtcNow;
 				switch( tickStatus) {
 					case TickStatus.None:
-						var overlapp = 5000L;
+						var overlapp = 1000L;
 						if( currentTime.Internal + overlapp <= nextTick.UtcTime.Internal) {
 							Factory.Parallel.NextTimer(OnException,nextTick.UtcTime,PlayBackTick);
 							if( trace) log.Trace("Set next timer for " + nextTick.UtcTime  + "." + nextTick.UtcTime.Microsecond + " at " + currentTime  + "." + currentTime.Microsecond);
