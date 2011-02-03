@@ -209,6 +209,11 @@ namespace TickZoom.MBTFIX
 		}
 		
 		private PhysicalOrder ConstructOrder(PacketFIX4_4 packet, string clientOrderId) {
+			if( string.IsNullOrEmpty(clientOrderId)) {
+				var message = "Client order id was null or empty. FIX packet is: " + packet;
+				log.Error(message);
+				throw new ApplicationException(message);
+			}
 			var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
 			var side = OrderSide.Buy;
 			switch( packet.Side) {
