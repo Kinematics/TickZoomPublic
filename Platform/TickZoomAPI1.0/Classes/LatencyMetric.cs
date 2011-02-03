@@ -74,7 +74,7 @@ namespace TickZoom.Api
 			latencies.Add(latency);
 			if( previous != null) {
 				var prevIndex = (int) (previous.count - count);
-				if( prevIndex < previous.latencies.Count) {
+				if( prevIndex >= 0 && prevIndex < previous.latencies.Count) {
 					lastSelf = latency - previous.latencies[prevIndex];
 				}
 			}
