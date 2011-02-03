@@ -82,12 +82,16 @@ namespace TickZoom.Interceptors
 			this.createSimulatedFills = createSimulatedFills;
 			this.log = Factory.SysLog.GetLogger(typeof(FillSimulatorPhysical).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name);
 		}
-		
+		private bool hasCurrentTick = false;
 		public void OnOpen(Tick tick) {
 			if( trace) log.Trace("OnOpen("+tick+")");
 			isOpenTick = true;
 			openTime = tick.Time;
+			if( !tick.IsQuote && !tick.IsTrade) {
+				throw new ApplicationException("tick w/o either trade or quote data? " + tick);
+			}
 			currentTick.Inject( tick.Extract());
+			hasCurrentTick = true;
 		}
 		
 		public Iterable<PhysicalOrder> GetActiveOrders(SymbolInfo symbol) {
@@ -164,13 +168,19 @@ namespace TickZoom.Interceptors
 		}
 		
 		public void ProcessOrders() {
-			ProcessOrdersInternal( currentTick);
+			if( hasCurrentTick) {
+				ProcessOrdersInternal( currentTick);
+			}
 		}
 		
 		public void StartTick(Tick lastTick)
 		{
 			if( trace) log.Trace("StartTick("+lastTick+")");
+			if( !lastTick.IsQuote && !lastTick.IsTrade) {
+				throw new ApplicationException("tick w/o either trade or quote data? " + lastTick);
+			}
 			currentTick.Inject( lastTick.Extract());
+			hasCurrentTick = true;
 		}
 		
 		private void ProcessOrdersInternal(Tick tick) {
