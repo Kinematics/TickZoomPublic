@@ -117,12 +117,18 @@ namespace TickZoom.Api
 		void For(Action<int> loop);
 	}
 		
+	public enum ParallelMode {
+		Normal,
+		RealTime
+	}
+	
 	public interface Parallel : ParallelStarter
 	{
 		void Yield();
 		void Sleep(int millis);
 		string GetStats();
 		void NextTimer(Action<Exception> onException, TimeStamp nextTimer, Action timerAction);
+		void SetMode( ParallelMode mode);
 		Task CurrentTask {
 			get;
 		}
