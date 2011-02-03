@@ -39,6 +39,7 @@ namespace TickZoom.Starters
 		
 		public override void Run(ModelLoaderInterface loader)
 		{
+			parallelMode = ParallelMode.RealTime;
 			Factory.SysLog.Reconfigure("RealTime",GetDefaultLogConfig());
 			base.Run(loader);
 		}

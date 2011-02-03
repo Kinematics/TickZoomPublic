@@ -65,6 +65,7 @@ namespace TickZoom.Starters
 		private string config;
 		private TickEngine engine;
 		protected RunMode runMode = RunMode.Historical;
+		protected ParallelMode parallelMode = ParallelMode.Normal;
 		
 		public StarterCommon() : this(true) {
     		storageFolder = Factory.Settings["AppDataFolder"];
@@ -396,6 +397,7 @@ namespace TickZoom.Starters
 		}
 		
 		public TickEngine SetupEngine(bool quietMode) {
+			Factory.Parallel.SetMode( parallelMode);
 			TickEngine engine = Factory.Engine.TickEngine;
 			ProjectProperties.Engine.CopyProperties(engine);
 			engine.ChartProperties = ProjectProperties.Chart;
