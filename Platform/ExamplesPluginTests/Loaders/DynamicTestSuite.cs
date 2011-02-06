@@ -68,7 +68,8 @@ namespace Loaders
 				foreach( var category in testSettings.Categories) {
 					fixture.Categories.Add( category);
 				}
-				fixture.TestName.Name = testSettings.Name;
+			    fixture.Categories.Add(Enum.GetName(typeof (AutoTestMode), autoTestMode));
+        		fixture.TestName.Name = testSettings.Name;
 				suite.Add(fixture);
 				AddStrategyTestCases(fixture, testSettings);
 				if( testSettings.Mode == AutoTestMode.SimulateRealTime) {
