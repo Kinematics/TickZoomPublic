@@ -60,7 +60,6 @@ namespace TickZoom.TickData
 			}
 			stop = Factory.TickCount;
 			log.Notice("Dequeue elapsed time is "+(stop-start)+"ms");
-			queue.LogStats();
 		}
 	}
 }

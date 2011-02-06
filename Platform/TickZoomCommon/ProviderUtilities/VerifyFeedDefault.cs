@@ -349,7 +349,6 @@ namespace TickZoom.Common
 			}
 			log.Notice("Expected " + expectedTickCount + " and received " + count + " ticks.");
 			log.Notice("Last tick received at : " + tickIO.ToPosition());
-			Factory.TickUtil.TickQueue("Stats").LogStats();
 			Dispose();
 			if( propagateException != null) {
 				throw propagateException;

@@ -117,11 +117,6 @@ namespace TickZoom.TickUtil
 	    	return result;
 	    }
 	    
-	    public void LogStats() {
-	    	FastQueueImpl<QueueItem>.LogAllStatistics();
-	    }
-
-
     }
 	
 }

@@ -39,7 +39,6 @@ namespace TickZoom.Api
     	void Enqueue(ref TickBinary binary);
     	bool TryEnqueue(ref TickBinary binary);
 	    bool TryEnqueue(EventType entryType, SymbolInfo symbol);
-    	void LogStats();
 	    bool IsFull {
 	    	get;
 	    }
