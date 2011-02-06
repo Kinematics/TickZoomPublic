@@ -74,7 +74,7 @@ namespace TickZoom.MBTQuotes
 			trace = log.IsTraceEnabled;
 	        log.Info(providerName+" Startup");
 			RegenerateSocket();
-			socketTask = Factory.Parallel.Loop("SocketTask", OnException, SocketTask);
+			socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);
 			socketTask.Start();
 	  		string logRecoveryString = Factory.Settings["LogRecovery"];
 	  		logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
@@ -85,7 +85,7 @@ namespace TickZoom.MBTQuotes
 			if( socket != null) {
 				socket.Dispose();
 			}
-			socket = Factory.Provider.Socket("MBTFIXSocket");
+			socket = Factory.Provider.Socket("MBTQuoteSocket");
 			socket.OnDisconnect = OnDisconnect;
 			socket.PacketFactory = new PacketFactoryMBTQuotes();
 			if( debug) log.Debug("Created new " + socket);
