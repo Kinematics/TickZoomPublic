@@ -30,7 +30,6 @@ using System.Threading;
 namespace TickZoom.Api
 {
 	public class TaskLock : IDisposable {
-		private static readonly Log log = Factory.SysLog.GetLogger(typeof(TaskLock));
 	    private int isLocked = 0;
 	    private int lockCount = 0;
 	    
@@ -75,7 +74,6 @@ namespace TickZoom.Api
 	    		}
 	    	} else {
 	    		string message = "Attempt to unlock from a different managed thread.";
-	    		log.Error( message + "\n" + Environment.StackTrace);
 	    		throw new ApplicationException( message);
 	    	}
 	    }

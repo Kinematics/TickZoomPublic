@@ -129,6 +129,9 @@ namespace TickZoom.Api
 		string GetStats();
 		void NextTimer(Action<Exception> onException, TimeStamp nextTimer, Action timerAction);
 		void SetMode( ParallelMode mode);
+		ParallelMode Mode {
+			get;
+		}
 		Task CurrentTask {
 			get;
 		}
