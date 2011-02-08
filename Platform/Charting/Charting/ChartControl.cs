@@ -107,7 +107,7 @@ namespace TickZoom
 		public void ChartLoad(object sender, EventArgs e)
 		{
 			if( debug) log.Debug("ChartLoad()");
-		    DrawChart();
+			DrawObjects();
 		}
 		
 		public void ChartResize(object sender, EventArgs e)
@@ -178,7 +178,7 @@ namespace TickZoom
 			string[] yLables = 
 			{ "Fun 1", "Fun 2", "Fun 3" };
 			ColorSymbolRotator rotator = new ColorSymbolRotator();
-			DrawChartPrivate();
+			CreateObjects();
 		}
 		
 		void setLayout() {
@@ -916,11 +916,10 @@ namespace TickZoom
 		GraphPane priceGraphPane;
 		
 		public void DrawChart() {
-//			CallbackAction(DrawChartPrivate);
 		}
 		
-		private void DrawChartPrivate() {
-			if( debug) log.Debug("ChartResize()");
+		private void CreateObjects() {
+			if( debug) log.Debug("CreateObjects()");
    			try {
 				// Setup the gradient fill...
 				// Use Red for negative days and black for positive days
@@ -946,12 +945,28 @@ namespace TickZoom
 				setLayout();
 				// Calculate the Axis Scale Ranges
 				dataGraph.AxisChange();
-				isDrawn = true;		
    			} catch (Exception ex) {
    				log.Error("ERROR: DrawChart ", ex);
    			}
 		}
 				
+		private void DrawObjects() {
+   			try {
+				if( priceGraphPane != null && dataGraph.MasterPane != null) {
+					CreateIndicators();
+				}
+				
+				if( isDynamicUpdate) {
+					AutoZoom(dataGraph.GraphPane);
+				}
+				setLayout();
+				// Calculate the Axis Scale Ranges
+				dataGraph.AxisChange();
+				isDrawn = true;		
+   			} catch (Exception ex) {
+   				log.Error("ERROR: DrawChart ", ex);
+   			}
+		}
 	    Dictionary<string,GraphPane> signalPaneList = new Dictionary<string,GraphPane>();
 	    Dictionary<string,GraphPane> secondaryPaneList = new Dictionary<string,GraphPane>();
 	    
