@@ -47,6 +47,7 @@ namespace TickZoom.Api
 		StartBroker,
 		EndBroker,
         TickBatch,
+        RemoteShutdown,
 		
 		// TCP/IP Events
 		Acknowledgment=2000,

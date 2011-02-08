@@ -51,7 +51,6 @@ namespace TickZoom.TickUtil
 		string fileName = null;
 		bool logProgress = false;
 		bool bulkFileLoad = false;
-		long length;
 		private Receiver receiver;
 		Task fileReaderTask;
 		private static object readerListLocker = new object();
@@ -171,14 +170,13 @@ namespace TickZoom.TickUtil
 		{
 			Stream stream;
 			stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-			length = stream.Length;
 			dataIn = new BinaryReader(stream, Encoding.Unicode);
 			TickImpl lastTickIO = new TickImpl();
 			int count = 0;
 			try {
-				while (stream.Position < length && !CancelPending) {
+				while (stream.Position < stream.Length && !CancelPending) {
 					long lastPosition = stream.Position;
-					if (!TryReadTick(length)) {
+					if (!TryReadTick(stream.Length)) {
 						break;
 					}
 					count ++;
@@ -275,22 +273,20 @@ namespace TickZoom.TickUtil
 								fileBytesDict[symbol] = filebytes;
 							}
 						}
-						length = filebytes.Length;
 						stream = new MemoryStream(filebytes);
 					} else {
 						stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-						length = stream.Length;
 					}
 
 					dataIn = new BinaryReader(stream, Encoding.Unicode);
 
-					progressDivisor = length / 20;
+					progressDivisor = dataIn.BaseStream.Length / 20;
 					if (!quietMode || debug) {
 						if (debug)
 							log.Debug("Starting to read data.");
 						log.Indent();
 					}
-					progressCallback("Loading bytes...", dataIn.BaseStream.Position, length);
+					progressCallback("Loading bytes...", dataIn.BaseStream.Position, dataIn.BaseStream.Length);
 					isTaskPrepared = true;
 					return true;
 				} catch (Exception ex) {
@@ -366,7 +362,7 @@ namespace TickZoom.TickUtil
 					return Yield.Terminate;
 				long position = dataIn.BaseStream.Position;
 				try {
-					if (position < length && !CancelPending && TryReadTick(length)) {
+					if (position < dataIn.BaseStream.Length && !CancelPending && TryReadTick(dataIn.BaseStream.Length)) {
 
 						if (dataVersion == 0) {
 							dataVersion = tickIO.DataVersion;
@@ -376,7 +372,7 @@ namespace TickZoom.TickUtil
 
 						if (Factory.TickCount > nextUpdate) {
 							try {
-								progressCallback("Loading bytes...", dataIn.BaseStream.Position, length);
+								progressCallback("Loading bytes...", dataIn.BaseStream.Position, dataIn.BaseStream.Length);
 							} catch (Exception ex) {
 								log.Debug("Exception on progressCallback: " + ex.Message);
 							}
@@ -422,6 +418,7 @@ namespace TickZoom.TickUtil
 						tickCount++;
 
 					} else {
+                        if( debug) log.Debug("Finished reading to file length: " + dataIn.BaseStream.Length);
 						return Yield.DidWork.Invoke(SendFinishMethod);
 					}
 				} catch (ObjectDisposedException) {
@@ -476,7 +473,7 @@ namespace TickZoom.TickUtil
 					LogInfo("Processed " + count + " ticks in " + (end - start) + " ms.");
 				}
 				try {
-					progressCallback("Processing complete.", length, length);
+					progressCallback("Processing complete.", dataIn.BaseStream.Length, dataIn.BaseStream.Length);
 				} catch (Exception ex) {
 					log.Debug("Exception on progressCallback: " + ex.Message);
 				}

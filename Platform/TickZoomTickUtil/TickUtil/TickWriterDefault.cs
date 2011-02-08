@@ -28,7 +28,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
+using Microsoft.Win32.SafeHandles;
 using TickZoom.Api;
 
 namespace TickZoom.TickUtil
@@ -48,7 +50,7 @@ namespace TickZoom.TickUtil
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(TickWriter));
 		private readonly bool debug = log.IsDebugEnabled;
 		private readonly bool trace = log.IsTraceEnabled;
-		bool keepFileOpen = false;
+		bool keepFileOpen = true;
 		bool eraseFileToStart = false;
 		bool logProgress = false;
 		FileStream fs = null;
@@ -114,7 +116,7 @@ namespace TickZoom.TickUtil
     			log.Notice("TickWriter file was erased to begin writing.");
     		}
 			if( keepFileOpen) {
-    			fs = new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.Read);
+    			fs = new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.Read, 1024, FileOptions.WriteThrough);
    				log.Debug("keepFileOpen - Open()");
     			memory = new MemoryStream();
 			}
@@ -123,8 +125,12 @@ namespace TickZoom.TickUtil
 			}
 			isInitialized = true;
 		}
-		
-		[Obsolete("Please pass string symbol instead of SymbolInfo.",true)]
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool FlushFileBuffers(SafeFileHandle hFile);
+
+        [Obsolete("Please pass string symbol instead of SymbolInfo.", true)]
 		public void Initialize(string _folder, SymbolInfo _symbol) {
 			isInitialized = false;
 		}
@@ -160,7 +166,7 @@ namespace TickZoom.TickUtil
 					return Yield.DidWork.Repeat;
 				}
 				if( !keepFileOpen) {
-	    			fs = new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.Read);
+	    			fs = new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.Read, 1024, FileOptions.WriteThrough);
 	    			if( trace) log.Trace("!keepFileOpen - Open()");
 	    			memory = new MemoryStream();
 				}
@@ -172,18 +178,23 @@ namespace TickZoom.TickUtil
 					}
 					WriteToFile(memory, tickIO);
 				}
-				if( !keepFileOpen) {
-		    		fs.Close();
-		    		if( trace) log.Trace("!keepFileOpen - Close()");
-		    		fs = null;
+				if( !keepFileOpen)
+				{
+                    CloseFile(fs);
+                    fs = null;
+                    if (trace) log.Trace("!keepFileOpen - Close()");
 		    	}
 	    		return Yield.DidWork.Repeat;
 		    } catch (QueueException ex) {
 				if( ex.EntryType == EventType.Terminate) {
+                    log.Notice("Last tick written: " + tickIO);
 					log.Debug("Exiting, queue terminated.");
-					if( fs != null) {
-						fs.Close();
-	    				log.Debug("Terminate - Close()");
+					if( fs != null)
+					{
+                        CloseFile(fs);
+                        fs = null;
+                        log.Info("Flushed and closed file " + fileName);
+                        log.Debug("Terminate - Close()");
 					}
 					return Yield.Terminate;
 				} else {
@@ -194,21 +205,37 @@ namespace TickZoom.TickUtil
 			} catch( Exception ex) {
 				writeQueue.Terminate(ex);
 				if( fs != null) {
-					fs.Close();
-				}
+                    CloseFile(fs);
+                    fs = null;
+                }
 				throw;
     		}
 		}
+
+        private void CloseFile( FileStream fs)
+        {
+            if( fs != null) {
+                if(debug) log.Debug("CloseFile() at with " + tickCount + " ticks and length " + fs.Length );
+                
+                fs.Flush();
+                if (!FlushFileBuffers(fs.SafeFileHandle))   // Flush OS file cache to disk.
+                {
+                    Int32 err = Marshal.GetLastWin32Error();
+                    throw new Win32Exception(err, "Win32 FlushFileBuffers returned error for " + fs.Name);
+                }
+                fs.Close();
+            }
+        }
 		
 		private void SetupHeader( MemoryStream memory) {
 			memory.GetBuffer()[0] = (byte) memory.Length;
 		}
-		
+
+	    private long tickCount = 0;
 		private int origSleepSeconds = 3;
 		private int currentSleepSeconds = 3;
 		private void WriteToFile(MemoryStream memory, ReadWritable<TickBinary> tick) {
 			int errorCount = 0;
-			int count=0;
 			do {
 			    try { 
 					if( trace) log.Trace("Writing tick: " + tick);
@@ -225,7 +252,7 @@ namespace TickZoom.TickUtil
 			    	log.Debug(symbol + ": " + e.Message + "\nPausing " + currentSleepSeconds + " seconds before retry."); 
 			    	Factory.Parallel.Sleep(3000);
 			    } 
-				count++;
+				tickCount++;
 			} while( errorCount > 0);
 		}
 		
@@ -287,8 +314,10 @@ namespace TickZoom.TickUtil
 						appendTask.Join();
 					}
 					if( fs!=null ) {
-			    		fs.Close();
-			    		log.Debug("keepFileOpen - Close()");
+                        CloseFile(fs);
+                        fs = null;
+                        log.Info("Flushed and closed file " + fileName);
+                        log.Debug("keepFileOpen - Close()");
 			    	}
 					if( debug) log.Debug("Exiting Close()");
 				}
@@ -320,7 +349,7 @@ namespace TickZoom.TickUtil
 		
 		public bool KeepFileOpen {
 			get { return keepFileOpen; }
-			set { keepFileOpen = value; }
+			set { /* keepFileOpen = value; */ }
 		}
 		
 		public TickQueue WriteQueue {
