@@ -46,6 +46,7 @@ namespace TickZoom.Api
 		private int metricCount;
 		private LatencyManager manager;
 		private string name;
+		private TaskLock locker = new TaskLock();
 		
 		public LatencyMetric(string name) {
 			this.name = name;
@@ -67,25 +68,29 @@ namespace TickZoom.Api
 		}
 		
 		private void Update( long timeStamp) {
-			var current = TimeStamp.UtcNow.Internal;
-			var latency = current - timeStamp;
-			metricCount = manager.Count;
-			
-			latencies.Add(latency);
-			if( previous != null) {
-				var prevIndex = (int) (previous.count - count);
-				if( prevIndex >= 0 && prevIndex < previous.latencies.Count) {
-					lastSelf = latency - previous.latencies[prevIndex];
+			using( locker.Using()) {
+				var current = TimeStamp.UtcNow.Internal;
+				var latency = current - timeStamp;
+				metricCount = manager.Count;
+				
+				latencies.Add(latency);
+				if( previous != null) {
+					using( previous.locker.Using()) {
+						var prevIndex = (int) (previous.count - count);
+						if( prevIndex >= 0 && prevIndex < previous.latencies.Count) {
+							lastSelf = latency - previous.latencies[prevIndex];
+						}
+					}
 				}
-			}
-			total += latency;
-			if( latencies.Count > averageLength) {
-				total -= latencies[averageLength];
-			} else {
-				count ++;
-			}
-			if( previous != null) {
-				totalSelf = total - previous.total;
+				total += latency;
+				if( averageLength >=0 && latencies.Count > averageLength) {
+					total -= latencies[averageLength];
+				} else {
+					count ++;
+				}
+				if( previous != null) {
+					totalSelf = total - previous.total;
+				}
 			}
 		}
 		
@@ -103,53 +108,55 @@ namespace TickZoom.Api
 		
 		public string GetStats(LatencyMetric previous)
 		{
-			var sb = new StringBuilder();
-			sb.Append( name);
-			sb.Append( " (");
-			sb.Append( id);
-			sb.Append( "): ");
-			sb.Append( "tick count " );
-			sb.Append( tickCount);
-			sb.Append( ", count " );
-			sb.Append( count);
-			sb.Append( ", total " );
-			sb.Append( total);
-			if( previous != null) {
-				sb.Append( " (self ");
-				sb.Append( totalSelf);
-				sb.Append( ")");
-			}
-			sb.Append( ", last " );
-			sb.Append( latencies[0]);
-			if( previous != null) {
-				sb.Append( " (self ");
-				sb.Append( lastSelf);
-				sb.Append( ")");
-			}
-			sb.Append( ", average " );
-			var average = Average;
-			if( average != 0 && previous.Average != 0) {
-				sb.Append( Average);
-				sb.Append( " (self ");
-				sb.Append( AverageSelf);
-				sb.Append( ")");
-			} else {
-				sb.Append( "Initializing...");
-			}
-			if( lastSelf > 1000 || AverageSelf > 1000 || (id == 0 && Average > 1000) ) {
-				sb.AppendLine();
-				sb.Append("Latencies: ");
-				for( var i = 0; i<latencies.Count; i++) {
-					if( i!=0) sb.Append(", ");
-				    var prevIndex = (int) (previous.count - count);
-				    if( i+prevIndex < previous.latencies.Count) {
-						var latencySelf = id == 0 ? latencies[i] : latencies[i] - previous.latencies[i+prevIndex];
-						sb.Append( latencySelf );
-				    }
+			using( locker.Using()) {
+				var sb = new StringBuilder();
+				sb.Append( name);
+				sb.Append( " (");
+				sb.Append( id);
+				sb.Append( "): ");
+				sb.Append( "tick count " );
+				sb.Append( tickCount);
+				sb.Append( ", count " );
+				sb.Append( count);
+				sb.Append( ", total " );
+				sb.Append( total);
+				if( previous != null) {
+					sb.Append( " (self ");
+					sb.Append( totalSelf);
+					sb.Append( ")");
 				}
+				sb.Append( ", last " );
+				sb.Append( latencies[0]);
+				if( previous != null) {
+					sb.Append( " (self ");
+					sb.Append( lastSelf);
+					sb.Append( ")");
+				}
+				sb.Append( ", average " );
+				var average = Average;
+				if( average != 0 && previous.Average != 0) {
+					sb.Append( Average);
+					sb.Append( " (self ");
+					sb.Append( AverageSelf);
+					sb.Append( ")");
+				} else {
+					sb.Append( "Initializing...");
+				}
+				if( lastSelf > 1000 || AverageSelf > 1000 || (id == 0 && Average > 1000) ) {
+					sb.AppendLine();
+					sb.Append("Latencies: ");
+					for( var i = 0; i<latencies.Count; i++) {
+						if( i!=0) sb.Append(", ");
+					    var prevIndex = (int) (previous.count - count) + i;
+					    if( prevIndex >= 0 && prevIndex < previous.latencies.Count) {
+							var latencySelf = id == 0 ? latencies[i] : latencies[i] - previous.latencies[prevIndex];
+							sb.Append( latencySelf );
+					    }
+					}
+				}
+				
+				return sb.ToString();
 			}
-			
-			return sb.ToString();
 		}
 		
 		public long Symbol {

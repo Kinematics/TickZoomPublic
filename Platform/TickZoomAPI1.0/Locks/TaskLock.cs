@@ -30,25 +30,26 @@ using System.Threading;
 namespace TickZoom.Api
 {
 	public class TaskLock : IDisposable {
-	    private int isLocked = 0;
+	    private int isLocked = UNLOCKED;
 	    private int lockCount = 0;
+	    private const int UNLOCKED = int.MinValue;
 	    
 		public bool AlreadyLocked {
-			get { return isLocked != 0 && isLocked == Thread.CurrentThread.ManagedThreadId; }
+			get { return isLocked != UNLOCKED && isLocked == Thread.CurrentThread.ManagedThreadId; }
 		}
 	    
 		public bool WillBlock {
-			get { return isLocked != 0 && isLocked != Thread.CurrentThread.ManagedThreadId; }
+			get { return isLocked != UNLOCKED && isLocked != Thread.CurrentThread.ManagedThreadId; }
 		}
 	    
 		public bool TryLock() {
 	    	if( isLocked == Thread.CurrentThread.ManagedThreadId) {
 	    		Thread.BeginCriticalRegion();
-	    		lockCount++;
+	    		Interlocked.Increment(ref lockCount);
 	    		return true;
-	    	} else if( isLocked == 0 && Interlocked.CompareExchange(ref isLocked,Thread.CurrentThread.ManagedThreadId,0) == 0) {
+	    	} else if( isLocked == UNLOCKED && Interlocked.CompareExchange(ref isLocked,Thread.CurrentThread.ManagedThreadId,UNLOCKED) == UNLOCKED) {
 	    		Thread.BeginCriticalRegion();
-	    		lockCount++;
+	    		Interlocked.Increment(ref lockCount);
 	    		return true;
 	    	} else {
 	    		return false;
@@ -56,9 +57,7 @@ namespace TickZoom.Api
 	    }
 	    
 		public void Lock() {
-			while( !TryLock()) {
-				Factory.Parallel.Yield();
-	    	}
+			while( !TryLock());
 	    }
 	    
 	    public TaskLock Using() {
@@ -68,8 +67,8 @@ namespace TickZoom.Api
 	    
 	    public void Unlock() {
 	    	if( isLocked == Thread.CurrentThread.ManagedThreadId) {
-	    		lockCount --;
-	    		if( lockCount <= 0) {
+	    		var count = Interlocked.Decrement(ref lockCount);
+	    		if( count <= 0) {
 	    			ForceUnlock();
 	    		}
 	    	} else {
@@ -79,9 +78,9 @@ namespace TickZoom.Api
 	    }
 	    
 	    public void ForceUnlock() {
+	    	Interlocked.Exchange(ref lockCount, 0);
+	    	Interlocked.Exchange(ref isLocked, UNLOCKED);
 	    	Thread.EndCriticalRegion();
-	    	Interlocked.Exchange(ref isLocked, 0);
-   			lockCount = 0;
 	    }
 		
 		public void Dispose()

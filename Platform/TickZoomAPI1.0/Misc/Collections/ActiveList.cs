@@ -37,8 +37,15 @@ namespace TickZoom.Api
 			get;
 		}
 	}
-	
+
+	/// <summary>
+	/// 
+	///			var next = list.First;
+	///			for( var node = next; node != null; node = next) {
+	///				next = node.Next;
+	///				LogicalOrder other = node.Value;
+	/// 
+	/// </summary>
 	public class ActiveList<T> : LinkedList<T>, Iterable<T> {
-		public object Locker = new object();
 	}
 }
