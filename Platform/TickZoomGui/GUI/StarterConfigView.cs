@@ -149,16 +149,14 @@ namespace TickZoom.GUI
         {
         	var result = false;
             try {
-                if(  !stopMessages && log.HasLine) {
-                    try {
-                        var message = log.ReadLine();
+                if( !stopMessages && log.HasLine) {
+    				LogEvent message;
+    				if( log.TryReadLine(out message)) {
                         if( enableAlarmSounds && message.IsAudioAlarm) {
                             StartAlarm();
                         }
                         Echo(message.MessageObject.ToString());
-               			} catch( CollectionTerminatedException) {
-                        stopMessages = true;
-                    }
+    				}
         			result = true;
         		}
             } catch( Exception ex) {

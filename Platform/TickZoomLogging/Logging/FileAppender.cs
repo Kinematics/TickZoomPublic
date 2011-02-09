@@ -29,6 +29,7 @@ using System.IO;
 using System.Threading;
 using log4net;
 using log4net.Appender;
+using log4net.Core;
 using TickZoom.Api;
 
 namespace TickZoom.Logging
@@ -36,7 +37,7 @@ namespace TickZoom.Logging
 
     public class FileAppender : log4net.Appender.FileAppender
     {
-		private LoggingActionQueue actionQueue = new LoggingActionQueue(100);
+		private LoggingEventQueue actionQueue = new LoggingEventQueue();
 		private Task actionTask;
 		private Exception actionException;
 		public FileAppender() {
@@ -55,9 +56,18 @@ namespace TickZoom.Logging
 		
 		private Yield ActionLoop() {
 			var result = Yield.NoWork.Repeat;
-			Action action;
-			if( actionQueue.TryDequeue( out action)) {
-				action();
+			LoggingEvent loggingEvent;
+			if( actionQueue.Count > 1) {
+				var loggingEvents = new LoggingEvent[actionQueue.Count];
+				for( var i=0; i<loggingEvents.Length; i++) {
+					if( !actionQueue.TryDequeue( out loggingEvents[i])) {
+						throw new ApplicationException("LoggingEvent not found at item #" + i);
+					}
+				}
+				AppendBase(loggingEvents);
+				result = Yield.DidWork.Repeat;
+			} else if( actionQueue.TryDequeue( out loggingEvent)) {
+				AppendBase(loggingEvent);
 				result = Yield.DidWork.Repeat;
 			}
 			return result;
@@ -95,9 +105,7 @@ namespace TickZoom.Logging
 			if( actionException != null) {
 				throw new ApplicationException("Asynchronous logging exception: " + actionException.Message, actionException);
 			}
-			actionQueue.EnQueue( () => {
-				AppendBase(loggingEvent);
-			});
+			actionQueue.EnQueue( loggingEvent);
 		}
 		
 		private void AppendBase(log4net.Core.LoggingEvent loggingEvent)
@@ -110,9 +118,9 @@ namespace TickZoom.Logging
 			if( actionException != null) {
 				throw new ApplicationException("Asynchronous logging exception: " + actionException.Message, actionException);
 			}
-			actionQueue.EnQueue( () => {
-				AppendBase(loggingEvents);
-			});
+			foreach( var loggingEvent in loggingEvents) {
+				actionQueue.EnQueue( loggingEvent);
+			}
 		}
 		
 		private void AppendBase(log4net.Core.LoggingEvent[] loggingEvents)

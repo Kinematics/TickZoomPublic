@@ -33,22 +33,20 @@ using TickZoom.Api;
 
 namespace TickZoom.Logging
 {
-
-	
 	/// <summary>
 	/// Description of Class1.
 	/// </summary>
-	public class LoggingActionQueue
+	public class LoggingEventQueue
 	{
-	    System.Collections.Generic.Queue<Action> queue =
-	    	new System.Collections.Generic.Queue<Action>();
+	    System.Collections.Generic.Queue<LoggingEvent> queue =
+	    	new System.Collections.Generic.Queue<LoggingEvent>();
 	    int maxSize = 10000;
 	    TaskLock locker = new TaskLock();
 	    
-	    public LoggingActionQueue() {
+	    public LoggingEventQueue() {
 	    }
 	    
-	    public void EnQueue(Action o)
+	    public void EnQueue(LoggingEvent o)
 	    {
 	    	using( locker.Using()) {
 	            // If the queue is full, wait for an item to be removed
@@ -60,24 +58,24 @@ namespace TickZoom.Logging
 	    	}
 	    }
 	    
-	    public bool TryDequeue(out Action msg)
+	    public bool TryDequeue(out LoggingEvent msg)
 	    {
-            // If the queue is empty, wait for an item to be added
-            // Note that this is a while loop, as we may be pulsed
-            // but not wake up before another thread has come in and
-            // consumed the newly added object. In that case, we'll
-            // have to wait for another pulse.
-            msg = null;
-            var result = false;
-       		if( queue.Count > 0) {
+	            // If the queue is empty, wait for an item to be added
+	            // Note that this is a while loop, as we may be pulsed
+	            // but not wake up before another thread has come in and
+	            // consumed the newly added object. In that case, we'll
+	            // have to wait for another pulse.
+	            msg = null;
+	            var result = false;
+	       		if( queue.Count > 0) {
 		    	using( locker.Using() ) {
 	            	if( queue.Count > 0) {
 			            msg = queue.Dequeue();
 						result = true;            
 	            	}
 		    	}
-            }
-            return result;
+	            }
+	            return result;
 	    }
 	    
 	    public void Clear() {
@@ -89,6 +87,5 @@ namespace TickZoom.Logging
 	    public int Count {
 	    	get { return queue.Count; }
 	    }
-	
 	}
 }

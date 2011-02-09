@@ -63,8 +63,9 @@
     <Compile Include="Logging\FileAppender.cs" />
     <Compile Include="Logging\LoggingActionQueue.cs" />
     <Compile Include="Logging\LogEventDefault.cs" />
-    <Compile Include="Logging\LogImpl.cs" />
+    <Compile Include="Logging\LoggingEventQueue.cs" />
     <Compile Include="Logging\LoggingQueue.cs" />
+    <Compile Include="Logging\LogImpl.cs" />
     <Compile Include="Logging\LogManagerImpl.cs" />
     <Compile Include="Logging\RollingFileAppender.cs" />
     <Compile Include="Logging\SymbolFilter.cs" />

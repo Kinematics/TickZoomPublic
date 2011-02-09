@@ -28,6 +28,7 @@ using System;
 using System.IO;
 using log4net;
 using log4net.Appender;
+using log4net.Core;
 using TickZoom.Api;
 
 namespace TickZoom.Logging

@@ -48,6 +48,7 @@ namespace TickZoom.Logging
 		private ILoggerRepository repository;
 		private string repositoryName;
 		Dictionary<string,LogImpl> map = new Dictionary<string,LogImpl>();
+
 		public void Configure(string repositoryName) {
 			this.repositoryName = repositoryName;
 			this.repository = LoggerManager.CreateRepository(repositoryName);

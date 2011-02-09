@@ -244,7 +244,7 @@ namespace TickZoom.Logging
         	if( messageQueue == null) {
         		lock( locker) {
 		        	if( messageQueue == null) {
-	       				messageQueue = new LoggingQueue();
+        				messageQueue = new LoggingQueue();
 	       			}
         		}
         	}
@@ -278,15 +278,21 @@ namespace TickZoom.Logging
         		return messageQueue.Count > 0;
         	}
         }
-        public LogEvent ReadLine() {
+        public bool TryReadLine(out LogEvent logEvent) {
         	if( messageQueue == null) {
         		throw new ApplicationException( "Sorry. You must Connect before ReadLine");
         	}
-        	var msg = messageQueue.Dequeue();
-        	return new LogEventDefault() {
-        		IsAudioAlarm = msg.Level >= Level.Error,
-				MessageObject = msg.RenderedMessage,
-        	};
+        	LoggingEvent msg = default(LoggingEvent);
+        	if( messageQueue.Dequeue(out msg)) {
+	        	logEvent = new LogEventDefault() {
+	        		IsAudioAlarm = msg.Level >= Level.Error,
+					MessageObject = msg.RenderedMessage,
+	        	};
+        		return true;
+        	} else {
+        		logEvent = null;
+        		return false;
+        	}
         }
         
         int indent = 0;

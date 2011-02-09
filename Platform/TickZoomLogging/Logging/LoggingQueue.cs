@@ -40,9 +40,8 @@ namespace TickZoom.Logging
 	{
 	    System.Collections.Generic.Queue<LoggingEvent> queue =
 	    	new System.Collections.Generic.Queue<LoggingEvent>();
-	    bool terminate = false;
 	    int maxSize = int.MaxValue;
-	    object listLock = new object();
+	    TaskLock locker = new TaskLock();
 	    
 	    public LoggingQueue() {
 	    }
@@ -53,71 +52,41 @@ namespace TickZoom.Logging
 	    
 	    public void EnQueue(LoggingEvent o)
 	    {
-	    	lock (listLock) {
+	    	using( locker.Using()) {
 	            // If the queue is full, wait for an item to be removed
-	            while (queue.Count>=maxSize) {
-	            	if( terminate) {
-	            		throw new CollectionTerminatedException();
-	            	}
-	                // This releases listLock, only reacquiring it
-	                // after being woken up by a call to Pulse
-	                System.Threading.Monitor.Wait(listLock);
+	            if( queue.Count > maxSize) {
+	            	throw new ApplicationException("GUI Log queue is full.");
 	            }
 	            
 	            queue.Enqueue(o);
-	
-	            // We always need to pulse, even if the queue wasn't
-	            // empty before. Otherwise, if we add several items
-	            // in quick succession, we may only pulse once, waking
-	            // a single thread up, even if there are multiple threads
-	            // waiting for items.            
-	            System.Threading.Monitor.Pulse(listLock);
 	    	}
 	    }
 	    
-	    public LoggingEvent Dequeue()
+	    public bool Dequeue(out LoggingEvent loggingEvent)
 	    {
-	    	lock( listLock) {
+	    	using( locker.Using()) {
 	            // If the queue is empty, wait for an item to be added
 	            // Note that this is a while loop, as we may be pulsed
 	            // but not wake up before another thread has come in and
 	            // consumed the newly added object. In that case, we'll
 	            // have to wait for another pulse.
-	            while (queue.Count==0)
+	            if(queue.Count==0)
 	            {
-	            	if( terminate) {
-	            		throw new CollectionTerminatedException();
-	            	}
-	                // This releases listLock, only reacquiring it
-	                // after being woken up by a call to Pulse
-	                System.Threading.Monitor.Wait(listLock);
+	            	loggingEvent = null;
+	            	return false;
+	            } else {
+		            loggingEvent = queue.Dequeue();
+	            	return true;
 	            }
-	            LoggingEvent retVal = queue.Dequeue();
-	            
-	            // We always need to pulse, in case the queue was full
-	            // and a feeder thread is waiting to write more data.
-	            System.Threading.Monitor.Pulse(listLock);
-	            return retVal;
 	    	}
 	    }
 	    
 	    public void Clear() {
-	    	lock (listLock) {
+	    	using( locker.Using()) {
 	        	queue.Clear();
 	    	}
 	    }
 	    
-	    public void Terminate() {
-	    	lock( listLock) {
-		    	terminate = true;
-	            // empty before. Otherwise, if we add several items
-	            // in quick succession, we may only pulse once, waking
-	            // a single thread up, even if there are multiple threads
-	            // waiting for items.            
-	            System.Threading.Monitor.Pulse(listLock);
-	    	}
-	    }
-
 	    public int Count {
 	    	get { return queue.Count; }
 	    }
