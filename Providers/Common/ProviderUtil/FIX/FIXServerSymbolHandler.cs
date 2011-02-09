@@ -35,7 +35,7 @@ namespace TickZoom.FIX
 		private static bool debug = log.IsDebugEnabled;
 		private FillSimulator fillSimulator;
 		private TickReader reader;
-		private Func<SymbolInfo,Tick,Yield> onTick;
+		private Action<Packet,SymbolInfo,Tick> onTick;
 		private Func<Yield> onHeartbeat;
 		private Task queueTask;
 		private TickSync tickSync;
@@ -52,7 +52,7 @@ namespace TickZoom.FIX
 		
 		public FIXServerSymbolHandler( FIXSimulatorSupport fixSimulatorSupport, 
 			    bool isPlayBack, string symbolString,
-			    Func<Yield> onHeartbeat, Func<SymbolInfo,Tick,Yield> onTick,
+			    Func<Yield> onHeartbeat, Action<Packet,SymbolInfo,Tick> onTick,
 			    Action<PhysicalFill, int,int,int> onPhysicalFill,
 			    Action<PhysicalOrder,string> onRejectOrder) {
 			this.fixSimulatorSupport = fixSimulatorSupport;
@@ -215,8 +215,7 @@ namespace TickZoom.FIX
 							tickStatus = TickStatus.Timer;
 						} else {
 							if( trace) log.Trace("Current time " + currentTime + " was greater than tick time " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
-							SendPlayBackTick();
-							result = Yield.DidWork.Invoke(DequeueTick);
+							result = Yield.DidWork.Invoke(SendPlayBackTick);
 						}		
 						break;
 					case TickStatus.Sent:
@@ -244,11 +243,23 @@ namespace TickZoom.FIX
 			var time = nextTick.UtcTime;
 			var latencyUs = TimeStamp.UtcNow.Internal - nextTick.UtcTime.Internal;
 			if( trace) log.Trace("Updating latency " + time + "." + time.Microsecond + " latency = " + latencyUs);
-			return Yield.DidWork.Invoke( ProcessOnTickCallBack);
+			return Yield.DidWork.Invoke(ProcessOnTickCallBack);
 		}
-		
+
+		private Packet quotePacket;
 		private Yield ProcessOnTickCallBack() {
-			return onTick( symbol, nextTick);
+			if( quotePacket == null) {
+				quotePacket = fixSimulatorSupport.QuoteSocket.CreatePacket();
+			} else if( quotePacket.IsFull) {
+				if( fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket)) {
+					quotePacket = fixSimulatorSupport.QuoteSocket.CreatePacket();
+				}			
+			}
+			onTick( quotePacket, symbol, nextTick);
+			if( fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket)) {
+				quotePacket = fixSimulatorSupport.QuoteSocket.CreatePacket();
+			}
+			return Yield.DidWork.Invoke(ProcessQueue);
 		}
 		
 		private Yield PlayBackTick() {

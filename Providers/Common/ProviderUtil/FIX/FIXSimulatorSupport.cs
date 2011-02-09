@@ -41,6 +41,7 @@ namespace TickZoom.FIX
 		private FIXTFactory1_1 fixFactory;
 		private long realTimeOffset;
 		private object realTimeOffsetLocker = new object();
+		private YieldMethod MainLoopMethod;
 
 		// FIX fields.
 		private ushort fixPort = 0;
@@ -60,8 +61,8 @@ namespace TickZoom.FIX
 		private Packet quoteWritePacket;
 		private bool isQuoteSimulationStarted = false;
 		private PacketFactory quotePacketFactory;
-		protected System.Collections.Queue fixPacketQueue = System.Collections.Queue.Synchronized(new System.Collections.Queue());
-		protected System.Collections.Queue quotePacketQueue = System.Collections.Queue.Synchronized(new System.Collections.Queue());
+		protected FastQueue<Packet> fixPacketQueue = Factory.TickUtil.FastQueue<Packet>("SimulatorFIX");
+		protected FastQueue<Packet> quotePacketQueue = Factory.TickUtil.FastQueue<Packet>("SimulatorQuote");
 		private Dictionary<long, FIXServerSymbolHandler> symbolHandlers = new Dictionary<long, FIXServerSymbolHandler>();
 		private bool isPlayBack = false;
 
@@ -72,6 +73,7 @@ namespace TickZoom.FIX
 			this.quotePacketFactory = quotePacketFactory;
 			ListenToFIX(fixPort);
 			ListenToQuotes(quotesPort);
+			MainLoopMethod = MainLoop;
 		}
 
 		private void ListenToFIX(ushort fixPort)
@@ -221,7 +223,7 @@ namespace TickZoom.FIX
 					}
 					if( quotePacketQueue.Count > 0) {
 						state = State.ProcessQuotes;
-						return Yield.DidWork.Repeat;
+						return Yield.DidWork.Invoke(MainLoopMethod);
 					}
 					break;
 				case State.ProcessFIX:
@@ -246,18 +248,16 @@ namespace TickZoom.FIX
 				return false;
 			}
 			if( trace) log.Trace("ProcessFIXPackets( " + fixPacketQueue.Count + " packets in queue.)");
-			fixWritePacket = (Packet) fixPacketQueue.Dequeue();
-			return true;
+			return fixPacketQueue.DequeueStruct(ref fixWritePacket);
 		}
 		private bool ProcessQuotePackets() {
 			if( quoteWritePacket == null && quotePacketQueue.Count == 0) {
 				return false;
 			}
 			if( trace) log.Trace("ProcessQuotePackets( " + quotePacketQueue.Count + " packets in queue.)");
-			quoteWritePacket = (Packet) quotePacketQueue.Dequeue();
-			return true;
+			return quotePacketQueue.DequeueStruct(ref quoteWritePacket);
 		}
-		private void Resend(PacketFIXT1_1 packetFIX) {
+		private bool Resend(PacketFIXT1_1 packetFIX) {
 			var writePacket = fixSocket.CreatePacket();			
 			var mbtMsg = fixFactory.Create();
 			mbtMsg.AddHeader("2");
@@ -266,7 +266,7 @@ namespace TickZoom.FIX
 			string message = mbtMsg.ToString();
 			if( debug) log.Debug("Sending resend request: " + message);
 			writePacket.DataOut.Write(message.ToCharArray());
-			fixPacketQueue.Enqueue(writePacket);
+			return fixPacketQueue.EnqueueStruct(ref writePacket);
 		}
 		private Random random = new Random(1234);
 		private int sequenceCounter = 1;
@@ -279,13 +279,11 @@ namespace TickZoom.FIX
 						// Ignore this message. Pretend we never received it.
 						// This will test the message recovery.
 						if( debug) log.Debug("Ignoring fix message sequence " + packetFIX.Sequence);
-						Resend(packetFIX);
-						return true;
+						return Resend(packetFIX);
 					}
 					if (trace) log.Trace("Local Read: " + fixReadPacket);
 					if( packetFIX.Sequence != sequenceCounter) {
-						Resend(packetFIX);
-						return true;
+						return Resend(packetFIX);
 					} else {
 						sequenceCounter++;
 						ParseFIXMessage(fixReadPacket);
@@ -315,7 +313,7 @@ namespace TickZoom.FIX
 			return realTimeOffset;
 		}
 
-		public void AddSymbol(string symbol, Func<Yield> onHeartbeat, Func<SymbolInfo, Tick, Yield> onTick, Action<PhysicalFill,int,int,int> onPhysicalFill, Action<PhysicalOrder,string> onOrderReject)
+		public void AddSymbol(string symbol, Func<Yield> onHeartbeat, Action<Packet, SymbolInfo, Tick> onTick, Action<PhysicalFill,int,int,int> onPhysicalFill, Action<PhysicalOrder,string> onOrderReject)
 		{
 			var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
 			if (!symbolHandlers.ContainsKey(symbolInfo.BinaryIdentifier)) {
@@ -471,6 +469,14 @@ namespace TickZoom.FIX
 				
 		public long RealTimeOffset {
 			get { return realTimeOffset; }
+		}
+		
+		public Socket QuoteSocket {
+			get { return quoteSocket; }
+		}
+		
+		public FastQueue<Packet> QuotePacketQueue {
+			get { return quotePacketQueue; }
 		}
 	}
 }
