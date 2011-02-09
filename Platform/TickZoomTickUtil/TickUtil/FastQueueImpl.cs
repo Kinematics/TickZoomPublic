@@ -27,7 +27,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 using System.Threading;
+
 using TickZoom.Api;
 
 namespace TickZoom.TickUtil
@@ -64,6 +66,7 @@ namespace TickZoom.TickUtil
 	    readonly int spinCycles = 1000;
 	    int timeout = 30000; // milliseconds
 	    private static Pool<Queue<T>> queuePool;
+		private static object locker = new object();
 	    Queue<T> queue;
 	    volatile bool terminate = false;
 	    int processorCount = Environment.ProcessorCount;
@@ -75,8 +78,6 @@ namespace TickZoom.TickUtil
 	    int maxSize;
 	    int lowWaterMark;
 	    int highWaterMark;
-	    private static readonly List<FastQueueImpl<T>> queueList = new List<FastQueueImpl<T>>();
-	    private static readonly object locker = new object();
 		Exception exception;
 
         public FastQueueImpl(object name)
@@ -95,14 +96,13 @@ namespace TickZoom.TickUtil
             {
                 this.name = ((Type) name).Name;
             }
+//            this.name += "\n" + Environment.StackTrace;
 			this.maxSize = maxSize;
 			this.lowWaterMark = maxSize / 2;
 			this.highWaterMark = maxSize / 2;
 			queue = QueuePool.Create();
 			queue.Clear();
-			lock( locker) {
-				 queueList.Add(this);
-			}
+			TickUtilFactoryImpl.AddQueue(this);
 	    }
         
 		public override string ToString()
@@ -324,22 +324,32 @@ namespace TickZoom.TickUtil
 			get { return isPaused; }
 		}
 		
-		public void LogStatistics() {
-			if( debug) {
-				double average = lockCount == 0 ? 0 : ((lockSpins*spinCycles)/lockCount);
-				log.Debug("Queue Name="+name+
-			    " items="+Count+
-			    " locks( count="+lockCount + 
-			    " spins="+lockSpins*spinCycles+
-			    " average="+average+
-				") enqueue( conflicts="+enqueueConflicts+
-				" spins="+enqueueSpins+
-				" sleeps="+enqueueSleepCounter+
-				") dequeue( conflicts="+dequeueConflicts+
-				" spins="+dequeueSpins+
-				" sleeps="+dequeueSleepCounter+
-				")");
-			}
+		public string GetStats() {
+			double average = lockCount == 0 ? 0 : ((lockSpins*spinCycles)/lockCount);
+			var sb = new StringBuilder();
+			sb.Append("Queue Name=");
+			sb.Append(name);
+			sb.Append(" items=");
+			sb.Append(Count);
+		    sb.Append(" locks( count=");
+			sb.Append(lockCount);
+		    sb.Append(" spins=");
+		    sb.Append(lockSpins*spinCycles);
+		    sb.Append(" average=");
+			sb.Append(average);
+			sb.Append(") enqueue( conflicts=");
+			sb.Append(enqueueConflicts);
+			sb.Append(" spins=");
+			sb.Append(enqueueSpins);
+			sb.Append(" sleeps=");
+			sb.Append(enqueueSleepCounter);
+			sb.Append(") dequeue( conflicts=");
+			sb.Append(dequeueConflicts);
+			sb.Append(" spins=");
+			sb.Append(dequeueSpins);
+			sb.Append(" sleeps=");
+			sb.Append(dequeueSleepCounter);
+			return sb.ToString();
 		}
 	    
 		public static Pool<Queue<T>> QueuePool {
@@ -354,15 +364,6 @@ namespace TickZoom.TickUtil
 	    	}
 		}
 			
-		public static void LogAllStatistics() {
-			lock(locker) {
-				for( int i=0;i<queueList.Count; i++) {
-					FastQueueImpl<T> queue = queueList[i];
-					queue.LogStatistics();
-				}
-			}
-		}
-		
 		public int Capacity {
 			get { return maxSize; }
 		}
@@ -373,6 +374,10 @@ namespace TickZoom.TickUtil
 		
 		public bool IsEmpty {
 			get { return queue.Count == 0; }
+		}
+		
+		public string Name {
+			get { return name; }
 		}
 	}
 }

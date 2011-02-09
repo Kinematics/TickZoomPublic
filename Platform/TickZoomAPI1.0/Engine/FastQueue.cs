@@ -36,22 +36,17 @@ namespace TickZoom.Api
 	public interface FastFillQueue : FastQueue<LogicalFillBinary> {
 		
 	}
-
-    public interface FastQueue<T>
+	
+	public interface Queue
 	{
-		void Connect(Action<object> hasItem);
-		bool EnqueueStruct(ref T tick);
-		bool DequeueStruct(ref T tick);
-		bool PeekStruct(ref T tick);
-	    bool TryEnqueueStruct(ref T tick);
-	    bool TryDequeueStruct(ref T tick);
+		string Name { get; }
 		void Clear();
 		void Flush();
 		void Terminate(Exception ex);
 		void Terminate();
 		void Pause();
 		void Resume();
-		void LogStatistics();
+		string GetStats();
 		int Count { get; }
 		long EnqueueConflicts { get; }
 		long DequeueConflicts { get; }
@@ -62,6 +57,19 @@ namespace TickZoom.Api
 		PauseEnqueue PauseEnqueue { get; set; }
 		bool IsPaused { get; }
 		int Capacity { get; }
+	    bool IsFull {
+	    	get;
+	    }
+		void Connect(Action<object> hasItem);
+	}
+
+	public interface FastQueue<T> : Queue
+	{
+		bool EnqueueStruct(ref T tick);
+		bool DequeueStruct(ref T tick);
+		bool PeekStruct(ref T tick);
+	    bool TryEnqueueStruct(ref T tick);
+	    bool TryDequeueStruct(ref T tick);
 	}
 }
 

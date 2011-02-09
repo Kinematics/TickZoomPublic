@@ -25,6 +25,9 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Text;
+
 using TickZoom.Api;
 
 namespace TickZoom.TickUtil
@@ -82,6 +85,46 @@ namespace TickZoom.TickUtil
 				}
 			}
 			return tickPool;
+		}
+		
+	    private static readonly List<Queue> queueList = new List<Queue>();
+	    private static readonly TaskLock queueListLocker = new TaskLock();
+	    internal static void AddQueue( Queue queue) {
+	    	queueListLocker.Lock();
+	    	try {
+	    		queueList.Add(queue);
+	    	} finally {
+	    		queueListLocker.Unlock();
+	    	}
+	    }
+	    
+	    public string GetQueueStats() {
+	    	return GetQueueStatsStatic();
+	    }
+
+	    private static readonly Log log = Factory.Log.GetLogger(typeof(TickUtilFactoryImpl));
+		public static string GetQueueStatsStatic() {
+	    	queueListLocker.Lock();
+	    	try {
+				var sb = new StringBuilder();
+				queueList.Sort( (q1,q2) => q1.Count.CompareTo(q2.Count));
+				for( int i=0;i<queueList.Count; i++) {
+					var queue = queueList[i];
+					if( queue.Count > 0) {
+						sb.AppendLine(queue.GetStats());
+					}
+				}
+//				for( int i=0;i<queueList.Count; i++) {
+//					var queue = queueList[i];
+//					if( queue.Count > 100 && queue.Name != "DataReceiverDefault") {
+//						log.Info("Queue over 100 items: \n" + sb);
+//						break;
+//					}
+//				}
+				return sb.ToString();
+	    	} finally {
+	    		queueListLocker.Unlock();
+	    	}
 		}
 	}
 }

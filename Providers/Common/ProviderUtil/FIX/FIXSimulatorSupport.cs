@@ -60,8 +60,8 @@ namespace TickZoom.FIX
 		private Packet quoteWritePacket;
 		private bool isQuoteSimulationStarted = false;
 		private PacketFactory quotePacketFactory;
-		protected Queue fixPacketQueue = Queue.Synchronized(new Queue());
-		protected Queue quotePacketQueue = Queue.Synchronized(new Queue());
+		protected System.Collections.Queue fixPacketQueue = System.Collections.Queue.Synchronized(new System.Collections.Queue());
+		protected System.Collections.Queue quotePacketQueue = System.Collections.Queue.Synchronized(new System.Collections.Queue());
 		private Dictionary<long, FIXServerSymbolHandler> symbolHandlers = new Dictionary<long, FIXServerSymbolHandler>();
 		private bool isPlayBack = false;
 
