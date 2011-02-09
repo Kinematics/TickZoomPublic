@@ -25,11 +25,13 @@
 #endregion
 
 using System;
+using System.Drawing;
 
 namespace TickZoom.Api
 {
 	public interface LogEvent {
 		bool IsAudioAlarm { get; set; }
-		object MessageObject { get; set; }
+		Color Color { get; set; }
+		string Message { get; set; }
 	}
 }

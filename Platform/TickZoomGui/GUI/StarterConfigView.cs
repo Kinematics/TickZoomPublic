@@ -47,7 +47,6 @@ namespace TickZoom.GUI
     {
         #region Fields
 
-        private bool enableAlarmSounds = false;
         bool failedAlarmSound = false;
         private bool isEngineLoaded = false;
         private Log log;
@@ -152,10 +151,10 @@ namespace TickZoom.GUI
                 if( !stopMessages && log.HasLine) {
     				LogEvent message;
     				if( log.TryReadLine(out message)) {
-                        if( enableAlarmSounds && message.IsAudioAlarm) {
+                        if( message.IsAudioAlarm) {
                             StartAlarm();
                         }
-                        Echo(message.MessageObject.ToString());
+                        Echo(message.Message);
     				}
         			result = true;
         		}
@@ -219,7 +218,7 @@ namespace TickZoom.GUI
         {
         	execute.OnUIThread( () => {
 	        	logOutput.Text += msg + "\r\n";
-	            int maxLines = 30;
+	            int maxLines = 1000;
 	            var lines = logOutput.Lines;
 	            int skipLines = lines.Length - maxLines;
 	            if( skipLines > 0) {

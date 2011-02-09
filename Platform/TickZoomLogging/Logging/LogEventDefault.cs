@@ -32,6 +32,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Drawing;
 
 using log4net.Core;
 using log4net.Filter;
@@ -45,15 +46,20 @@ namespace TickZoom.Logging
 			get { return isAudioAlarm; }
 			set { isAudioAlarm = value; }
 		}
+		private Color color;					
+		public Color Color {
+			get { return color; }
+			set { color = value; }
+		}
 		private string loggerName;
 		public string LoggerName {
 			get { return loggerName; }
 			set { loggerName = value; }
 		}
-		public object messageObject;
-		public object MessageObject {
-			get { return messageObject; }
-			set { messageObject = value; }
+		public string message;
+		public string Message {
+			get { return message; }
+			set { message = value; }
 		}
 	}
 }

@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Text;
@@ -286,7 +287,8 @@ namespace TickZoom.Logging
         	if( messageQueue.Dequeue(out msg)) {
 	        	logEvent = new LogEventDefault() {
 	        		IsAudioAlarm = msg.Level >= Level.Error,
-					MessageObject = msg.RenderedMessage,
+	        		Color = msg.Level >= Level.Error ? Color.Red : msg.Level >= Level.Warn ? Color.Yellow : Color.Empty,
+					Message = msg.Level + ": " + msg.RenderedMessage,
 	        	};
         		return true;
         	} else {

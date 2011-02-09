@@ -71,6 +71,7 @@ namespace TickZoom.MBTFIX
 		}
 		
 		public override void OnDisconnect() {
+			log.Error( " FIX connection lost -- Sending EndBroker event.");
 			SendEndBroker();
 		}
 
@@ -289,8 +290,9 @@ namespace TickZoom.MBTFIX
 			errorOkay = text.Contains("FXORD01") ? true : errorOkay;
 			errorOkay = text.Contains("FXORD02") ? true : errorOkay;
 			if( errorOkay) {
-				log.Warn( packetFIX.Text + " -- Sending EndBroker event. \n" + packetFIX);
+				log.Error( packetFIX.Text + " -- Sending EndBroker event.");
 				SendEndBroker();
+				log.Info( packetFIX.Text + " Sent EndBroker event due to packet:\n" + packetFIX);
 			} else {
 				string message = "FIX Server reported an error: " + packetFIX.Text + "\n" + packetFIX;
 				throw new ApplicationException( message);
