@@ -38,6 +38,7 @@ namespace TickZoom.MBTQuotes
 		private const byte DecimalPoint = 46;
 		private const byte EqualSign = 61;
 		private const byte ZeroChar = 48;
+		private const int MaxSize = 4096;
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(PacketMBTQuotes));
 		private static readonly bool trace = log.IsTraceEnabled;
 		private MemoryStream data = new MemoryStream();
@@ -81,7 +82,7 @@ namespace TickZoom.MBTQuotes
 		}
 		
 		public bool IsFull {
-			get { return Length > 0; }
+			get { return Length > 4096; }
 		}
 		
 		public bool HasAny {

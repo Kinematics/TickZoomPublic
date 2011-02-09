@@ -40,7 +40,8 @@ namespace TickZoom.MBTQuotes
 		private bool debug = log.IsDebugEnabled;
 		private bool trace = log.IsTraceEnabled;
         private Dictionary<long,SymbolHandler> symbolHandlers = new Dictionary<long,SymbolHandler>();	
-		private TimeStamp prevTime;		
+		private TimeStamp prevTime;
+		private YieldMethod ReceiveMessageMethod;
 		
 		public MBTQuotesProvider(string name)
 		{
@@ -57,6 +58,7 @@ namespace TickZoom.MBTQuotes
 			} else {
 	  			HeartbeatDelay = 300;
 			}
+			ReceiveMessageMethod = ReceiveMessage;
         }
 		
 		public override void PositionChange(Receiver receiver, SymbolInfo symbol, double signal, Iterable<LogicalOrder> orders)
@@ -126,7 +128,11 @@ namespace TickZoom.MBTQuotes
 							throw new ApplicationException("MBTQuotes message type '" + firstChar + "' was unknown: \n" + new string(packet.DataIn.ReadChars(packet.Remaining)));
 					}
 				}
-				return Yield.DidWork.Repeat;
+				if( Socket.ReceiveQueueCount > 0) {
+					return Yield.DidWork.Invoke( ReceiveMessageMethod);
+				} else {
+					return Yield.DidWork.Repeat;
+				}
 			} else {
 				return Yield.NoWork.Repeat;
 			}
