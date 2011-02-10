@@ -160,6 +160,7 @@ namespace TickZoom.Starters
 	    
 		public virtual void Run(ModelInterface model)
 		{
+			Factory.Parallel.SetMode( parallelMode);
 			engine = Factory.Engine.TickEngine;
 			ProjectProperties.Engine.CopyProperties(engine);
 			// Chaining of models.
