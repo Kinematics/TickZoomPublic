@@ -43,11 +43,12 @@ namespace TickZoom.Api
 		}
 	    
 		public bool TryLock() {
-	    	if( isLocked == Thread.CurrentThread.ManagedThreadId) {
+	    	var currentThreadId = Thread.CurrentThread.ManagedThreadId;
+	    	if( isLocked == currentThreadId) {
 	    		Thread.BeginCriticalRegion();
 	    		Interlocked.Increment(ref lockCount);
 	    		return true;
-	    	} else if( isLocked == UNLOCKED && Interlocked.CompareExchange(ref isLocked,Thread.CurrentThread.ManagedThreadId,UNLOCKED) == UNLOCKED) {
+	    	} else if( isLocked == UNLOCKED && Interlocked.CompareExchange(ref isLocked,currentThreadId,UNLOCKED) == UNLOCKED) {
 	    		Thread.BeginCriticalRegion();
 	    		Interlocked.Increment(ref lockCount);
 	    		return true;
