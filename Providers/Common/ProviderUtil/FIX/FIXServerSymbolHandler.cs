@@ -48,6 +48,7 @@ namespace TickZoom.FIX
 		private bool firstHearbeat = true;
 		private FIXSimulatorSupport fixSimulatorSupport;
 		private LatencyMetric latency;
+		private TrueTimer tickTimer;
 		
 		public FIXServerSymbolHandler( FIXSimulatorSupport fixSimulatorSupport, 
 			    bool isPlayBack, string symbolString,
@@ -67,6 +68,7 @@ namespace TickZoom.FIX
 			tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			tickSync.ForceClear();
 			queueTask = Factory.Parallel.Loop("FIXServerSymbol-"+symbolString, OnException, ProcessQueue);
+			tickTimer = Factory.Parallel.CreateTimer(queueTask,PlayBackTick);
 			queueTask.IsActivityEnabled = true;
 			reader.ReadQueue.Connect( HasItem);
 			queueTask.Start();
@@ -149,7 +151,7 @@ namespace TickZoom.FIX
 							binary.UtcTime += playbackOffset;
 						}
 						if( tickCounter > 10) {
-							intervalTime = 1000;
+							intervalTime = 300;
 						}
 						var time = new TimeStamp( binary.UtcTime);
 				   	} 
@@ -205,9 +207,10 @@ namespace TickZoom.FIX
 				var currentTime = TimeStamp.UtcNow;
 				switch( tickStatus) {
 					case TickStatus.None:
-						var overlapp = 1000L;
-						if( currentTime.Internal + overlapp <= nextTick.UtcTime.Internal) {
-							Factory.Parallel.NextTimer(OnException,nextTick.UtcTime,PlayBackTick);
+						var overlapp = 300L;
+						if( tickTimer.Active) tickTimer.Cancel();
+						if( nextTick.UtcTime.Internal > currentTime.Internal + overlapp &&
+						   tickTimer.Start(nextTick.UtcTime)) {
 							if( trace) log.Trace("Set next timer for " + nextTick.UtcTime  + "." + nextTick.UtcTime.Microsecond + " at " + currentTime  + "." + currentTime.Microsecond);
 							tickStatus = TickStatus.Timer;
 						} else {
@@ -224,12 +227,12 @@ namespace TickZoom.FIX
 				TryRequestHeartbeat(currentTime);
 				return result;
 			} else {
-					queueTask.DecreaseActivity();
-					return onTick( symbol, nextTick);
-				}
+				queueTask.DecreaseActivity();
+				return Yield.DidWork.Invoke( ProcessOnTickCallBack);
 			}
+		}
 		
-		private void SendPlayBackTick() {
+		private Yield SendPlayBackTick() {
 			latency.TryUpdate( nextTick.lSymbol, nextTick.UtcTime.Internal);
 			queueTask.DecreaseActivity();
 		   	if( isFirstTick) {
@@ -241,16 +244,17 @@ namespace TickZoom.FIX
 			var time = nextTick.UtcTime;
 			var latencyUs = TimeStamp.UtcNow.Internal - nextTick.UtcTime.Internal;
 			if( trace) log.Trace("Updating latency " + time + "." + time.Microsecond + " latency = " + latencyUs);
-			onTick( symbol, nextTick);
+			return Yield.DidWork.Invoke( ProcessOnTickCallBack);
 		}
 		
-		private void PlayBackTick() {
-			SendPlayBackTick();
+		private Yield ProcessOnTickCallBack() {
+			return onTick( symbol, nextTick);
+		}
+		
+		private Yield PlayBackTick() {
+			var result = SendPlayBackTick();
 			tickStatus = TickStatus.Sent;
-//			if( trace) {
-//				queueTask.IsLogging = true;
-//			}
-			queueTask.Boost();
+			return result;
 		}
 		
 		private void OnException( Exception ex) {

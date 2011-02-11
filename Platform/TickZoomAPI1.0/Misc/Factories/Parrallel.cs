@@ -121,12 +121,19 @@ namespace TickZoom.Api
 		RealTime
 	}
 	
+	public interface TrueTimer {
+		bool Start( TimeStamp startTime);
+		void Cancel();
+		TimeStamp StartTime { get; }
+		bool Active { get; }
+	}
+	
 	public interface Parallel : ParallelStarter
 	{
 		void Yield();
 		void Sleep(int millis);
 		string GetStats();
-		void NextTimer(Action<Exception> onException, TimeStamp nextTimer, Action timerAction);
+		TrueTimer CreateTimer(Task task, YieldMethod timerAction);
 		void SetMode( ParallelMode mode);
 		ParallelMode Mode {
 			get;
