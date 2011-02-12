@@ -50,5 +50,7 @@ namespace TickZoom.Api
 		ushort Port { get; }
 		Action<Socket> OnConnect { get; set; }
 		Action<Socket> OnDisconnect { get; set; }
+		int SendQueueCount { get; }
+		int ReceiveQueueCount { get; }
 	}
 }
