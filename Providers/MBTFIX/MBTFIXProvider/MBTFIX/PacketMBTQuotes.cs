@@ -38,7 +38,7 @@ namespace TickZoom.MBTQuotes
 		private const byte DecimalPoint = 46;
 		private const byte EqualSign = 61;
 		private const byte ZeroChar = 48;
-		private const int MaxSize = 4096;
+		private const int maxSize = 4096;
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(PacketMBTQuotes));
 		private static readonly bool trace = log.IsTraceEnabled;
 		private MemoryStream data = new MemoryStream();
@@ -95,9 +95,7 @@ namespace TickZoom.MBTQuotes
 		private int FindSplitAt() {
 			byte[] bytes = data.GetBuffer();
 			int length = (int) data.Length;
-//			log.Info("Looking for split from " + 0 + " to " + length );
 			for( int i=0; i<length; i++) {
-//				log.Info(" bytes[" + i + "] = " + bytes[i]);
 				if( bytes[i] == '\n') {
 					return i+1;
 				}
@@ -106,7 +104,6 @@ namespace TickZoom.MBTQuotes
 		}
 		
 		public bool TrySplit(MemoryStream other) {
-//			log.Info("TrySplit() length = " + data.Length);
 			int splitAt = FindSplitAt();
 			if( splitAt == data.Length) {
 				data.Position = data.Length;
@@ -188,16 +185,14 @@ namespace TickZoom.MBTQuotes
 
 		public unsafe int Position { 
 			get { return (int) data.Position; }
-			set { data.Position = value;
-				if( Remaining == 0) {
-					byte[] bytes = data.GetBuffer();
-					int end = (int) data.Length - 1;
-					if( bytes[end] != '\n') {
-						long position = data.Position;
-						data.SetLength( data.Length + 1);
-						data.Position = position;
-					}
-				}
+			set { data.Position = value; }
+		}
+		
+		public bool IsComplete {
+			get {
+				var bytes = data.GetBuffer();
+				var end = (int) data.Length - 1;
+				return bytes[end] == '\n';
 			}
 		}
 		
@@ -239,6 +234,10 @@ namespace TickZoom.MBTQuotes
 				sb.AppendLine(ASCIIEncoding.UTF8.GetString(bytes));
 			}
 			return sb.ToString();
+		}
+		
+		public int MaxSize {
+			get { return maxSize; }
 		}
 	}
 }

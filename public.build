@@ -9,6 +9,7 @@
   <property name="nant.settings.currentframework" value="net-3.5" />
   <property name="target.assemblies" value="${base.dir}\bin" />
   <property name="config.platform" value="Debug" />
+  <property name="test.include" value="" />
   
   <target name="compile.all" >
     <call target="clean" />
@@ -79,12 +80,13 @@
     <echo message=""/>
     <echo message=" === Test Platform ${config.platform} === "/>
     <echo message=""/>
+    <echo message="include=${test.include}"/>
     
     <exec program="${tools.nunit}" workingdir="${target.assemblies}\${config.platform}" 
-          commandline='ExamplesTest.exe /labels '/>
+          commandline='ExamplesTest.exe ${test.include} /labels '/>
           
     <exec program="${tools.nunit}" workingdir="${target.assemblies}\${config.platform}" 
-	  commandline='TickZoomTesting.exe /labels '/>
+	  commandline='TickZoomTesting.exe ${test.include} /labels '/>
   </target>
   
 </project>

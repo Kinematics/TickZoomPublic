@@ -253,7 +253,9 @@ namespace TickZoom.FIX
 			} else if( quotePacket.IsFull) {
 				if( fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket)) {
 					quotePacket = fixSimulatorSupport.QuoteSocket.CreatePacket();
-				}			
+				} else {
+					return Yield.NoWork.Repeat;
+				}
 			}
 			onTick( quotePacket, symbol, nextTick);
 			if( fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket)) {

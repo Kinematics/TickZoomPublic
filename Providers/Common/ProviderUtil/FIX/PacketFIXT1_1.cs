@@ -39,6 +39,7 @@ namespace TickZoom.FIX
 		private const byte DecimalPoint = 46;
 		private const byte EqualSign = 61;
 		private const byte ZeroChar = 48;
+		private const int maxSize = 4096;
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(PacketFIXT1_1));
 		private static readonly bool debug = log.IsDebugEnabled;
 		private static readonly bool trace = log.IsTraceEnabled;
@@ -130,6 +131,7 @@ namespace TickZoom.FIX
 				if( trace) log.Trace("HandleKey("+key+")");
 				HandleKey(key);
 				if( key == 10 ) {
+					isComplete = true;
 					if( data.Position == data.Length) {
 						return 0;
 					} else if( data.Position < data.Length) {
@@ -140,9 +142,16 @@ namespace TickZoom.FIX
 			}
 			// Never found a complete checksum tag so we need more bytes.
 			data.Position = data.Length;
-			data.SetLength( data.Length + 1);
+			isComplete = false;
 			return 0;
 		}
+		
+		private bool isComplete;
+		
+		public bool IsComplete {
+			get { return isComplete; }
+		}
+		
 		
 		private void LogMessage() {
 			if( trace &&
@@ -363,6 +372,10 @@ namespace TickZoom.FIX
 		
 		public int EndSeqNum {
 			get { return endSeqNum; }
+		}
+		
+		public int MaxSize {
+			get { return maxSize; }
 		}
 	}
 }
