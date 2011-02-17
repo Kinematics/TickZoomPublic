@@ -115,7 +115,9 @@ namespace TickZoom.TradingFramework
 					closeDayBars.Add(NewBar(Days));
 					break;
 				case BarUnit.Session:
-					closeSessionBars.Add(NewBar(Sessions));
+					if( Sessions.Count > 0) {
+						closeSessionBars.Add(NewBar(Sessions));
+					}
 					break;
 				case BarUnit.Week:
 					closeWeekBars.Add(NewBar(Weeks));

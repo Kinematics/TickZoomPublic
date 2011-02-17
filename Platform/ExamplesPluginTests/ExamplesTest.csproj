@@ -97,6 +97,7 @@
     <Compile Include="Loaders\MarketOrderTest.cs" />
     <Compile Include="Loaders\ParameterizedMethodSuite.cs" />
     <Compile Include="Loaders\StrategyTest.cs" />
+    <Compile Include="Loaders\TestDataOnlyLoader.cs" />
     <Compile Include="Loaders\TestDualStrategyLoader.cs" />
     <Compile Include="Loaders\TestLimitOrderLoader.cs" />
     <Compile Include="Loaders\TradeOnlyLimitOrderTest.cs" />

@@ -216,13 +216,13 @@ namespace TickZoom.TradingFramework
 		{
 			BarsList bars = weeklogic.closeMinuteBars;
 			Bar expected = new Bar();
-			expected.Time = new TimeStamp(2005,5,31,15,58,0);
-			expected.EndTime = new TimeStamp(2005,5,31,15,59,0);
-			expected.TickTime = new TimeStamp("2005-05-31 15:58:52.848");
-			expected.Open = 108.46;
+			expected.Time = new TimeStamp(2005,5,31,15,59,0);
+			expected.EndTime = new TimeStamp(2005,5,31,16,00,0);
+			expected.TickTime = new TimeStamp("2005-05-31 15:59:50.027");
+			expected.Open = 108.48;
 			expected.High = 108.48;
-			expected.Low = 108.46;
-			expected.Close = 108.47;
+			expected.Low = 108.44;
+			expected.Close = 108.45;
 			TestBar(bars,expected,bars[0]);
 		}
 		
@@ -231,13 +231,13 @@ namespace TickZoom.TradingFramework
 		{
 			BarsList bars = weeklogic.closeMinute30Bars;
 			Bar expected = new Bar();
-			expected.Time = new TimeStamp(2005,5,31,15,20,0);
-			expected.EndTime = new TimeStamp(2005,5,31,15,50,0);
-			expected.TickTime = new TimeStamp("2005-05-31 15:49:55.113");
-			expected.Open = 108.34;
-			expected.High = 108.51;
-			expected.Low = 108.32;
-			expected.Close = 108.42;
+			expected.Time = new TimeStamp(2005,5,31,15,50,0);
+			expected.EndTime = new TimeStamp(2005,5,31,16,20,0);
+			expected.TickTime = new TimeStamp("2005-05-31 15:59:50.027");
+			expected.Open = 108.43;
+			expected.High = 108.48;
+			expected.Low = 108.41;
+			expected.Close = 108.45;
 			TestBar(bars,expected,bars[0]);
 		}
 		
@@ -245,13 +245,13 @@ namespace TickZoom.TradingFramework
 		public void HourClose()
 		{
 			Bar expected = new Bar();
-			expected.Time = new TimeStamp(2005,5,31,14,20,0,0);
-			expected.EndTime = new TimeStamp(2005,5,31,15,20,0);
-			expected.TickTime = new TimeStamp("2005-05-31 15:19:44.966");
-			expected.Open = 108.16;
-			expected.High = 108.33;
-			expected.Low = 108.15;
-			expected.Close = 108.33;
+			expected.Time = new TimeStamp(2005,5,31,15,20,0,0);
+			expected.EndTime = new TimeStamp(2005,5,31,16,20,0);
+			expected.TickTime = new TimeStamp("2005-05-31 15:59:50.027");
+			expected.Open = 108.34;
+			expected.High = 108.51;
+			expected.Low = 108.32;
+			expected.Close = 108.45;
 			BarsList bars = weeklogic.closeHourBars;
 			TestBar(bars,expected,bars[0]);
 		}
@@ -259,13 +259,13 @@ namespace TickZoom.TradingFramework
 		public void DayClose()
 		{
 			Bar expected = new Bar();
-			expected.Time = new TimeStamp(2005,5,30,0,0,0,0);
-			expected.EndTime = new TimeStamp(2005,5,31,0,0,0);
-			expected.TickTime = new TimeStamp("2005-05-30 11:59:43.211");
-			expected.Open = 107.84;
-			expected.High = 107.97;
-			expected.Low = 107.81;
-			expected.Close = 107.88;
+			expected.Time = new TimeStamp(2005,5,31,0,0,0,0);
+			expected.EndTime = new TimeStamp(2005,6,01,0,0,0);
+			expected.TickTime = new TimeStamp("2005-05-31 15:59:50.027");
+			expected.Open = 108.00;
+			expected.High = 108.51;
+			expected.Low = 107.71;
+			expected.Close = 108.47;
 			BarsList bars = weeklogic.closeDayBars;
 			TestBar(bars,expected,bars[0]);
 		}
@@ -291,7 +291,7 @@ namespace TickZoom.TradingFramework
 			Bar expected = new Bar();
 			expected.Time = new TimeStamp(2005,5,31,6,20,0,0);
 			expected.EndTime = new TimeStamp(2005,5,31,15,0,0);
-			expected.TickTime = new TimeStamp("2005-05-31 15:58:52.848");
+			expected.TickTime = new TimeStamp("2005-05-31 15:59:50.027");
 			BarsList bars = weeklogic.closeSessionBars;
 			expected.Open = 108.00;
 			expected.High = 108.32;
@@ -304,14 +304,14 @@ namespace TickZoom.TradingFramework
 		public void WeekClose()
 		{
 			Bar expected = new Bar();
-			expected.Time = new TimeStamp(2005,5,22,0,0,0);
-			expected.EndTime = new TimeStamp(2005,5,29,0,0,0);
-			expected.TickTime = new TimeStamp("2005-05-27 15:59:58.878");
+			expected.Time = new TimeStamp(2005,5,29,0,0,0);
+			expected.EndTime = new TimeStamp(2005,6,05,0,0,0);
+			expected.TickTime = new TimeStamp("2005-05-31 15:59:50.027");
 			BarsList bars = weeklogic.closeWeekBars;
-			expected.Open = 107.86;
-			expected.High = 108.25;
-			expected.Low = 107.21;
-			expected.Close = 107.97;
+			expected.Open = 107.84;
+			expected.High = 108.51;
+			expected.Low = 107.71;
+			expected.Close = 108.47;
 			TestBar(bars,expected,bars[0]);
 		}
 		
