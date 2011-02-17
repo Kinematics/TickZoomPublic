@@ -36,7 +36,6 @@ namespace TickZoom.FIX
 		private FillSimulator fillSimulator;
 		private TickReader reader;
 		private Action<Packet,SymbolInfo,Tick> onTick;
-		private Func<Yield> onHeartbeat;
 		private Task queueTask;
 		private TickSync tickSync;
 		private SymbolInfo symbol;
@@ -44,20 +43,17 @@ namespace TickZoom.FIX
 		private bool isFirstTick = true;
 		private bool isPlayBack = false;
 		private long playbackOffset;
-		private TimeStamp heartbeatTimer;
-		private bool firstHearbeat = true;
 		private FIXSimulatorSupport fixSimulatorSupport;
 		private LatencyMetric latency;
 		private TrueTimer tickTimer;
 		
 		public FIXServerSymbolHandler( FIXSimulatorSupport fixSimulatorSupport, 
 			    bool isPlayBack, string symbolString,
-			    Func<Yield> onHeartbeat, Action<Packet,SymbolInfo,Tick> onTick,
+			    Action<Packet,SymbolInfo,Tick> onTick,
 			    Action<PhysicalFill, int,int,int> onPhysicalFill,
 			    Action<PhysicalOrder,string> onRejectOrder) {
 			this.fixSimulatorSupport = fixSimulatorSupport;
 			this.isPlayBack = isPlayBack;
-			this.onHeartbeat = onHeartbeat;
 			this.onTick = onTick;
 			this.symbol = Factory.Symbol.LookupSymbol(symbolString);
 			reader = Factory.TickUtil.TickReader();
@@ -73,7 +69,6 @@ namespace TickZoom.FIX
 			reader.ReadQueue.Connect( HasItem);
 			queueTask.Start();
 			latency = new LatencyMetric("FIXServerSymbolHandler-"+symbolString.StripInvalidPathChars());
-			firstHearbeat = true;
 			reader.ReadQueue.StartEnqueue();
 		}
 		
@@ -177,23 +172,6 @@ namespace TickZoom.FIX
 			return result;
 		}
 		
-		private void IncreaseHeartbeat(TimeStamp currentTime) {
-			heartbeatTimer = currentTime;
-			heartbeatTimer.AddSeconds(30);
-		}		
-
-		private void TryRequestHeartbeat(TimeStamp currentTime) {
-			if( firstHearbeat) {
-				IncreaseHeartbeat(currentTime);
-				firstHearbeat = false;
-				return;
-			}
-			if( currentTime > heartbeatTimer) {
-				IncreaseHeartbeat(currentTime);
-				onHeartbeat();
-			}
-		}
-		
 		public enum TickStatus {
 			None,
 			Timer,
@@ -223,7 +201,6 @@ namespace TickZoom.FIX
 						result = Yield.DidWork.Return;
 						break;
 				}
-				TryRequestHeartbeat(currentTime);
 				return result;
 			} else {
 				queueTask.DecreaseActivity();

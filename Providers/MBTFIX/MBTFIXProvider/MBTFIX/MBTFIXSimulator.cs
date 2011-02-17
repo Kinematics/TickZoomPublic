@@ -287,21 +287,6 @@ namespace TickZoom.MBTFIX
 			if(debug) log.Debug("Sending login response: " + login);
 		}
 		
-		private Yield OnHeartbeat() {
-			if( fixSocket != null && FixFactory != null) {
-				var writePacket = fixSocket.CreatePacket();
-				var mbtMsg = (FIXMessage4_4) FixFactory.Create();
-				mbtMsg.AddHeader("1");
-				string message = mbtMsg.ToString();
-				writePacket.DataOut.Write(message.ToCharArray());
-				if( trace) log.Trace("Requesting heartbeat: " + message);
-				if( !fixPacketQueue.EnqueueStruct(ref writePacket)) {
-					throw new ApplicationException("Fix Queue is full.");
-				}
-			}
-			return Yield.DidWork.Return;
-		}
-		
 		private void QuotesLogin(PacketMBTQuotes packet) {
 			if( quoteState != ServerState.Startup) {
 				CloseWithQuotesError(packet, "Invalid login request. Already logged in.");
@@ -437,7 +422,7 @@ namespace TickZoom.MBTFIX
 							var symbol = packet.GetString( ref ptr);
 							symbolInfo = Factory.Symbol.LookupSymbol(symbol);
 							log.Info("Received symbol request for " + symbolInfo);
-							AddSymbol(symbol, OnHeartbeat, OnTick, OnPhysicalFill, OnRejectOrder);
+							AddSymbol(symbol, OnTick, OnPhysicalFill, OnRejectOrder);
 							break;
 						case 2000: // Type of data.
 							var feedType = packet.GetString( ref ptr);

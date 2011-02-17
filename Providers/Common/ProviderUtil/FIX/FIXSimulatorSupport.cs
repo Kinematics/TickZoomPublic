@@ -195,6 +195,8 @@ namespace TickZoom.FIX
 				case State.Start:
 					if( FIXReadLoop()) {
 						result = true;
+					} else {
+						TryRequestHeartbeat( TimeStamp.UtcNow);
 					}
 				ProcessFIX:
 					if( ProcessFIXPackets()) {
@@ -313,11 +315,11 @@ namespace TickZoom.FIX
 			return realTimeOffset;
 		}
 
-		public void AddSymbol(string symbol, Func<Yield> onHeartbeat, Action<Packet, SymbolInfo, Tick> onTick, Action<PhysicalFill,int,int,int> onPhysicalFill, Action<PhysicalOrder,string> onOrderReject)
+		public void AddSymbol(string symbol, Action<Packet, SymbolInfo, Tick> onTick, Action<PhysicalFill,int,int,int> onPhysicalFill, Action<PhysicalOrder,string> onOrderReject)
 		{
 			var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
 			if (!symbolHandlers.ContainsKey(symbolInfo.BinaryIdentifier)) {
-				var symbolHandler = new FIXServerSymbolHandler(this, isPlayBack, symbol, onHeartbeat, onTick, onPhysicalFill, onOrderReject);
+				var symbolHandler = new FIXServerSymbolHandler(this, isPlayBack, symbol, onTick, onPhysicalFill, onOrderReject);
 				symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
 			}
 		}
@@ -397,6 +399,40 @@ namespace TickZoom.FIX
 			}
 		}
 
+		private TimeStamp heartbeatTimer;
+		private bool firstHeartbeat = true;
+		private void IncreaseHeartbeat(TimeStamp currentTime) {
+			heartbeatTimer = currentTime;
+			heartbeatTimer.AddSeconds(30);
+		}		
+
+		private void TryRequestHeartbeat(TimeStamp currentTime) {
+			if( firstHeartbeat) {
+				IncreaseHeartbeat(currentTime);
+				firstHeartbeat = false;
+				return;
+			}
+			if( currentTime > heartbeatTimer) {
+				IncreaseHeartbeat(currentTime);
+				OnHeartbeat();
+			}
+		}
+		
+		protected virtual Yield OnHeartbeat() {
+			if( fixSocket != null && FixFactory != null) {
+				var writePacket = fixSocket.CreatePacket();
+				var mbtMsg = (FIXMessage4_4) FixFactory.Create();
+				mbtMsg.AddHeader("1");
+				string message = mbtMsg.ToString();
+				writePacket.DataOut.Write(message.ToCharArray());
+				if( trace) log.Trace("Requesting heartbeat: " + message);
+				if( !fixPacketQueue.EnqueueStruct(ref writePacket)) {
+					throw new ApplicationException("Fix Queue is full.");
+				}
+			}
+			return Yield.DidWork.Return;
+		}
+		
 		public void OnException(Exception ex)
 		{
 			log.Error("Exception occurred", ex);
