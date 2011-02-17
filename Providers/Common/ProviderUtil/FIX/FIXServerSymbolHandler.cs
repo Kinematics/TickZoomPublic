@@ -124,7 +124,7 @@ namespace TickZoom.FIX
 
 		private long intervalTime = 1000000;
 		private long prevTickTime;
-		private bool isVolumeTest = true;
+		private bool isVolumeTest = false;
 		private long tickCounter = 0;
 		private Yield DequeueTick() {
 			var result = Yield.NoWork.Repeat;

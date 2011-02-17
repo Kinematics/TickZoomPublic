@@ -39,7 +39,7 @@ namespace Loaders
 		public AutoTestSettings[] GetAutoTestSettings() {
 			var list = new System.Collections.Generic.List<AutoTestSettings>();
 			var storeKnownGood = false;
-			var showCharts = true;
+			var showCharts = false;
 			var primarySymbol = "USD/JPY";
 			try { 
 				list.Add( new AutoTestSettings {
@@ -180,7 +180,7 @@ namespace Loaders
 			});
 			
 			list.Add( new AutoTestSettings {
-			    Mode = AutoTestMode.Default,
+			    Mode = AutoTestMode.Historical | AutoTestMode.SimulateFIX,
 			    Name = "ExampleMixedTest",
 			    Loader = new ExampleMixedLoader(),
 				Symbols = primarySymbol + ",EUR/USD,USD/CHF",
@@ -247,23 +247,23 @@ namespace Loaders
 			cscoRealTime.RelativeEndTime = new Elapsed(2,0,0);
 			list.Add( cscoRealTime);
 			
-			// Fast Running CSCO real time tests...
+			// Fast Running SPY real time tests...
 			var spyRealTime = new AutoTestSettings {
 			    Mode = AutoTestMode.Historical,
-			    Name = "RealTimeSPYLimitOrderTest",
-			    Loader = new TestLimitOrderLoader(),
-				Symbols = "SPYTest",
+			    Name = "RealTimeSPYDataOnly",
+			    Loader = new TestDataOnlyLoader(),
+				Symbols = "SPYTradeOnly",
 				StoreKnownGood = storeKnownGood,
 				ShowCharts = showCharts,
-				EndTime = new TimeStamp( 2011,1,19,21,00,00),
+				EndTime = new TimeStamp( 2011,2,17),
 				IntervalDefault = Intervals.Second10,
 			};
 			list.Add(spyRealTime);
 			
 			// Real time (slow running) CSCO real time test.
 			spyRealTime = spyRealTime.Copy();
-			spyRealTime.Mode = AutoTestMode.None;
-			spyRealTime.RelativeEndTime = new Elapsed(2,0,0);
+			spyRealTime.Mode = AutoTestMode.FIXPlayBack;
+			spyRealTime.RelativeEndTime = new Elapsed(0,5,00);
 			list.Add( spyRealTime);
 			
 			return list.ToArray();

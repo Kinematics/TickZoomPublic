@@ -54,4 +54,5 @@ namespace Loaders
 			TopModel = strategy;
 		}
 	}
+
 }

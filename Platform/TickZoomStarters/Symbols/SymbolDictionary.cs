@@ -302,6 +302,14 @@ namespace TickZoom.Symbols
       <property name=""TimeAndSales"" value=""ActualTrades"" />
       <property name=""QuoteType"" value=""None"" />
     </symbol>
+    <symbol name=""SPYTradeOnly"">
+      <property name=""TimeAndSales"" value=""ActualTrades"" />
+      <property name=""QuoteType"" value=""None"" />
+    </symbol>
+    <symbol name=""SPYQuoteOnly"">
+      <property name=""TimeAndSales"" value=""None"" />
+      <property name=""QuoteType"" value=""Level1"" />
+    </symbol>
     <category name=""Testing"">
       <symbol name=""CSCO"">
         <property name=""TimeAndSales"" value=""ActualTrades"" />
