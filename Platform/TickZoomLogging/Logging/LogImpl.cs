@@ -56,6 +56,7 @@ namespace TickZoom.Logging
 		private static TimeStamp endTime;
 		
 		private class LogImplWrapper : log4net.Core.LogImpl {
+			private Level m_levelVerbose;
 			private Level m_levelTrace;
 			private Level m_levelDebug;
 			private Level m_levelInfo;
@@ -63,6 +64,7 @@ namespace TickZoom.Logging
 			private Level m_levelWarn;
 			private Level m_levelError;
 			private Level m_levelFatal;
+			private bool verbose;
 			private bool trace;
 			private bool debug;
 			private bool info;
@@ -77,6 +79,7 @@ namespace TickZoom.Logging
 			}
 			
 			private static readonly Level[] levels = new Level[] {
+				Level.Verbose,
 				Level.Trace,
 				Level.Debug,
 				Level.Info,
@@ -89,6 +92,7 @@ namespace TickZoom.Logging
 			protected override void ReloadLevels(log4net.Repository.ILoggerRepository repository)
 			{
 				base.ReloadLevels(repository);
+				m_levelVerbose = repository.LevelMap.LookupWithDefault(Level.Verbose);
 				m_levelTrace = repository.LevelMap.LookupWithDefault(Level.Trace);
 				m_levelDebug = repository.LevelMap.LookupWithDefault(Level.Debug);
 				m_levelInfo = repository.LevelMap.LookupWithDefault(Level.Info);
@@ -97,6 +101,7 @@ namespace TickZoom.Logging
 				m_levelError = repository.LevelMap.LookupWithDefault(Level.Error);
 				m_levelFatal = repository.LevelMap.LookupWithDefault(Level.Fatal);
 				FindAnyEnabled();
+				verbose = IsAnyEnabledFor(m_levelVerbose);
 				trace = IsAnyEnabledFor(m_levelTrace);
 				debug = IsAnyEnabledFor(m_levelDebug);
 				info = IsAnyEnabledFor(m_levelInfo);
@@ -111,6 +116,10 @@ namespace TickZoom.Logging
 					ReloadLevels(Logger.Repository);
 					isInitialized = true;
 				}
+			}
+			
+			public bool IsVerboseEnabled {
+				get { TryReloadLevels(); return verbose; }
 			}
 			
 			public bool IsTraceEnabled {
@@ -346,6 +355,10 @@ namespace TickZoom.Logging
 			get { return log.IsNoticeEnabled; }
 		}
 		
+		public bool IsVerboseEnabled {
+			get { return log.IsVerboseEnabled; }
+		}
+		
 		public bool IsTraceEnabled {
 			get { return log.IsTraceEnabled; }
 		}
@@ -381,6 +394,11 @@ namespace TickZoom.Logging
 		public void Notice(object message)
       	{
 			Notice(message,null);
+		}
+		
+		public void Verbose(object message)
+      	{
+			Verbose(message,null);
 		}
 		
 		public void Trace(object message)
@@ -424,6 +442,20 @@ namespace TickZoom.Logging
 				}
 				SetProperties(loggingEvent);
         		WriteScreen(loggingEvent);
+				log.Logger.Log(loggingEvent);
+			}
+		}
+		
+		public void Verbose(object message, Exception t)
+		{
+			if (IsVerboseEnabled)
+			{
+				var data = BuildEventData(log.Logger.Name, Level.Verbose, message, t);
+				var loggingEvent = new LoggingEvent( callingType, log.Logger.Repository, data);
+				if( t!=null) {
+					System.Diagnostics.Debug.WriteLine(message + "\n" + t);
+				}
+				SetProperties(loggingEvent);
 				log.Logger.Log(loggingEvent);
 			}
 		}
@@ -653,6 +685,11 @@ namespace TickZoom.Logging
 			}
 		}
 		
+		public void VerboseFormat(string format, params object[] args)
+		{	
+			Verbose(string.Format(format,args));
+		}
+		
 		public void TraceFormat(string format, params object[] args)
 		{
 			
@@ -687,6 +724,11 @@ namespace TickZoom.Logging
 		public void FatalFormat(string format, params object[] args)
 		{
 			log.FatalFormat(format, args);
+		}
+		
+		public void VerboseFormat(IFormatProvider provider, string format, params object[] args)
+		{
+			Verbose(string.Format(provider, format, args));
 		}
 		
 		public void TraceFormat(IFormatProvider provider, string format, params object[] args)

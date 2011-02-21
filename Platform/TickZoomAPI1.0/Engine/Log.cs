@@ -72,6 +72,7 @@ namespace TickZoom.Api
 		void Outdent();
         
 		/* Test if a level is enabled for logging */
+		bool IsVerboseEnabled { get; }
 		bool IsTraceEnabled { get; }
 		bool IsDebugEnabled { get; }
 		bool IsInfoEnabled { get; }
@@ -81,6 +82,7 @@ namespace TickZoom.Api
 		bool IsFatalEnabled { get; }
 		
 		/* Log a message object */
+        void Verbose(object message);
         void Trace(object message);
 		void Debug(object message);
 		void Info(object message);
@@ -90,6 +92,7 @@ namespace TickZoom.Api
 		void Fatal(object message);
 		
 		/* Log a message object and exception */
+        void Verbose(object message, Exception t);
         void Trace(object message, Exception t);
 		void Debug(object message, Exception t);
 		void Info(object message, Exception t);
@@ -99,6 +102,7 @@ namespace TickZoom.Api
 		void Fatal(object message, Exception t);
 		
 		/* Log a message string using the System.String.Format syntax */
+		void VerboseFormat(string format, params object[] args);
 		void TraceFormat(string format, params object[] args);
 		void DebugFormat(string format, params object[] args);
 		void InfoFormat(string format, params object[] args);
@@ -108,6 +112,7 @@ namespace TickZoom.Api
 		void FatalFormat(string format, params object[] args);
 		
 		/* Log a message string using the System.String.Format syntax */
+		void VerboseFormat(IFormatProvider provider, string format, params object[] args);
 		void TraceFormat(IFormatProvider provider, string format, params object[] args);
 		void DebugFormat(IFormatProvider provider, string format, params object[] args);
 		void InfoFormat(IFormatProvider provider, string format, params object[] args);

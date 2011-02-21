@@ -49,8 +49,19 @@ namespace Loaders
 		}
 		
 		public override void OnLoad(ProjectProperties properties) {
-			var strategy =  new Strategy();
-			TopModel = strategy;
+			if( properties.Starter.SymbolProperties.Length > 1) {
+				var portfolio = new Portfolio();
+				foreach( var symbol in properties.Starter.SymbolProperties) {
+					var strategy = new Strategy();
+					strategy.Name = strategy.Name + "-" + symbol.Symbol;
+					strategy.SymbolDefault = symbol.Symbol;
+					AddDependency(portfolio,strategy);
+				}			
+				TopModel = portfolio;
+			} else {
+				var strategy =  new Strategy();
+				TopModel = strategy;
+			}
 		}
 	}
 }

@@ -307,9 +307,13 @@ namespace TickZoom.TickUtil
 						throw new ApplicationException("Please initialize TickWriter first.");
 					}
 					if( debug) log.Debug("Dispose()");
-		    		if( appendTask != null && writeQueue != null) {
-						while( !writeQueue.TryEnqueue(EventType.Terminate, symbol)) {
-							Thread.Sleep(1);
+					if( appendTask != null) {
+						if( writeQueue != null) {
+							while( !writeQueue.TryEnqueue(EventType.Terminate, symbol)) {
+								Thread.Sleep(1);
+							}
+						} else {
+							appendTask.Stop();
 						}
 						appendTask.Join();
 					}
