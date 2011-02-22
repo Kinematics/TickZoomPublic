@@ -29,8 +29,9 @@ using Microsoft.Win32;
 
 namespace TickZoom.TZData
 {
-	public interface Command {
+	public interface CommandInterface {
 		void Run(string[] args);
 		string[] Usage();
+		Action<string> Output { get; set; }
 	}
 }

@@ -37,7 +37,7 @@ namespace TickZoom.TZData
 
 	public class Migrate : Command
 	{
-		public void Run(string[] args)
+		public override void Run(string[] args)
 		{
 			if( args.Length != 2) {
 				Console.Write("Migrate Usage:");
@@ -90,7 +90,7 @@ namespace TickZoom.TZData
 			File.Move( file + ".temp", file);
 		}
 		
-		public string[] Usage() {
+		public override string[] Usage() {
 			List<string> lines = new List<string>();
 			string name = Assembly.GetEntryAssembly().GetName().Name;
 			lines.Add( name + " migrate <symbol> <file>");

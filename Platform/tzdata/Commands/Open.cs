@@ -35,7 +35,7 @@ namespace TickZoom.TZData
 {
 	public class Open : Command {
 		string currentDir = System.Environment.CurrentDirectory;
-		public void Run(string[] args) {
+		public override void Run(string[] args) {
 			try { 
 				Command cmd = new Query();
 				cmd.Run(args);
@@ -47,7 +47,7 @@ namespace TickZoom.TZData
 			Console.ReadKey(true);
 		}
 		
-		public string[] Usage() {
+		public override string[] Usage() {
 			List<string> lines = new List<string>();
 			string name = Assembly.GetEntryAssembly().GetName().Name;
 			lines.Add( name + " open <file>");

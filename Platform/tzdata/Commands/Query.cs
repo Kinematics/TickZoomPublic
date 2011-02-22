@@ -40,7 +40,7 @@ namespace TickZoom.TZData
 		StringBuilder stringBuilder = new StringBuilder();
 		TickReader reader = Factory.TickUtil.TickReader();
 		
-		public void Run(string[] args)
+		public override void Run(string[] args)
 		{
 			if( args.Length != 2 && args.Length !=1 ) {
 				stringBuilder.AppendLine("Query Usage:");
@@ -156,7 +156,7 @@ namespace TickZoom.TZData
 			return stringBuilder.ToString();
 		}
 		
-		public string[] Usage() {
+		public override string[] Usage() {
 			List<string> lines = new List<string>();
 			string name = Assembly.GetEntryAssembly().GetName().Name;
 			lines.Add( name + " query <symbol> <file>");

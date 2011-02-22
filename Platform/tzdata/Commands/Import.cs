@@ -12,6 +12,15 @@ using TickZoom.Api;
 
 namespace TickZoom.TZData
 {
+	public abstract class Command : CommandInterface {
+		private Action<string> output = Console.WriteLine;
+		public Action<string> Output {
+			get { return output; }
+			set { output = value; }
+		}
+		public abstract void Run(string[] args);
+		public abstract string[] Usage();
+	}
 	/// <summary>
 	/// Convert tick data exported from TradeStation into TickZoom format.
 	/// </summary>
@@ -46,7 +55,7 @@ namespace TickZoom.TZData
 			}
 		}
 
-		public void Run(string[] args)
+		public override void Run(string[] args)
 		{
 			if( args.Length != 2 && args.Length != 4) {
 				Console.Write("Import Usage:");
@@ -286,7 +295,7 @@ namespace TickZoom.TZData
 			return result;
 		}		
 
-		public string[] Usage() {
+		public override string[] Usage() {
 			return new string[] { assemblyName + " importer <symbol> <fromfile> <tofile> [<starttimestamp> <endtimestamp>]" };
 		}
 		

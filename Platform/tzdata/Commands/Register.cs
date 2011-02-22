@@ -47,7 +47,7 @@ namespace TickZoom.TZData
 			}
 		}
 		
-		public void Run(string[] args) {
+		public override void Run(string[] args) {
 			AssociateFile(".tck","TZData","TickZoom Tick Data",currentDir+@"\tzdata.exe",null,0);
 			AddToPath();
 		}
@@ -165,7 +165,7 @@ namespace TickZoom.TZData
 		    }
 		}
 		
-		public string[] Usage() {
+		public override string[] Usage() {
 			List<string> lines = new List<string>();
 			string name = Assembly.GetEntryAssembly().GetName().Name;
 			lines.Add(name + " register");

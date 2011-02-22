@@ -43,11 +43,11 @@ namespace TickZoom.TZData
 			}
 		}
 		
-		public void Run(string[] args)
+		public override void Run(string[] args)
 		{
 			if( args.Length != 3 && args.Length != 5) {
-				Console.Write("Filter Usage:");
-				Console.Write("tzdata " + Usage()); 
+				Output("Filter Usage:");
+				Output("tzdata " + Usage()); 
 				return;
 			}
 			string symbol = args[0];
@@ -80,16 +80,6 @@ namespace TickZoom.TZData
 			long dups = 0;
 			TickIO tickIO = Factory.TickUtil.TickIO();
 			TickBinary tickBinary = new TickBinary();
-			inputQueue.Dequeue(ref tickBinary);
-			tickIO.Inject(tickBinary);
-			count++;
-			firstTick.Copy(tickIO);
-			firstTick.IsSimulateTicks = true;
-			prevTick.Copy(tickIO);
-			prevTick.IsSimulateTicks = true;
-			if( tickIO.Time >= startTime) {
-				writer.Add(firstTick);
-			}
 			try {
 				while(true) {
 					while( !inputQueue.TryDequeue(ref tickBinary)) {
@@ -97,9 +87,15 @@ namespace TickZoom.TZData
 					}
 					tickIO.Inject(tickBinary);
 					
-					count++;
 					if( tickIO.Time >= startTime) {
 						if( tickIO.Time > endTime) break;
+						if( count == 0) {
+							prevTick.Copy(tickIO);
+							prevTick.IsSimulateTicks = true;
+							firstTick.Copy(tickIO);
+							firstTick.IsSimulateTicks = true;
+						}
+						count++;
 //						if( tickIO.Bid == prevTick.Bid && tickIO.Ask == prevTick.Ask) {
 //							dups++;
 //						} else {
@@ -122,12 +118,14 @@ namespace TickZoom.TZData
 				}
 			}
 			lastTick.Copy( tickIO);
-			Console.WriteLine(reader.Symbol + ": " + count + " ticks from " + firstTick.Time + " to " + lastTick.Time + " " + dups + " duplicates, " + fast + " less than 50 ms");
+			Output(reader.Symbol + ": " + count + " ticks.");
+			Output("From " + firstTick.Time + " to " + lastTick.Time);
+			Output( dups + " duplicates elimated.");
 			Factory.TickUtil.TickReader().CloseAll();
 			writer.Close();
 		}
 
-		public string[] Usage() {
+		public override string[] Usage() {
 			return new string[] { assemblyName + " filter <symbol> <fromfile> <tofile> [<starttimestamp> <endtimestamp>]" };
 		}
 		

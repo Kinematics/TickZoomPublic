@@ -155,6 +155,7 @@ namespace TickZoom.Logging
 					try {
 						return CheckAnyEnabled(level);
 					} catch( InvalidOperationException) {
+					} catch( KeyNotFoundException) {
 					}
 				}
 			}

@@ -37,6 +37,13 @@ using TickZoom.TZData;
 
 namespace TickZoom.Utilities
 {
+	
+	public static class TzDataExtensionMethods {
+		public static void WriteLine( this StringBuilder sb, string value) {
+			sb.AppendLine(value);
+		}
+	}
+
 	[TestFixture]
 	public class tzdataTest
 	{
@@ -53,11 +60,41 @@ namespace TickZoom.Utilities
 	       	}
 			string[] args = {
 				storageFolder + @"\Test\\DataCache\Daily4Ticks.tck",
-				storageFolder + @"\Test\\DataCache\Daily4Sim.tck",
+				storageFolder + @"\Test\\DataCache\Daily4SimZB.tck",
+				"2005/05/05",
+				"2005/05/10"
 			};
 	       	Filter filter = new Filter();
 	       	filter.AssemblyName = "tzdata";
 	       	filter.Run(args);
+		}
+		
+		
+		[Test]
+		public void TestFilterDates()
+		{
+	       	string storageFolder = Factory.Settings["AppDataFolder"];
+	       	if( storageFolder == null) {
+	       		throw new ApplicationException( "Must set AppDataFolder property in app.config");
+	       	}
+			string[] args = {
+				"USD_JPY",
+				storageFolder + @"\Test\\DataCache\USD_JPY.tck",
+				storageFolder + @"\Test\\DataCache\USD_JPY_Back.tck",
+				"2005/05/05",
+				"2005/05/10"
+			};
+	       	Filter filter = new Filter();
+	       	filter.AssemblyName = "tzdata";
+	       	var sb = new StringBuilder();
+	       	filter.Output = sb.WriteLine;
+	       	filter.Run(args);
+			string expectedOutput = @"USD_JPY: 10113 ticks.
+From 2005-05-05 07:01:17.187 to 2005-05-10 07:00:07.355
+0 duplicates elimated.
+";
+			string output = sb.ToString();
+			Assert.AreEqual(expectedOutput,output);			
 		}
 		
 		[Test]
