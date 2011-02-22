@@ -248,7 +248,7 @@ namespace Loaders
 			list.Add( cscoRealTime);
 			
 			// Fast Running SPY real time tests...
-			var spyRealTime = new AutoTestSettings {
+			var spyTradeDataOnly = new AutoTestSettings {
 			    Mode = AutoTestMode.Historical,
 			    Name = "RealTimeSPYDataOnly",
 			    Loader = new TestDataOnlyLoader(),
@@ -258,13 +258,31 @@ namespace Loaders
 				EndTime = new TimeStamp( 2011,2,17),
 				IntervalDefault = Intervals.Second10,
 			};
-			list.Add(spyRealTime);
+			list.Add(spyTradeDataOnly);
 			
 			// Real time (slow running) CSCO real time test.
-			spyRealTime = spyRealTime.Copy();
-			spyRealTime.Mode = AutoTestMode.FIXPlayBack;
-			spyRealTime.RelativeEndTime = new Elapsed(0,3,00);
-			list.Add( spyRealTime);
+			spyTradeDataOnly = spyTradeDataOnly.Copy();
+			spyTradeDataOnly.Mode = AutoTestMode.FIXPlayBack;
+			spyTradeDataOnly.RelativeEndTime = new Elapsed(0,3,00);
+			list.Add( spyTradeDataOnly);
+			
+			var spyQuoteDataOnly = new AutoTestSettings {
+			    Mode = AutoTestMode.Historical,
+			    Name = "RealTimeSPYQuoteOnly",
+			    Loader = new TestDataOnlyLoader(),
+				Symbols = "SPYQuoteOnly",
+				StoreKnownGood = storeKnownGood,
+				ShowCharts = showCharts,
+				EndTime = new TimeStamp( 2021,2,17),
+				IntervalDefault = Intervals.Second10,
+			};
+			list.Add(spyQuoteDataOnly);
+			
+			// Real time (slow running) CSCO real time test.
+			spyQuoteDataOnly = spyQuoteDataOnly.Copy();
+			spyQuoteDataOnly.Mode = AutoTestMode.FIXPlayBack;
+			spyQuoteDataOnly.RelativeEndTime = new Elapsed(0,2,30);
+			list.Add( spyQuoteDataOnly);
 			
 			return list.ToArray();
 		}
