@@ -450,7 +450,7 @@ namespace TickZoom.Starters
 					throw new ApplicationException(message);
 				}
 			}
-			tasksPerEngine = Math.Min(tasksPerEngine, maxParallelPasses / Environment.ProcessorCount);
+			tasksPerEngine = Math.Max(1,Math.Min(tasksPerEngine, maxParallelPasses / Environment.ProcessorCount));
 			log.Notice("Assigning " + tasksPerEngine + " passes to each engine per iteration.");
 			return tasksPerEngine;
 		}
