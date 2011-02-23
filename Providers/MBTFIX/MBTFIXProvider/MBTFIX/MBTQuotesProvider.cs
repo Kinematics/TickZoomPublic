@@ -179,7 +179,7 @@ namespace TickZoom.MBTQuotes
 					if( *(ptr-1) == 10) {
 						if( UseLocalTickTime) {
 							var currentTime = TimeStamp.UtcNow;
-							if( currentTime == prevTime) {
+							if( currentTime <= prevTime) {
 								currentTime.Internal = prevTime.Internal + 1;
 							}
 							prevTime = currentTime;
