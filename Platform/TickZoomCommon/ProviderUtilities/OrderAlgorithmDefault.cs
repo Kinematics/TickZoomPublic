@@ -55,7 +55,6 @@ namespace TickZoom.Common
 		private int actualPosition = 0;
 		private int sentPhysicalOrders = 0;
 		private TickSync tickSync;
-		private object performCompareLocker = new object();
 		private Dictionary<long,long> filledOrders = new Dictionary<long,long>();
 		
 		public OrderAlgorithmDefault(string name, SymbolInfo symbol, PhysicalOrderHandler brokerOrders) {
@@ -630,16 +629,27 @@ namespace TickZoom.Common
 				if( debug) log.Debug("Leaving symbol position at desired " + desiredPosition + ", since this was an adjustment market order.");
 				if( debug) log.Debug("Skipping logical fill for an adjustment market order.");
 				if( debug) log.Debug("Performing extra compare.");
-				lock( performCompareLocker) {
-					PerformCompareInternal();
-				}
+				PerformCompareProtected();
 				TryRemovePhysicalFill(physical);
 				return;
 			}
 			if( debug) log.Debug("Fill price: " + fill);
 			ProcessFill( fill, isCompletePhysicalFill);
 		}		
-		
+
+		private void PerformCompareProtected() {
+			var count = Interlocked.Increment(ref recursiveCounter);
+			if( count == 1) {
+				while( recursiveCounter > 0) {
+					Interlocked.Exchange( ref recursiveCounter, 1);
+					try {
+						PerformCompareInternal();
+					} finally {
+						Interlocked.Decrement( ref recursiveCounter);
+					}
+				}
+			}
+		}
 		private long nextOrderId = 1000000000;
 		private bool useTimeStampId = true;
 		private long GetUniqueOrderId() {
@@ -702,9 +712,7 @@ namespace TickZoom.Common
 			}
 			if( isCompleteLogicalFill) {
 				if( debug) log.Debug("Performing extra compare.");
-				lock( performCompareLocker) {
-					PerformCompareInternal();
-				}
+				PerformCompareProtected();
 			}
 		}
 
@@ -776,9 +784,7 @@ namespace TickZoom.Common
 		
 		public int PerformCompare() {
 			sentPhysicalOrders = 0;
-			lock( performCompareLocker) {
-				PerformCompareInternal();
-			}
+			PerformCompareProtected();
 			return sentPhysicalOrders;
 		}
 
@@ -793,6 +799,7 @@ namespace TickZoom.Common
 			return false;
 		}
 		
+		private int recursiveCounter;
 		private void PerformCompareInternal() {
 			if( debug) {
 				log.Debug( "PerformCompare for " + symbol + " with " +
@@ -912,9 +919,7 @@ namespace TickZoom.Common
 		// This is a callback to confirm order was properly placed.
 		public void OnChangeBrokerOrder(PhysicalOrder order, object origBrokerOrder)
 		{
-			lock( performCompareLocker) {
-				PerformCompareInternal();
-			}
+			PerformCompareProtected();
 			if( SyncTicks.Enabled) {
 				tickSync.RemovePhysicalOrder( order);
 			}
@@ -922,9 +927,7 @@ namespace TickZoom.Common
 		
 		public void OnCreateBrokerOrder(PhysicalOrder order)
 		{
-			lock( performCompareLocker) {
-				PerformCompareInternal();
-			}
+			PerformCompareProtected();
 			if( SyncTicks.Enabled) {
 				tickSync.RemovePhysicalOrder( order);
 			}
@@ -932,9 +935,7 @@ namespace TickZoom.Common
 		
 		public void OnCancelBrokerOrder(SymbolInfo symbol, object origBrokerOrder)
 		{
-			lock( performCompareLocker) {
-				PerformCompareInternal();
-			}
+			PerformCompareProtected();
 			if( SyncTicks.Enabled) {
 				tickSync.RemovePhysicalOrder( origBrokerOrder);
 			}
