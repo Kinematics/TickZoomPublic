@@ -96,6 +96,7 @@
     <Compile Include="Misc\Exceptions\MustUseLoaderException.cs" />
     <Compile Include="Misc\ExtensionMethods\ExtensionMethods.cs" />
     <Compile Include="Misc\Factories\FactoryLoader.cs" />
+    <Compile Include="Misc\Structs\DaylightSavings.cs" />
     <Compile Include="Misc\Structs\Progress.cs" />
     <Compile Include="Misc\Structs\QueueItem.cs" />
     <Compile Include="Misc\Structs\TickBinaryBox.cs" />

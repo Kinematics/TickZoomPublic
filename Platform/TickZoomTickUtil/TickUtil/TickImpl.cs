@@ -54,14 +54,12 @@ namespace TickZoom.TickUtil
 		private bool isCompressStarted;
 		private long pricePrecision;
 		private int priceDecimals;
+		private DaylightSavings dst;
 
 		byte dataVersion;
 		TickBinary binary;
 		TickBinary lastBinary;
-		SymbolTimeZone timeZone;
 		TimeStamp localTime;
-		TimeStamp nextUtcOffsetUpdate;
-		long utcOffset;
 
 		public void Initialize() {
 			binary = default(TickBinary);
@@ -72,22 +70,16 @@ namespace TickZoom.TickUtil
 		public void SetTime(TimeStamp utcTime)
 		{
 			binary.UtcTime = utcTime.Internal;
-			if( utcTime.Internal >= nextUtcOffsetUpdate.Internal) {
-				if( timeZone == null) {
-					if( binary.Symbol == 0) {
-						throw new ApplicationException("Please call SetSymbol() prior to SetTime() method.");
-					}
-					SymbolInfo symbol = Factory.Symbol.LookupSymbol(binary.Symbol);
-					timeZone = new SymbolTimeZone(symbol);
+			if( dst == null) {
+				if( binary.Symbol == 0) {
+					throw new ApplicationException("Please call SetSymbol() prior to SetTime() method.");
 				}
-				utcOffset = timeZone.UtcOffset(UtcTime);
-				nextUtcOffsetUpdate = utcTime;
-				int dayOfWeek = nextUtcOffsetUpdate.GetDayOfWeek();
-				nextUtcOffsetUpdate.AddDays( 7 - dayOfWeek);
-				nextUtcOffsetUpdate.SetDate(nextUtcOffsetUpdate.Year,nextUtcOffsetUpdate.Month,nextUtcOffsetUpdate.Day);
+				SymbolInfo symbol = Factory.Symbol.LookupSymbol(binary.Symbol);
+				dst = new DaylightSavings(symbol);
 			}
+			var offset = dst.GetOffset(utcTime);
 			localTime = new TimeStamp(binary.UtcTime);
-			localTime.AddSeconds(utcOffset);
+			localTime.AddSeconds(offset);
 		}
 		
 		public void SetQuote(double dBid, double dAsk)

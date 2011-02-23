@@ -31,8 +31,6 @@ using System.Threading;
 
 namespace TickZoom.Api
 {
-
-	
 	public struct TimeStamp : IComparable<TimeStamp>
 	{
 		private long _timeStamp;
