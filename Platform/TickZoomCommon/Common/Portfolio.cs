@@ -110,7 +110,6 @@ namespace TickZoom.Common
 							Portfolio portfolio = new Portfolio();
 							portfolio.Name = "AutoGen-Portfolio-"+symbol;
 							portfolio.SymbolDefault = symbol;
-							portfolio.IntervalDefault = IntervalDefault;
 							portfolio.Performance.Equity.EnableDailyStats = Performance.Equity.EnableDailyStats;
 							portfolio.Performance.Equity.EnableWeeklyStats = Performance.Equity.EnableWeeklyStats;
 							portfolio.Performance.Equity.EnableMonthlyStats = Performance.Equity.EnableMonthlyStats;
