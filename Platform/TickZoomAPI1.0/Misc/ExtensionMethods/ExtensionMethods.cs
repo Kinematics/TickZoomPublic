@@ -148,6 +148,18 @@ namespace TickZoom.Api
        		return symbolStr;
 		}
 		
+		public static string StripWhiteSpace(this string symbolStr) {
+       		List<char> whiteChars = new List<char>();
+       		whiteChars.Add(' ');
+       		whiteChars.Add('\t');
+       		whiteChars.Add('\n');
+       		whiteChars.Add('\r');
+       		foreach( char invalid in whiteChars) {
+       			symbolStr = symbolStr.Replace(new string(invalid,1),"");
+       		}
+       		return symbolStr;
+		}
+		
 		public static void OnProperties(this object obj, ModelProperties properties)
 		{
 			string[] propertyKeys = properties.GetPropertyKeys();

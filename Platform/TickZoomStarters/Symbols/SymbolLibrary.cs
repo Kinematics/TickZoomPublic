@@ -115,7 +115,16 @@ namespace TickZoom.Symbols
 			symbol = symbolParts[0];
 			return symbolMap.TryGetValue(symbol.Trim(),out properties);
 		}
+		private static readonly char[] splitChars = new char[] { '.' };
+		private string GetDictionarySymbol(string symbol) {
+			var parts = symbol.Split( splitChars);
+			if( parts.Length > 1) {
+				symbol = parts[0];
+			}
+			return symbol;
+		}
 		public SymbolProperties GetSymbolProperties(string symbol) {
+			symbol = GetDictionarySymbol(symbol);
 			SymbolProperties properties;
 			if( GetSymbolProperties( symbol, out properties)) {
 				return properties;
@@ -129,6 +138,7 @@ namespace TickZoom.Symbols
 		}
 	
 		public bool LookupSymbol(string symbol, out SymbolInfo symbolInfo) {
+			symbol = GetDictionarySymbol(symbol);
 			SymbolProperties properties;
 			if( GetSymbolProperties(symbol, out properties)) {
 				symbolInfo = properties;

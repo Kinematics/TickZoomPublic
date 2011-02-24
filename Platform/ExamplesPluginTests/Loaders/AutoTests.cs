@@ -284,6 +284,20 @@ namespace Loaders
 			spyQuoteDataOnly.RelativeEndTime = new Elapsed(0,2,30);
 			list.Add( spyQuoteDataOnly);
 			
+			var multiSymbolOrders = new AutoTestSettings {
+			    Mode = AutoTestMode.Historical,
+			    Name = "MultiSymbolOrders",
+			    Loader = new ExampleOrdersLoader(),
+				Symbols = @"AD.1month, BO.1month, BP.1month, CC.1month, CD.1month, CL.1month,
+					CN.1month, CT.1month, DJ.1month, DX.1month, EC.1month, ED.1month",
+				StoreKnownGood = storeKnownGood,
+				ShowCharts = showCharts,
+				EndTime = new TimeStamp( 2010,3,3),
+				IntervalDefault = Intervals.Hour1,
+				Categories = { "MultiSymbolOrders" },
+			};
+			list.Add(multiSymbolOrders);
+			
 			return list.ToArray();
 		}
 	}
