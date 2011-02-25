@@ -36,14 +36,14 @@ namespace TickZoom.Api
 	/// </summary>
 	public class Plugins
 	{
-		List<Type> modelLoaders;
-		List<Type> models;
-		List<Type> serializers;
-		int errorCount = 0;
-		static readonly Log log = Factory.SysLog.GetLogger(typeof(Plugins));
-		readonly bool debug = log.IsDebugEnabled;
-		[ThreadStatic]
-		static Plugins plugins;
+        private List<Type> modelLoaders;
+        private List<Type> models;
+        private List<Type> serializers;
+        private int errorCount = 0;
+        private static readonly Log log = Factory.SysLog.GetLogger(typeof(Plugins));
+        private readonly bool debug = log.IsDebugEnabled;
+        private static Plugins plugins;
+        private static object pluginsLocker = new object();
 		
 		public string PluginFolder;
 		
@@ -53,9 +53,17 @@ namespace TickZoom.Api
 		/// TickZoom.
 		/// </summary>
 		public static Plugins Instance {
-			get { if( plugins==null) {
-					plugins = new Plugins();
-				}
+			get {
+                if (plugins == null)
+                {
+                    lock (pluginsLocker)
+                    {
+                        if (plugins == null)
+                        {
+                            plugins = new Plugins();
+                        }
+                    }
+                }
 				return plugins;
 			}
 		}
@@ -138,9 +146,11 @@ namespace TickZoom.Api
 			
 			foreach (String filename in files)
 			{
-				LoadImplementations(filename,"ModelLoaderInterface",modelLoaders);
-				LoadImplementations(filename,"ModelInterface",models);
-				LoadImplementations(filename,"Serializer",serializers);
+                var nameListMap = new Dictionary<string,List<Type>>();
+                nameListMap.Add("ModelLoaderInterface",modelLoaders);
+                nameListMap.Add("ModelInterface",models);
+                nameListMap.Add("Serializer",serializers);
+				LoadImplementations(filename,nameListMap);
 			}
 			if( modelLoaders.Count == 0) {
 				log.Warn("Zero ModelLoader plugins found in " + PluginFolder + " or " + currentDirectory);
@@ -153,24 +163,34 @@ namespace TickZoom.Api
 		// Exit and Enter Common aren't directly accessible.
 		// They provide support for custom strategies.
 
-		void LoadImplementations(String filename, string typeName, List<Type> list)
+		void LoadImplementations(String filename, Dictionary<string,List<Type>> nameListMap)
 		{
 			if( debug) log.Debug("Loading " + filename);
-			Type t2 = typeof(object);
+			var t2 = typeof(object);
 			try {
-				Assembly assembly = Assembly.LoadFrom(filename);
-				foreach (Type t in assembly.GetTypes()) {
+				var assembly = Assembly.LoadFrom(filename);
+				foreach (var t in assembly.GetTypes()) {
 					t2 = t;
-					if (t.IsClass && !t.IsAbstract) {
-						if (t.GetInterface(typeName) != null) {
-							try {
-								list.Add(t);
-							} catch (MissingMethodException) {
-								errorCount++;
-								log.Notice("ModelLoader '" + t.Name + "' in '" + filename + "' failed to load due to missing default constructor");
-							}
-						}
-					}
+                    foreach (var kvp in nameListMap)
+                    {
+                        var typeName = kvp.Key;
+                        var list = kvp.Value;
+                        if (t.IsClass && !t.IsAbstract)
+                        {
+                            if (t.GetInterface(typeName) != null)
+                            {
+                                try
+                                {
+                                    list.Add(t);
+                                }
+                                catch (MissingMethodException)
+                                {
+                                    errorCount++;
+                                    log.Notice("ModelLoader '" + t.Name + "' in '" + filename + "' failed to load due to missing default constructor");
+                                }
+                            }
+                        }
+                    }
 				}
 			} catch (ReflectionTypeLoadException ex) {
 				log.Warn("Plugin load failed for '" + t2.Name + "' in '" + filename + "' with loader exceptions:");
