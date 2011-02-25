@@ -114,17 +114,32 @@ namespace TickZoom.TickUtil
 						sb.AppendLine(queue.GetStats());
 					}
 				}
-//				for( int i=0;i<queueList.Count; i++) {
-//					var queue = queueList[i];
-//					if( queue.Count > 100 && queue.Name != "DataReceiverDefault") {
-//						log.Info("Queue over 100 items: \n" + sb);
-//						break;
-//					}
-//				}
 				return sb.ToString();
 	    	} finally {
 	    		queueListLocker.Unlock();
 	    	}
 		}
-	}
+
+        public void Dispose()
+        {
+            lock (locker)
+            {
+                lock (queueListLocker)
+                {
+                    if (queueList != null)
+                    {
+                        foreach (var queue in queueList)
+                        {
+                            if (queue != null)
+                            {
+                                queue.Terminate();
+                            }
+                        }
+                        queueList.Clear();
+                    }
+                }
+                new TickReaderDefault().CloseAll();
+            }
+        }
+    }
 }

@@ -33,7 +33,7 @@ namespace TickZoom.Api
 	/// Description of Factory.
 	/// </summary>
 	[CLSCompliant(false)]
-	public interface TickUtilFactory
+    public interface TickUtilFactory : IDisposable
 	{
 		TickQueue TickQueue( Type type);
 		TickQueue TickQueue( string name);
