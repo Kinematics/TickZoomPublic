@@ -373,6 +373,20 @@ namespace TickZoom
 		    priceGraphPane.GraphObjList.Add(arrow);
 			return objectId;
 		}
+
+        public class TradeInfo
+        {
+            private Func<string> information;
+            public TradeInfo(Func<string> information)
+            {
+                this.information = information;
+            }
+            public override string ToString()
+            {
+                return information();
+            }
+        }
+
 		/// <summary>
 		/// Draws a trade and annotateg with hover message if possible.
 		/// </summary>
@@ -408,27 +422,36 @@ namespace TickZoom
 			// on the price range of the chart. This numbers for size and position
 			// were hard code, calibrated to Forex prices.
 			ArrowObj arrow = CreateArrow( direction, color, 12.5f, ChartBars.BarCount, fillPrice);
-			StringBuilder sb = new StringBuilder();
-			if( order.Tag != null) {
-				sb.AppendLine(order.Tag.ToString());
-			}
-			sb.Append(order.TradeDirection);
-			sb.Append(" ");
-			sb.AppendLine(order.Type.ToString());
-			if( order.Price > 0) {
-				sb.Append("at ");
-				sb.AppendLine(order.Price.ToString());
-			}
-			sb.Append("size ");
-			sb.AppendLine(order.Position.ToString());
-			sb.Append("filled ");
-			sb.AppendLine(fillPrice.ToString());
-			sb.Append("new positions ");
-			sb.AppendLine(resultingPosition.ToString());
-			arrow.Tag = sb.ToString();
-			objectId++;
-			graphObjs.Add(objectId,arrow);
-		    priceGraphPane.GraphObjList.Add(arrow);
+            if (order.Tag != null)
+            {
+                arrow.Tag = order.Tag;
+            }
+            else
+            {
+                arrow.Tag = new TradeInfo( () =>
+                {
+                    StringBuilder sb = new StringBuilder();
+                    sb.Append(order.TradeDirection);
+                    sb.Append(" ");
+                    sb.AppendLine(order.Type.ToString());
+                    if (order.Price > 0)
+                    {
+                        sb.Append("at ");
+                        sb.AppendLine(order.Price.ToString());
+                    }
+                    sb.Append("size ");
+                    sb.AppendLine(order.Position.ToString());
+                    sb.Append("filled ");
+                    sb.AppendLine(fillPrice.ToString());
+                    sb.Append("new positions ");
+                    sb.AppendLine(resultingPosition.ToString());
+                    return sb.ToString();
+                });
+            }
+
+		    objectId++;
+		    graphObjs.Add(objectId,arrow);
+	        priceGraphPane.GraphObjList.Add(arrow);
 			return objectId;
 		}
 		

@@ -73,7 +73,7 @@ namespace TickZoom.Properties
 			set { maxBarsBack = value; }
 		}
 		
-		int maxTicksBack = 10000;
+		int maxTicksBack = 1000;
 		
 		public int MaxTicksBack {
 			get { return maxTicksBack; }

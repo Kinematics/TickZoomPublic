@@ -50,7 +50,6 @@ namespace TickZoom.Logging
     {
 		private readonly static Type callingType = typeof(LogImpl);
 		private LogImplWrapper log;
-        private string[] indentStrings = new string[50];
 		private static Dictionary<string,string> symbolMap;
 		private static TimeStamp beginTime;
 		private static TimeStamp endTime;
@@ -204,9 +203,6 @@ namespace TickZoom.Logging
 		
         public LogImpl(ILogger logger) {
 			log = new LogImplWrapper(logger);
-        	for( int i=0; i<50; i++) {
-        		indentStrings[i] = new string(' ',i);
-        	}
         	Connect();
 			if( symbolMap == null) {
 				lock( locker) {
