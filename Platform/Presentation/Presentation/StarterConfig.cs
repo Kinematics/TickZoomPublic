@@ -861,7 +861,7 @@ namespace TickZoom.Presentation
             {
                 PercentProgress = 0;
             }
-            ProgressText = progress.Text + ": " + progress.Current + " out of " + progress.Final + " (" +
+            ProgressText = progress.Text + ": " + current + " out of " + final + " (" +
                            PercentProgress + "%)";
         }
 

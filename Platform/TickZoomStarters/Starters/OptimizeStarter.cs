@@ -85,13 +85,19 @@ namespace TickZoom.Starters
 			tasksRemaining = totalTasks;
 			
 			int tasksPerEngine = CalculateTasksPerEngine(totalTasks);
-			
+			int totalEngineCount = totalTasks / tasksPerEngine;
 			int iterations = Math.Max(1,totalTasks / maxParallelPasses);
 			int leftOverPasses = Math.Max(0,totalTasks - (maxParallelPasses * iterations));
 			if( totalTasks % maxParallelPasses > 0) {
 				log.Notice("Planning " + iterations + " iterations with " + maxParallelPasses + " passes plus 1 pass with " + leftOverPasses + " iterations.");
+				totalEngineCount ++;
 			} else {
 				log.Notice("Planning " + iterations + " iterations with " + maxParallelPasses + " passes each.");
+			}
+			
+			var engines = new Stack<TickEngine>();
+			for( int i=0; i<totalEngineCount; i++) {
+				engines.Push( SetupEngine( true));
 			}
 			
 			ModelInterface topModel = new Portfolio();
@@ -104,7 +110,8 @@ namespace TickZoom.Starters
 				passCount++;
 				if (passCount % tasksPerEngine == 0)
 				{
-					TickEngine engine = ProcessHistorical(topModel, true);
+					var engine = engines.Pop();
+					engine.Model = topModel;
 					engine.QueueTask();
 					engineIterations.Add(engine);
 					topModel = new Portfolio();
