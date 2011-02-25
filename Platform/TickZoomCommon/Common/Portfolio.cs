@@ -39,6 +39,7 @@ namespace TickZoom.Common
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(Portfolio));
 		private readonly bool debug = log.IsDebugEnabled;
 		private readonly bool trace = log.IsTraceEnabled;
+        private OrderManager orderManager;
 		private List<Strategy> strategies = new List<Strategy>();
 		private List<Portfolio> portfolios = new List<Portfolio>();
 		private Dictionary<ModelInterface,StrategyWatcher> watchers = new Dictionary<ModelInterface,StrategyWatcher>();
@@ -358,7 +359,13 @@ namespace TickZoom.Common
 		{
 			throw new NotImplementedException();
 		}
-	}
+
+        public OrderManager OrderManager
+        {
+            get { return orderManager; }
+            set { orderManager = value; }
+        }
+    }
 
 	[Obsolete("Please use Portfolio instead.",true)]
 	public class PortfolioCommon : Portfolio {

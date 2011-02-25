@@ -29,7 +29,12 @@ using System.Reflection;
 
 namespace TickZoom.Api
 {
-	/// <summary>
+    [CLSCompliant(false)]
+    public interface OrderManager
+    {
+        void AddOrder(LogicalOrder order);
+    }
+    /// <summary>
 	/// Description of Factory.
 	/// </summary>
 	[CLSCompliant(false)]
@@ -69,10 +74,8 @@ namespace TickZoom.Api
 		
 		TestBars TestBars(Interval interval);
 		
-		LogicalOrder LogicalOrder(SymbolInfo symbol, StrategyInterface strategy);
-		
-		LogicalOrder LogicalOrder(SymbolInfo symbol, int orderId);
-		
+        LogicalOrder LogicalOrder(SymbolInfo symbol, StrategyInterface strategy);
+        
 		LogicalOrder LogicalOrder(SymbolInfo symbol);
 		
 		TimeSyncGenerator TimeSyncGenerator(SymbolInfo symbol);

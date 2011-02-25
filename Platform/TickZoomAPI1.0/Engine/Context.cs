@@ -39,7 +39,6 @@ namespace TickZoom.Api
 		BinaryStore TradeData {
 			get;
 		}
-		void AddOrder(LogicalOrder order);
 		int IncrementModelId();
 		int IncrementOrderId();
 		long IncrementOrderSerialNumber();

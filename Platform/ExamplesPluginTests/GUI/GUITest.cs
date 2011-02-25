@@ -104,7 +104,26 @@ namespace Other
 		[Test]
 		public void TestConfigRealTimeNoHistorical()
 		{
-			using( var config = CreateSimulateConfig()) {
+			var config = CreateSimulateConfig();
+			config.SymbolList = "IBM,GBP/USD";
+			config.DefaultPeriod = 10;
+			config.DefaultBarUnit = BarUnit.Tick.ToString();
+			config.ModelLoader = "Example: Reversal Multi-Symbol";
+			config.StarterName = "TestRealTimeStarter";
+			config.Start();
+			config.WaitComplete(120, () => { return config.CommandWorker.IsBusy; } );
+			config.Stop();
+			config.WaitComplete(120, () => { return !config.CommandWorker.IsBusy; } );
+			Assert.IsFalse(config.CommandWorker.IsBusy,"ProcessWorker.Busy");
+		}
+		
+		[Test]
+		public void TestGUIRealTimeNoHistorical()
+		{
+			var config = CreateSimulateConfig();
+			try {
+	            StarterConfigView form;
+	            StartGUI(config, out form);
 				config.SymbolList = "IBM,GBP/USD";
 				config.DefaultPeriod = 10;
 				config.DefaultBarUnit = BarUnit.Tick.ToString();
@@ -115,30 +134,9 @@ namespace Other
 				config.Stop();
 				config.WaitComplete(120, () => { return !config.CommandWorker.IsBusy; } );
 				Assert.IsFalse(config.CommandWorker.IsBusy,"ProcessWorker.Busy");
-			}
-		}
-		
-		[Test]
-		public void TestGUIRealTimeNoHistorical()
-		{
-			using( var config = CreateSimulateConfig()) {
-				try {
-		            StarterConfigView form;
-		            StartGUI(config, out form);
-					config.SymbolList = "IBM,GBP/USD";
-					config.DefaultPeriod = 10;
-					config.DefaultBarUnit = BarUnit.Tick.ToString();
-					config.ModelLoader = "Example: Reversal Multi-Symbol";
-					config.StarterName = "TestRealTimeStarter";
-					config.Start();
-					config.WaitComplete(120, () => { return config.CommandWorker.IsBusy; } );
-					config.Stop();
-					config.WaitComplete(120, () => { return !config.CommandWorker.IsBusy; } );
-					Assert.IsFalse(config.CommandWorker.IsBusy,"ProcessWorker.Busy");
-				} finally {
-					execute.Exit();
-					guiThread.Join();
-				}
+			} finally {
+				execute.Exit();
+				guiThread.Join();
 			}
 		}
 		
@@ -173,52 +171,50 @@ namespace Other
 		public void TestGUIIteration() {
 			var appData = Factory.Settings["PriceDataFolder"];
  			File.Delete( appData + @"\ServerCache\IBM.tck");
-			using( var config = new StarterConfig()) {
-				StarterConfigView form = null;
- 				StartGUI(config, out form);
-				try {
-					config.WaitComplete(2);
-					config.SymbolList = "IBM";
-					config.DefaultPeriod = 10;
-					config.DefaultBarUnit = BarUnit.Second.ToString();
-					config.ModelLoader = "Example: Breakout Reversal";
-					config.StarterName = "Realtime Operation (Demo or Live)";
-					config.Start();
-					config.WaitComplete(30, () => { return form.PortfolioDocs.Count > 0; } );
-					Assert.Greater(form.PortfolioDocs.Count,0);
-					var chart = form.PortfolioDocs[0].ChartControl;
-					config.WaitComplete(30, () => { return chart.IsDrawn; } );
-		     		var pane = chart.DataGraph.MasterPane.PaneList[0];
-		    		Assert.IsNotNull(pane.CurveList);
-					config.WaitComplete(30, () => { return pane.CurveList.Count > 0; } );
-					Assert.Greater(pane.CurveList.Count,0);
-		    		var chartBars = (OHLCBarItem) pane.CurveList[0];
-					config.WaitComplete(60, () => { return chartBars.NPts >= 3; } );
-		    		Assert.GreaterOrEqual(chartBars.NPts,3);
-					config.Stop();
-					config.WaitComplete(30, () => { return !config.CommandWorker.IsBusy; } );
-					Assert.IsFalse(config.CommandWorker.IsBusy,"ProcessWorker.Busy");
-				} finally {
-					execute.Exit();
-					guiThread.Join();
-				}
+			var config = new StarterConfig();
+			StarterConfigView form = null;
+			StartGUI(config, out form);
+			try {
+				config.WaitComplete(2);
+				config.SymbolList = "IBM";
+				config.DefaultPeriod = 10;
+				config.DefaultBarUnit = BarUnit.Second.ToString();
+				config.ModelLoader = "Example: Breakout Reversal";
+				config.StarterName = "Realtime Operation (Demo or Live)";
+				config.Start();
+				config.WaitComplete(30, () => { return form.PortfolioDocs.Count > 0; } );
+				Assert.Greater(form.PortfolioDocs.Count,0);
+				var chart = form.PortfolioDocs[0].ChartControl;
+				config.WaitComplete(30, () => { return chart.IsDrawn; } );
+	     		var pane = chart.DataGraph.MasterPane.PaneList[0];
+	    		Assert.IsNotNull(pane.CurveList);
+				config.WaitComplete(30, () => { return pane.CurveList.Count > 0; } );
+				Assert.Greater(pane.CurveList.Count,0);
+	    		var chartBars = (OHLCBarItem) pane.CurveList[0];
+				config.WaitComplete(60, () => { return chartBars.NPts >= 3; } );
+	    		Assert.GreaterOrEqual(chartBars.NPts,3);
+				config.Stop();
+				config.WaitComplete(30, () => { return !config.CommandWorker.IsBusy; } );
+				Assert.IsFalse(config.CommandWorker.IsBusy,"ProcessWorker.Busy");
+			} finally {
+				execute.Exit();
+				guiThread.Join();
 			}
 		}
 		
 		public void TestRealTimeNoHistorical()
 		{
-			using( var config = CreateSimulateConfig()) {
-				config.SymbolList = "IBM,GBP/USD";
-				config.DefaultPeriod = 10;
-				config.DefaultBarUnit = BarUnit.Tick.ToString();
-				config.ModelLoader = "Example: Reversal Multi-Symbol";
-				config.StarterName = "TestRealTimeStarter";
-				config.Start();
-				config.WaitComplete(10);
-				config.Stop();
-				config.WaitComplete(120, () => { return !config.CommandWorker.IsBusy; } );
-				Assert.IsFalse(config.CommandWorker.IsBusy,"ProcessWorker.Busy");
-			}
+			var config = CreateSimulateConfig();
+			config.SymbolList = "IBM,GBP/USD";
+			config.DefaultPeriod = 10;
+			config.DefaultBarUnit = BarUnit.Tick.ToString();
+			config.ModelLoader = "Example: Reversal Multi-Symbol";
+			config.StarterName = "TestRealTimeStarter";
+			config.Start();
+			config.WaitComplete(10);
+			config.Stop();
+			config.WaitComplete(120, () => { return !config.CommandWorker.IsBusy; } );
+			Assert.IsFalse(config.CommandWorker.IsBusy,"ProcessWorker.Busy");
 		}
 		
 		private void DeleteFiles() {
@@ -247,62 +243,61 @@ namespace Other
 		public void TestCapturedDataMatchesProvider()
 		{
 			try {
-				using( var config = CreateSimulateConfig()) {
-		            StarterConfigView form;
-		            StartGUI(config, out form);
-					config.SymbolList = "/ESZ9";
-					config.DefaultPeriod = 1;
-					config.DefaultBarUnit = BarUnit.Minute.ToString();
-					config.EndDateTime = DateTime.UtcNow;
-					config.ModelLoader = "Example: Reversal Multi-Symbol";
-					config.StarterName = "TestRealTimeStarter";
-					config.Start();
-					config.WaitComplete(10);
-					config.Stop();
-					config.WaitComplete(1200, () => { return !config.CommandWorker.IsBusy; } );
-					Assert.IsFalse(config.CommandWorker.IsBusy,"ProcessWorker.Busy");
-					string appData = Factory.Settings["AppDataFolder"];
-					string compareFile1 = appData + @"\Test\MockProviderData\ESZ9.tck";
-					string compareFile2 = appData + @"\Test\ServerCache\ESZ9.tck";
-					using ( TickReader reader1 = Factory.TickUtil.TickReader()) {
-						reader1.Initialize(compareFile1,config.SymbolList);
-						TickBinary tick1 = new TickBinary();
-						try {
-							int count = 0;
-							while(true) {
-								while(!reader1.ReadQueue.TryDequeue(ref tick1)) { Thread.Sleep(1); }
-								TimeStamp ts1 = new TimeStamp(tick1.UtcTime);
-								count++;
-							}
-						} catch( QueueException ex) {
-							Assert.AreEqual(ex.EntryType,EventType.EndHistorical);
+                var config = CreateSimulateConfig();
+	            StarterConfigView form;
+	            StartGUI(config, out form);
+				config.SymbolList = "/ESZ9";
+				config.DefaultPeriod = 1;
+				config.DefaultBarUnit = BarUnit.Minute.ToString();
+				config.EndDateTime = DateTime.UtcNow;
+				config.ModelLoader = "Example: Reversal Multi-Symbol";
+				config.StarterName = "TestRealTimeStarter";
+				config.Start();
+				config.WaitComplete(10);
+				config.Stop();
+				config.WaitComplete(1200, () => { return !config.CommandWorker.IsBusy; } );
+				Assert.IsFalse(config.CommandWorker.IsBusy,"ProcessWorker.Busy");
+				string appData = Factory.Settings["AppDataFolder"];
+				string compareFile1 = appData + @"\Test\MockProviderData\ESZ9.tck";
+				string compareFile2 = appData + @"\Test\ServerCache\ESZ9.tck";
+				using ( TickReader reader1 = Factory.TickUtil.TickReader()) {
+					reader1.Initialize(compareFile1,config.SymbolList);
+					TickBinary tick1 = new TickBinary();
+					try {
+						int count = 0;
+						while(true) {
+							while(!reader1.ReadQueue.TryDequeue(ref tick1)) { Thread.Sleep(1); }
+							TimeStamp ts1 = new TimeStamp(tick1.UtcTime);
+							count++;
 						}
+					} catch( QueueException ex) {
+						Assert.AreEqual(ex.EntryType,EventType.EndHistorical);
 					}
-					using ( TickReader reader1 = Factory.TickUtil.TickReader())
-					using ( TickReader reader2 = Factory.TickUtil.TickReader()) {
-						reader1.Initialize(compareFile1,config.SymbolList);
-						reader2.Initialize(compareFile2,config.SymbolList);
-						TickBinary tick1 = new TickBinary();
-						TickBinary tick2 = new TickBinary();
-						bool result = true;
-						try {
-							int count = 0;
-							while(true) {
-								while(!reader1.ReadQueue.TryDequeue(ref tick1)) { Thread.Sleep(1); }
-								while(!reader2.ReadQueue.TryDequeue(ref tick2)) { Thread.Sleep(1); }
-								TimeStamp ts1 = new TimeStamp(tick1.UtcTime);
-								TimeStamp ts2 = new TimeStamp(tick2.UtcTime);
-								if( !ts1.Equals(ts2)) {
-									result = false;
-									log.Error("Tick# " + count + " failed. Expected: " + ts1 + ", But was:" + ts2);
-								}
-								count++;
+				}
+				using ( TickReader reader1 = Factory.TickUtil.TickReader())
+				using ( TickReader reader2 = Factory.TickUtil.TickReader()) {
+					reader1.Initialize(compareFile1,config.SymbolList);
+					reader2.Initialize(compareFile2,config.SymbolList);
+					TickBinary tick1 = new TickBinary();
+					TickBinary tick2 = new TickBinary();
+					bool result = true;
+					try {
+						int count = 0;
+						while(true) {
+							while(!reader1.ReadQueue.TryDequeue(ref tick1)) { Thread.Sleep(1); }
+							while(!reader2.ReadQueue.TryDequeue(ref tick2)) { Thread.Sleep(1); }
+							TimeStamp ts1 = new TimeStamp(tick1.UtcTime);
+							TimeStamp ts2 = new TimeStamp(tick2.UtcTime);
+							if( !ts1.Equals(ts2)) {
+								result = false;
+								log.Error("Tick# " + count + " failed. Expected: " + ts1 + ", But was:" + ts2);
 							}
-						} catch( QueueException ex) {
-							Assert.AreEqual(ex.EntryType,EventType.EndHistorical);
+							count++;
 						}
-						Assert.IsTrue(result,"Tick mismatch errors. See log file.");
+					} catch( QueueException ex) {
+						Assert.AreEqual(ex.EntryType,EventType.EndHistorical);
 					}
+					Assert.IsTrue(result,"Tick mismatch errors. See log file.");
 				}
 			} catch( Exception ex) {
 				log.Error("Test failed with error: " + ex.Message, ex);

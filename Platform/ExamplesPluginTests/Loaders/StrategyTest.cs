@@ -223,12 +223,14 @@ namespace Loaders
 				// Run the loader.
 				try { 
 					config = SetupConfigStarter(autoTestMode);
-					config.Start();
-					while( config.IsBusy) {
+                    config.Start();
+                    while (config.IsBusy)
+                    {
 						Thread.Sleep(10);
 					}
-		    		topModel = config.TopModel;
-		    		if( config.Starter is FIXPlayBackStarter) {
+                    topModel = config.TopModel;
+                    if (config.Starter is FIXPlayBackStarter)
+                    {
 		    			var starter = config.Starter as FIXPlayBackStarter;
 		    			realTimeOffset = starter.FixServer.RealTimeOffset;
 		    			var realTimeOffsetElapsed = new Elapsed(realTimeOffset);
@@ -308,6 +310,20 @@ namespace Loaders
             }
 			StopGUIThread();
             HistoricalCloseCharts();
+            Factory.Release();
+            goodStatsMap.Clear();
+            testStatsMap.Clear();
+            goodBarDataMap.Clear();
+            testBarDataMap.Clear();
+            goodTradeMap.Clear();
+            testTradeMap.Clear();
+            goodFinalStatsMap.Clear();
+            testFinalStatsMap.Clear();
+            goodTransactionMap.Clear();
+            testTransactionMap.Clear();
+            goodReconciliationMap.Clear();
+            testReconciliationMap.Clear();
+            topModel = null;
 		}
 		
 		public class TransactionInfo {

@@ -46,6 +46,7 @@ namespace TickZoom.Common
 		private readonly bool instanceDebug;
 		private readonly bool instanceTrace;
 		private Result result;
+        private OrderManager orderManager;
 		private Dictionary<int,LogicalOrder> ordersHash = new Dictionary<int,LogicalOrder>();
 		private ActiveList<LogicalOrder> allOrders = new ActiveList<LogicalOrder>();
 		private ActiveList<LogicalOrder> activeOrders = new ActiveList<LogicalOrder>();
@@ -346,7 +347,10 @@ namespace TickZoom.Common
 		[Diagram(AttributeExclude=true)]
 		public void AddOrder(LogicalOrder order)
 		{
-			Context.AddOrder(order);
+            if (OrderManager != null)
+            {
+                OrderManager.AddOrder(order);
+            }
 			allOrders.AddLast(order);
 			ordersHash.Add(order.Id,order);
 		}
@@ -376,7 +380,13 @@ namespace TickZoom.Common
 		public bool IsExitStrategyFlat {
 			get { return exitStrategy.Position.IsFlat && position.HasPosition; }
 		}
-	}
+
+        public OrderManager OrderManager
+        {
+            get { return orderManager; }
+            set { orderManager = value; }
+        }
+    }
 	
 	/// <summary>
 	/// Obsolete. Please use the Level2LotSize property in the symbol dictionary instead.

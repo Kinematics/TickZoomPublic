@@ -41,7 +41,7 @@ using TickZoom.Presentation.Framework;
 
 namespace TickZoom.Presentation
 {
-    public class StarterConfig : AutoBindable, IDisposable
+    public class StarterConfig : AutoBindable
     {
         #region Fields
 
@@ -534,11 +534,6 @@ namespace TickZoom.Presentation
             set { NotifyOfPropertyChange(() => CanStop); }
         }
 
-        public void Dispose()
-        {
-        	Stop();
-        }
-
         public static string GetDefaultConfig()
         {
             return
@@ -623,7 +618,6 @@ namespace TickZoom.Presentation
         public void Start()
         {
             Initialize();
-            Factory.Release();
             RunCommand(new StartCommand(starter, loaderInstance));
         }
 
@@ -646,6 +640,7 @@ namespace TickZoom.Presentation
             commandWorker.CancelAsync();
             PercentProgress = 0;
             ProgressText = "Execution Stopped";
+            loaderInstance = null;
         }
 
         public void TryAutoUpdate()

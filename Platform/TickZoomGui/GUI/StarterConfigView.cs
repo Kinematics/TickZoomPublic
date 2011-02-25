@@ -311,7 +311,7 @@ namespace TickZoom.GUI
         {
             stopMessages = true;
             CloseCharts();
-            vm.Dispose();
+            vm.Stop();
         }
 
         void TestTheAlarmClick(object sender, EventArgs e)

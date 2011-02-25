@@ -45,12 +45,12 @@ namespace TickZoom.Interceptors
         }
         public void OnInitialize()
         {
-            var order = BuyMarket;
-            order = BuyLimit;
-            order = BuyStop;
-            order = SellLimit;
-            order = SellMarket;
-            order = SellStop;
+            //var order = BuyMarket;
+            //order = BuyLimit;
+            //order = BuyStop;
+            //order = SellLimit;
+            //order = SellMarket;
+            //order = SellStop;
         }
         private LogicalOrder buyMarket;
         public LogicalOrder BuyMarket
