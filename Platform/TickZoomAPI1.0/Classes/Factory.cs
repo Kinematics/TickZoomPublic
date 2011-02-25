@@ -243,7 +243,24 @@ namespace TickZoom.Api
 				return new Settings();
 			}
 		}
-	}
-	
 
+        public static void Release()
+        {
+            lock (Locker)
+            {
+                if (engineFactory != null)
+                {
+                    engineFactory.Release();
+                }
+                if (provider != null)
+                {
+                    provider.Release();
+                }
+                if (tickUtilFactory != null)
+                {
+                    tickUtilFactory.Release();
+                }
+            }
+        }
+	}
 }

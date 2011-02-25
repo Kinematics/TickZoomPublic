@@ -37,6 +37,7 @@ namespace Loaders
 		SimulateRealTime = 0x2,
 		SimulateFIX = 0x4,
 		FIXPlayBack = 0x8,
+		Design = 0x10,
 		Default = Historical | SimulateRealTime | SimulateFIX,
 	}
 }

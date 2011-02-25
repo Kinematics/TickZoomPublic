@@ -31,7 +31,7 @@ namespace TickZoom.Presentation.Framework
     using System;
     using TickZoom.Api;
     
-    public class StarterCommand : Command
+    public class StartCommand : Command
     {
         #region Fields
 
@@ -42,7 +42,7 @@ namespace TickZoom.Presentation.Framework
 
         #region Constructors
 
-        public StarterCommand( Starter starter, ModelLoaderInterface loader)
+        public StartCommand( Starter starter, ModelLoaderInterface loader)
         {
             this.starter = starter;
             this.loader = loader;

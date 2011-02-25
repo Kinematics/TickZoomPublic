@@ -332,10 +332,13 @@ namespace TickZoom.Starters
 			GetEngineResults();
 			
 			WriteEngineResults(loader,engineIterations,OnSetFitness);
+			
+			foreach( var engine in engineIterations) {
+				engine.Release();
+			}
 
 			engineIterations.Clear();
 
-			Release();
 		}
 		
 		public override void Wait() {

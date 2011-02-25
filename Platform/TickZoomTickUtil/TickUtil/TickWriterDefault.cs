@@ -199,11 +199,13 @@ namespace TickZoom.TickUtil
 					return Yield.Terminate;
 				} else {
 					Exception exception = new ApplicationException("Queue returned unexpected: " + ex.EntryType);
-					writeQueue.Terminate(exception);
+					writeQueue.SetException(exception);
+					writeQueue.Dispose();
 					throw ex;
 				}
 			} catch( Exception ex) {
-				writeQueue.Terminate(ex);
+				writeQueue.SetException(ex);
+				writeQueue.Dispose();
 				if( fs != null) {
                     CloseFile(fs);
                     fs = null;

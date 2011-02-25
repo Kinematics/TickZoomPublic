@@ -33,7 +33,7 @@ namespace TickZoom.Api
 	/// Description of Factory.
 	/// </summary>
 	[CLSCompliant(false)]
-	public interface EngineFactory : IDisposable
+	public interface EngineFactory
 	{
 		TickEngine TickEngine {
 			get;
@@ -82,5 +82,7 @@ namespace TickZoom.Api
         ProviderSimulator ProviderSimulator(string name, SymbolInfo symbol, Action<SymbolInfo,LogicalFillBinary> processFill);
         
 		LogicalOrderCache LogicalOrderCache( SymbolInfo symbol);
+		
+		void Release();
 	}
 }

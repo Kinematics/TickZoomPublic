@@ -37,13 +37,12 @@ namespace TickZoom.Api
 		
 	}
 	
-	public interface Queue
+	public interface Queue : IDisposable
 	{
 		string Name { get; }
 		void Clear();
 		void Flush();
-		void Terminate(Exception ex);
-		void Terminate();
+		void SetException(Exception ex);
 		void Pause();
 		void Resume();
 		string GetStats();

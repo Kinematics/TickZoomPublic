@@ -54,6 +54,7 @@ namespace TickZoom.TickUtil
 	    public bool TryEnqueue(ref TickBinary o)
 	    {
         	QueueItem item = new QueueItem();
+        	item.Symbol = o.Symbol;
         	item.EventType = (int) EventType.Tick;
     		item.Tick = o;
     		return TryEnqueueStruct(ref item);
@@ -112,8 +113,8 @@ namespace TickZoom.TickUtil
 		    		throw new QueueException( (EventType) item.EventType, symbol);
 		    	} else {
 	    			tick = item.Tick;
+	    			}
 		    	}
-	    	}
 	    	return result;
 	    }
 	    

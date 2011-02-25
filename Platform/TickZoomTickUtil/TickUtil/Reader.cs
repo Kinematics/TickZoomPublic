@@ -445,6 +445,9 @@ namespace TickZoom.TickUtil
 
 		private Yield TickEvent()
 		{
+			if( box == null) {
+				throw new ApplicationException("Box is null.");
+			}
 			if (!receiver.OnEvent(symbol, (int)EventType.Tick, box)) {
 				return Yield.NoWork.Repeat;
 			} else {

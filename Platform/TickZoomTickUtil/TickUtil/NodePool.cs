@@ -1,4 +1,4 @@
-#region Copyright
+﻿#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2009 M. Wayne Walter
@@ -26,18 +26,19 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using TickZoom.Api;
 using System.Diagnostics;
+using System.Text;
+using System.Threading;
 
-namespace TickZoom.Common
+namespace TickZoom.TickUtil
 {
 	public class NodePool<T>
 	{
 		private Stack<LinkedListNode<T>> _nodes = new Stack<LinkedListNode<T>>();
-		private TaskLock _sync = new TaskLock();
+        private TaskLock _sync = new TaskLock();
 		private int count = 0;
-
+	
 		public LinkedListNode<T> Create(T item)
 		{
 			using (_sync.Using()) {
@@ -51,7 +52,7 @@ namespace TickZoom.Common
 				}
 			}
 		}
-
+	
 		public void Free(LinkedListNode<T> node)
 		{
 			using(_sync.Using()) {
@@ -72,3 +73,5 @@ namespace TickZoom.Common
 		}
 	}
 }
+
+

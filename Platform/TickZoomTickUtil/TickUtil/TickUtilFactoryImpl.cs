@@ -120,7 +120,7 @@ namespace TickZoom.TickUtil
 	    	}
 		}
 
-        public void Dispose()
+        public void Release()
         {
             lock (locker)
             {
@@ -132,7 +132,7 @@ namespace TickZoom.TickUtil
                         {
                             if (queue != null)
                             {
-                                queue.Terminate();
+                                queue.Dispose();
                             }
                         }
                         queueList.Clear();

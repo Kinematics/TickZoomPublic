@@ -262,7 +262,7 @@ namespace Loaders
 			
 			// Real time (slow running) CSCO real time test.
 			spyTradeDataOnly = spyTradeDataOnly.Copy();
-			spyTradeDataOnly.Mode = AutoTestMode.FIXPlayBack;
+			spyTradeDataOnly.Mode = AutoTestMode.None;
 			spyTradeDataOnly.RelativeEndTime = new Elapsed(0,3,00);
 			list.Add( spyTradeDataOnly);
 			
@@ -280,7 +280,7 @@ namespace Loaders
 			
 			// Real time (slow running) CSCO real time test.
 			spyQuoteDataOnly = spyQuoteDataOnly.Copy();
-			spyQuoteDataOnly.Mode = AutoTestMode.FIXPlayBack;
+			spyQuoteDataOnly.Mode = AutoTestMode.None;
 			spyQuoteDataOnly.RelativeEndTime = new Elapsed(0,2,30);
 			list.Add( spyQuoteDataOnly);
 			

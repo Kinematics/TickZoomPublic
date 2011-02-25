@@ -29,6 +29,7 @@ using System.Collections.Generic;
 using System.IO;
 
 using TickZoom.Api;
+using System.Diagnostics;
 
 namespace TickZoom.Transactions
 {
@@ -77,6 +78,7 @@ namespace TickZoom.Transactions
 	        	if( references.TryGetValue(item,out refs)) {
 	        		if( refs == 1) {
 	        			references.Remove(item);
+//                        Debug.Assert(!stack.Contains(item));
 	            		stack.Push(item);
 	        		} else if( refs == 0) {
 		        		throw new ApplicationException("Fatal error. Reference count was already zero.");

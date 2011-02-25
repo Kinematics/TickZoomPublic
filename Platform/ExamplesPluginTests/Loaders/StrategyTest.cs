@@ -80,6 +80,7 @@ namespace Loaders
 		private ModelInterface topModel = null;
 		private AutoTestMode autoTestMode = AutoTestMode.Historical;
 		private long realTimeOffset;
+        private StarterConfig config;
 
 		public StrategyTest( AutoTestSettings testSettings ) {
 			this.autoTestMode = testSettings.Mode;
@@ -165,6 +166,7 @@ namespace Loaders
 			config.DefaultPeriod = intervalDefault.Period;
 			config.DefaultBarUnit = intervalDefault.BarUnit.ToString();
 			config.ModelLoader = loader.Name;
+            config.Initialize();
     		return config;
 		}
 		
@@ -186,6 +188,9 @@ namespace Loaders
 				case AutoTestMode.FIXPlayBack:
 					starter = new FIXPlayBackStarter();
 					starter.Port = servicePort;
+					break;			
+				case AutoTestMode.Design:
+					starter = new DesignStarter();
 					break;			
 				default:
 					throw new ApplicationException("AutoTestMode " + autoTestMode + " is unknown.");
@@ -216,25 +221,18 @@ namespace Loaders
 			try {
 				// Run the loader.
 				try { 
-					if( false) {
-						var loaderInstance = GetLoaderInstance();
-						var starter = SetupStarter(autoTestMode);
-			    		starter.Run(loaderInstance);
-			    		topModel = loaderInstance.TopModel;
-					} else {
-						var config = SetupConfigStarter(autoTestMode);
-						config.Start();
-						while( config.IsBusy) {
-							Thread.Sleep(10);
-						}
-			    		topModel = config.TopModel;
-			    		if( config.Starter is FIXPlayBackStarter) {
-			    			var starter = config.Starter as FIXPlayBackStarter;
-			    			realTimeOffset = starter.FixServer.RealTimeOffset;
-			    			var realTimeOffsetElapsed = new Elapsed(realTimeOffset);
-			    			log.Info("Real time offset is " + realTimeOffset + " or " + realTimeOffsetElapsed);
-			    		}
+					config = SetupConfigStarter(autoTestMode);
+					config.Start();
+					while( config.IsBusy) {
+						Thread.Sleep(10);
 					}
+		    		topModel = config.TopModel;
+		    		if( config.Starter is FIXPlayBackStarter) {
+		    			var starter = config.Starter as FIXPlayBackStarter;
+		    			realTimeOffset = starter.FixServer.RealTimeOffset;
+		    			var realTimeOffsetElapsed = new Elapsed(realTimeOffset);
+		    			log.Info("Real time offset is " + realTimeOffset + " or " + realTimeOffsetElapsed);
+		    		}
 				} catch( ApplicationException ex) {
 					if( ex.Message.Contains("not found")) {
 						Assert.Ignore("LoaderName could not be loaded.");
@@ -302,13 +300,12 @@ namespace Loaders
 		
 		[TestFixtureTearDown]
 		public virtual void EndStrategy() {
+            if (config != null)
+            {
+                config.Stop();
+            }
 			StopGUIThread();
-//			SocketDefault.LogBindErrors();
-
-//			if( testFailed) {
-//				log.Error("Shutting down due to test failure.");
-//				Environment.Exit(1);
-//			}
+            HistoricalCloseCharts();
 		}
 		
 		public class TransactionInfo {
@@ -985,7 +982,7 @@ namespace Loaders
         {
 	       	try {
 				foreach( var doc in portfolioDocs) {
-					execute.OnUIThread( () => doc.Visible = false);
+                    doc.Close();
 				}
 				portfolioDocs.Clear();
         	} catch( Exception ex) {
@@ -1102,7 +1099,7 @@ namespace Loaders
    		}
 			
 		public IEnumerable<string> GetModelNames() {
-			var starter = SetupStarter(AutoTestMode.Historical);
+   			var starter = SetupStarter(AutoTestMode.Design);
 			var loaderInstance = GetLoaderInstance();
 			loaderInstance.OnInitialize(starter.ProjectProperties);
 			loaderInstance.OnLoad(starter.ProjectProperties);
@@ -1112,7 +1109,7 @@ namespace Loaders
 		}
 
    		public IEnumerable<SymbolInfo> GetSymbols() {
-			var starter = SetupStarter(AutoTestMode.Historical);
+			var starter = SetupStarter(AutoTestMode.Design);
 			foreach( var symbol in starter.ProjectProperties.Starter.SymbolProperties) {
    				yield return symbol;
 			}

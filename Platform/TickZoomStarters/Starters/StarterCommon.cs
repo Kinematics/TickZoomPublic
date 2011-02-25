@@ -67,27 +67,16 @@ namespace TickZoom.Starters
 		protected RunMode runMode = RunMode.Historical;
 		protected ParallelMode parallelMode = ParallelMode.Normal;
 		
-		public StarterCommon() : this(true) {
+		public StarterCommon() {
+			string dataFolder = Factory.Settings["DataFolder"];
+			if( dataFolder != null) {
+				this.dataFolder = dataFolder;
+			}
     		storageFolder = Factory.Settings["AppDataFolder"];
    			if( storageFolder == null) {
        			throw new ApplicationException( "Must set AppDataFolder property in app.config");
    			}
     		fileName = storageFolder + @"\Statistics\optimizeResults.csv";
-		}
-		
-		public StarterCommon(bool releaseEngineCache) {
-			if( releaseEngineCache) {
-                Release();
-			}
-			string dataFolder = Factory.Settings["DataFolder"];
-			if( dataFolder != null) {
-				this.dataFolder = dataFolder;
-			}
-		}
-		
-		public void Release() {
-			Factory.Engine.Dispose();
-			Factory.Provider.Release();
 		}
 		
 		bool CancelPending {
@@ -97,6 +86,14 @@ namespace TickZoom.Starters
 					return false;
 				}
 			}
+		}
+
+		/// <summary>
+		/// Obsolete: Please use Dispose() instead.
+		/// </summary>
+		[Obsolete("Please use Dispose() instead.",true)]
+		public void Release() {
+			throw new NotImplementedException("Obsolete: Please use Dispose() instead.");
 		}
 		
 		public void ReportProgress( string text, Int64 current, Int64 final) {
@@ -454,6 +451,25 @@ namespace TickZoom.Starters
 			return tasksPerEngine;
 		}
 		
+		private object disposeLocker = new object();
+ 		private volatile bool isDisposed = false;
+	    public void Dispose() 
+	    {
+	        Dispose(true);
+	        GC.SuppressFinalize(this);      
+	    }
+	
+	    protected virtual void Dispose(bool disposing)
+	    {
+       		if( !isDisposed) {
+	    		lock( disposeLocker) {
+		            isDisposed = true;   
+		            if (disposing) {
+		            }
+	    		}
+    		}
+	    }
+	    
 		public ShowChartCallback ShowChartCallback {
 			get { return showChartCallback; }
 			set { showChartCallback = value; }

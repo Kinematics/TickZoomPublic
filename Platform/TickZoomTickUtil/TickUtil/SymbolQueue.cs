@@ -142,7 +142,7 @@ namespace TickZoom.TickUtil
        		if( !isDisposed) {
 	            isDisposed = true;   
 	            if (disposing) {
-	            	tickQueue.Terminate();
+	            	tickQueue.Dispose();
 	            }
     		}
 	    }

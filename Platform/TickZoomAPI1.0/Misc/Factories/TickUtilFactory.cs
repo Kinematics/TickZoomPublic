@@ -33,7 +33,7 @@ namespace TickZoom.Api
 	/// Description of Factory.
 	/// </summary>
 	[CLSCompliant(false)]
-    public interface TickUtilFactory : IDisposable
+    public interface TickUtilFactory
 	{
 		TickQueue TickQueue( Type type);
 		TickQueue TickQueue( string name);
@@ -46,5 +46,6 @@ namespace TickZoom.Api
 		Pool<T> Pool<T>() where T : new();
 		Pool<TickBinaryBox> TickPool();
 		string GetQueueStats();
+		void Release();
 	}
 }

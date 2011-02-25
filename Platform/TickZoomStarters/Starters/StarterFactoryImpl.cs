@@ -45,6 +45,8 @@ namespace TickZoom.Starters
 			return new ModelPropertyCommon(name,value,start,end,increment,isActive);
 		}
 		/// <summary>
+		/// Obsolete: Please use the IDisposable.Dispose() interface method on starters to release resources.
+		/// 
 		/// Contructs a new Historical Starter for running a historical 
 		/// test pass. 
 		/// </summary>
@@ -57,8 +59,9 @@ namespace TickZoom.Starters
 		/// avoid a memory leak.
 		/// </param>
 		/// <returns></returns>
+		[Obsolete("Please use the IDisposable.Dispose() interface method on starters to release resources.", true)]
 		public Starter HistoricalStarter(bool releaseResources) {
-			return new HistoricalStarter(releaseResources);
+			throw new NotImplementedException("Please use the IDisposable.Dispose() interface method on starters to release resources.");
 		}
 		/// <summary>
 		/// Contructs a new Historical Starter for running a historical 

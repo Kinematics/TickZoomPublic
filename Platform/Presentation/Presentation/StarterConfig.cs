@@ -61,6 +61,7 @@ namespace TickZoom.Presentation
         private string providerAssembly;
         private bool autoUpdate;
         private Starter starter;
+        private bool isInitialized = false;
         
 		public bool AutoUpdate {
 			get { return autoUpdate; }
@@ -536,9 +537,6 @@ namespace TickZoom.Presentation
         public void Dispose()
         {
         	Stop();
-            Factory.Engine.Dispose();
-            Factory.Provider.Release();
-            Factory.TickUtil.TickReader().CloseAll();
         }
 
         public static string GetDefaultConfig()
@@ -606,7 +604,7 @@ namespace TickZoom.Presentation
             chartBarUnit = defaultBarUnit;
         }
 
-        public void Start()
+        public void Initialize()
         {
         	string starterClassName;
         	if( !starters.TryGetValue(starterName, out starterClassName)) {
@@ -618,6 +616,14 @@ namespace TickZoom.Presentation
                 enableAlarmSounds = true;
             }
             SetupStarter(starter);
+            isInitialized = true;
+        }
+
+        public void Start()
+        {
+            Initialize();
+            Factory.Release();
+            RunCommand(new StartCommand(starter, loaderInstance));
         }
 
         public void IntervalsUpdate()
@@ -861,6 +867,11 @@ namespace TickZoom.Presentation
 
         private void ProcessWorkerRunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
+            if (starter != null)
+            {
+                starter.Dispose();
+                starter = null;
+            }
             enableAlarmSounds = false;
             taskException = e.Error;
             if (taskException != null)
@@ -923,7 +934,6 @@ namespace TickZoom.Presentation
             }
             log.Info("Running Loader named: " + modelLoader);
             loaderInstance = Plugins.Instance.GetLoader(modelLoader);
-            RunCommand(new StarterCommand(starterInstance, loaderInstance));
         }
 
  		public Starter Starter {

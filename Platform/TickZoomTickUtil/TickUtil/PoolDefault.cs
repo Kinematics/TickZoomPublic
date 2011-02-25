@@ -28,18 +28,19 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using TickZoom.Api;
+using System.Diagnostics;
 
 namespace TickZoom.TickUtil
 {
 	public class PoolDefault<T> : Pool<T> where T : new()
 	{
 		private Stack<T> _items = new Stack<T>();
-		private object _sync = new object();
+        private TaskLock _sync = new TaskLock();
 		private int count = 0;
 
 		public T Create()
 		{
-			lock (_sync) {
+			using (_sync.Using()) {
 				if (_items.Count == 0) {
 					Interlocked.Increment(ref count);
 					return new T();
@@ -51,14 +52,15 @@ namespace TickZoom.TickUtil
 
 		public void Free(T item)
 		{
-			lock (_sync) {
+			using (_sync.Using()) {
+//              Debug.Assert(!_items.Contains(item));
 				_items.Push(item);
 			}
 		}
 
 		public void Clear()
 		{
-			lock (_sync) {
+			using(_sync.Using()) {
 				_items.Clear();
 			}
 		}

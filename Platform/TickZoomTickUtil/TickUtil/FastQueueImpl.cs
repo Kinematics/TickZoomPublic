@@ -65,10 +65,9 @@ namespace TickZoom.TickUtil
 		TaskLock spinLock = new TaskLock();
 	    readonly int spinCycles = 1000;
 	    int timeout = 30000; // milliseconds
-	    private static Pool<Queue<T>> queuePool;
-		private static object locker = new object();
-	    Queue<T> queue;
-	    volatile bool terminate = false;
+	    private static NodePool<T> nodePool;
+		private static TaskLock nodePoolLocker = new TaskLock();
+	    private ActiveList<T> queue;
 	    int processorCount = Environment.ProcessorCount;
 		bool isStarted = false;
 		bool isPaused = false;
@@ -100,7 +99,7 @@ namespace TickZoom.TickUtil
 			this.maxSize = maxSize;
 			this.lowWaterMark = maxSize / 2;
 			this.highWaterMark = maxSize / 2;
-			queue = QueuePool.Create();
+			queue = new ActiveList<T>();
 			queue.Clear();
 			TickUtilFactoryImpl.AddQueue(this);
 	    }
@@ -133,13 +132,6 @@ namespace TickZoom.TickUtil
 	    
 	    public bool TryEnqueueStruct(ref T tick)
 	    {
-            if( terminate) {
-	    		if( exception != null) {
-	    			throw new ApplicationException("Enqueue failed.",exception);
-	    		} else {
-            		throw new QueueException(EventType.Terminate);
-	    		}
-            }
             // If the queue is full, wait for an item to be removed
             if( queue == null ) return false;
             if( queue.Count>=maxSize) {
@@ -147,11 +139,19 @@ namespace TickZoom.TickUtil
             }
             if( !SpinLockNB()) return false;
             try { 
+	            if( isDisposed) {
+		    		if( exception != null) {
+		    			throw new ApplicationException("Enqueue failed.",exception);
+		    		} else {
+	            		throw new QueueException(EventType.Terminate);
+		    		}
+	            }
 	            if( queue == null ) return false;
 	            if( queue.Count>=maxSize) {
 	            	return false;
 	            }
-	           	queue.Enqueue(tick);
+	            var node = NodePool.Create(tick);
+	           	queue.AddFirst(node);
 	            if( hasItem != null) hasItem(this);
             } finally {
 	            SpinUnLock();
@@ -169,13 +169,6 @@ namespace TickZoom.TickUtil
 	    
 	    public bool TryPeekStruct(ref T tick)
 	    {
-            if( terminate) {
-	    		if( exception != null) {
-	    			throw new ApplicationException("Dequeue failed.",exception);
-	    		} else {
-	            	throw new QueueException(EventType.Terminate);
-	    		}
-            }
 	    	tick = default(T);
 	    	if( !isStarted) { 
 	    		if( !StartDequeue()) return false;
@@ -183,8 +176,15 @@ namespace TickZoom.TickUtil
 	        if( queue == null || queue.Count==0) return false;
 	    	if( !SpinLockNB()) return false;
 	    	try {
+	            if( isDisposed) {
+		    		if( exception != null) {
+		    			throw new ApplicationException("Dequeue failed.",exception);
+		    		} else {
+		            	throw new QueueException(EventType.Terminate);
+		    		}
+	            }
 		        if( queue == null || queue.Count==0) return false;
-	            tick = queue.Peek();
+	            tick = queue.Last.Value;
 	    	} finally {
 	            SpinUnLock();
 	    	}
@@ -193,13 +193,6 @@ namespace TickZoom.TickUtil
 	    
 	    public bool TryDequeueStruct(ref T tick)
 	    {
-            if( terminate) {
-	    		if( exception != null) {
-	    			throw new ApplicationException("Dequeue failed.",exception);
-	    		} else {
-	            	throw new QueueException(EventType.Terminate);
-	    		}
-            }
 	    	tick = default(T);
 	    	if( !isStarted) { 
 	    		if( !StartDequeue()) return false;
@@ -207,8 +200,26 @@ namespace TickZoom.TickUtil
 	        if( queue == null || queue.Count==0) return false;
 	    	if( !SpinLockNB()) return false;
 	    	try {
+	            if( isDisposed) {
+		    		if( exception != null) {
+		    			throw new ApplicationException("Dequeue failed.",exception);
+		    		} else {
+		            	throw new QueueException(EventType.Terminate);
+		    		}
+	            }
 		        if( queue == null || queue.Count==0) return false;
-	            tick = queue.Dequeue();
+		        var last = queue.Last;
+		        tick = last.Value;
+		        queue.Remove(last);
+		        NodePool.Free(last);
+		        // Code below used to track down a bug. No long needed.
+//	            if( tick is QueueItem) {
+//	            	var obj = (object) tick;
+//	            	var item = (QueueItem) obj;
+//	            	if( item.EventType == (int) EventType.Tick && item.Symbol == 0) {
+//	            		throw new ApplicationException("Symbol cannot be 0.");
+//	            	}
+//	            }
 	    	} finally {
 	            SpinUnLock();
 	    	}
@@ -217,37 +228,59 @@ namespace TickZoom.TickUtil
 	    
 	    public void Clear() {
 	    	if( debug) log.Debug("Clear called");
-	    	if( !terminate) {
-	    		while( !SpinLockNB()) ;
+    		while( !SpinLockNB()) ;
+	    	if( !isDisposed) {
 		        queue.Clear();
-		        SpinUnLock();
 	    	}
+	        SpinUnLock();
 	    }
 	    
 	    public void Flush() {
 	    	if( debug) log.Debug("Flush called");
-	    	while(!terminate && queue.Count>0) {
+	    	while(!isDisposed && queue.Count>0) {
 	    		Factory.Parallel.Yield();
 	    	}
 	    }
 	    
-	    public void Terminate(Exception ex) {
+	    public void SetException(Exception ex) {
 	    	exception = ex;
-	    	Terminate();
 	    }
 	    
-	    public void Terminate() {
-	    	terminate = true;
-	    	hasItem = null;
-	        if( queue!=null) {
-	    		while( !SpinLockNB()) ;
-		        QueuePool.Free(queue);
-		        SpinUnLock();
-	        }
+	 	private volatile bool isDisposed = false;
+	 	private object disposeLocker = new object();
+	    public void Dispose() 
+	    {
+	        Dispose(true);
+	        GC.SuppressFinalize(this);      
 	    }
 	
+	    protected virtual void Dispose(bool disposing)
+	    {
+	       	if( !isDisposed) {
+	    		lock( disposeLocker) {
+		            isDisposed = true;   
+		            if (disposing) {
+				        if( queue!=null) {
+				    		while( !SpinLockNB()) ;
+				    		try {
+						    	hasItem = null;
+						    	var next = queue.First;
+						    	for( var node = next; node != null; node = next) {
+						    		next = node.Next;
+						    		queue.Remove(node);
+						    		NodePool.Free(node);
+						    	}
+				    		} finally {
+						        SpinUnLock();
+				    		}
+				        }
+		            }
+	    		}
+	    	}
+	    }
+	    
 	    public int Count {
-	    	get { if(!terminate) {
+	    	get { if(!isDisposed) {
 	    			return queue.Count;
 	    		} else {
 	    			return 0;
@@ -352,18 +385,18 @@ namespace TickZoom.TickUtil
 			return sb.ToString();
 		}
 	    
-		public static Pool<Queue<T>> QueuePool {
-	    	get { if( queuePool == null) {
-	    			lock(locker) {
-	    				if( queuePool == null) {
-	    					queuePool = Factory.TickUtil.Pool<Queue<T>>();
+		public static NodePool<T> NodePool {
+	    	get { if( nodePool == null) {
+					using(nodePoolLocker.Using()) {
+	    				if( nodePool == null) {
+	    					nodePool = new NodePool<T>();
 	    				}
 	    			}
 				}
-	    		return queuePool;
+	    		return nodePool;
 	    	}
 		}
-			
+		
 		public int Capacity {
 			get { return maxSize; }
 		}

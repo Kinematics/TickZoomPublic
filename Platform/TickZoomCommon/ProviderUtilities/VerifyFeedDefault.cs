@@ -457,7 +457,7 @@ namespace TickZoom.Common
 		            	if( task != null) {
 			            	task.Stop();
 			            	task.Join();
-							tickQueue.Terminate();
+							tickQueue.Dispose();
 		            	}
 		            }
 		            task = null;

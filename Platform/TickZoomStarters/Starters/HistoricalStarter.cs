@@ -68,10 +68,6 @@ namespace TickZoom.Starters
 			SyncTicks.Enabled = false;
 		} 
 		
-		public HistoricalStarter(bool releaseEngineCache) : base(releaseEngineCache)
-		{
-		} 
-		
 		public override void Run(ModelLoaderInterface loader)
 		{
 			Factory.SysLog.Reconfigure("Historical",GetDefaultLogConfig());

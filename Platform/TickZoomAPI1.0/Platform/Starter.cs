@@ -33,7 +33,7 @@ namespace TickZoom.Api
     
     public delegate Chart CreateChartCallback();
 
-    public interface Starter {
+    public interface Starter : IDisposable {
     	
 		BackgroundWorker BackgroundWorker {
 			get;
@@ -91,7 +91,10 @@ namespace TickZoom.Api
 			get;
 			set;
 		}
-		
+		/// <summary>
+		/// Obsolete: Please use Dispose() instead.
+		/// </summary>
+		[Obsolete("Please use Dispose() instead.",true)]
 		void Release();
 		
 		/// <summary>

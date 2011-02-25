@@ -199,5 +199,8 @@ namespace TickZoom.Api
     		set;
     	}
     	
+    	void Release();
+    	
 	}
 }
+
