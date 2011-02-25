@@ -86,26 +86,26 @@ namespace TickZoom.Interceptors
 				
 		public void OnInitialize()
 		{
-			marketOrder = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
+            marketOrder = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo, Strategy);
 			marketOrder.TradeDirection = TradeDirection.ExitStrategy;
 			marketOrder.Tag = "ExitStrategy" ;
 			Strategy.AddOrder(marketOrder);
-			breakEvenBuyStopOrder = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
+            breakEvenBuyStopOrder = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo, Strategy);
 			breakEvenBuyStopOrder.TradeDirection = TradeDirection.ExitStrategy;
 			breakEvenBuyStopOrder.Type = OrderType.BuyStop;
 			breakEvenBuyStopOrder.Tag = "ExitStrategy" ;
 			Strategy.AddOrder(breakEvenBuyStopOrder);
-			breakEvenSellStopOrder = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
+            breakEvenSellStopOrder = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo, Strategy);
 			breakEvenSellStopOrder.TradeDirection = TradeDirection.ExitStrategy;
 			breakEvenSellStopOrder.Type = OrderType.SellStop;
 			breakEvenSellStopOrder.Tag = "ExitStrategy" ;
 			Strategy.AddOrder(breakEvenSellStopOrder);
-			buyStopLossOrder = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
+            buyStopLossOrder = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo, Strategy);
 			buyStopLossOrder.TradeDirection = TradeDirection.ExitStrategy;
 			buyStopLossOrder.Type = OrderType.BuyStop;
 			buyStopLossOrder.Tag = "ExitStrategy" ;
 			Strategy.AddOrder(buyStopLossOrder);
-			sellStopLossOrder = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
+            sellStopLossOrder = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo, Strategy);
 			sellStopLossOrder.TradeDirection = TradeDirection.ExitStrategy;
 			sellStopLossOrder.Type = OrderType.SellStop;
 			sellStopLossOrder.Tag = "ExitStrategy" ;

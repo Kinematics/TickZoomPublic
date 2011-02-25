@@ -29,6 +29,10 @@ using System.ComponentModel;
 
 namespace TickZoom.Api
 {
+    public static class StaticGlobalFlags
+    {
+        public static volatile bool isWriteFinalStats = false;
+    }
     public delegate void ShowChartCallback();
     
     public delegate Chart CreateChartCallback();

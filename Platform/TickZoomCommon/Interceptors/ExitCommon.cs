@@ -39,55 +39,23 @@ namespace TickZoom.Interceptors
 	public class ExitCommon : StrategySupport
 	{
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(ExitCommon));
-		[Diagram(AttributeExclude=true)]
-		public class InternalOrders {
-			public LogicalOrder buyMarket;
-			public LogicalOrder sellMarket;
-			public LogicalOrder buyStop;
-			public LogicalOrder sellStop;
-			public LogicalOrder buyLimit;
-			public LogicalOrder sellLimit;
-		}
 		private PositionInterface position;
-		private InternalOrders orders = new InternalOrders();
+        private InternalOrders orders;
 		
 		private bool enableWrongSideOrders = false;
 		private bool isNextBar = false;
 		
 		public ExitCommon(Strategy strategy) : base(strategy) {
+            orders = new InternalOrders(strategy, TradeDirection.Exit);
 		}
 		
 		public void OnInitialize()
 		{
 			if( IsTrace) Log.Trace(Strategy.FullName+".Initialize()");
 			Strategy.Drawing.Color = Color.Black;
-			orders.buyMarket = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
-			orders.buyMarket.TradeDirection = TradeDirection.Exit;
-			orders.buyMarket.Type = OrderType.BuyMarket;
-			orders.sellMarket = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
-			orders.sellMarket.TradeDirection = TradeDirection.Exit;
-			orders.sellMarket.Type = OrderType.SellMarket;
-			orders.buyStop = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
-			orders.buyStop.Type = OrderType.BuyStop;
-			orders.buyStop.TradeDirection = TradeDirection.Exit;
-			orders.sellStop = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
-			orders.sellStop.Type = OrderType.SellStop;
-			orders.sellStop.TradeDirection = TradeDirection.Exit;
-			orders.sellStop.Tag = "ExitCommon";
-			orders.buyLimit = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
-			orders.buyLimit.Type = OrderType.BuyLimit;
-			orders.buyLimit.TradeDirection = TradeDirection.Exit;
-			orders.sellLimit = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
-			orders.sellLimit.Type = OrderType.SellLimit;
-			orders.sellLimit.TradeDirection = TradeDirection.Exit;
-			Strategy.AddOrder( orders.buyMarket);
-			Strategy.AddOrder( orders.sellMarket);
-			Strategy.AddOrder( orders.buyStop);
-			Strategy.AddOrder( orders.sellStop);
-			Strategy.AddOrder( orders.buyLimit);
-			Strategy.AddOrder( orders.sellLimit);
 			position = Strategy.Position;
-		}
+            orders.OnInitialize();
+        }
 
 		private void FlattenSignal(double price) {
 			Strategy.Position.Change(0,price,Strategy.Ticks[0].Time);
@@ -95,31 +63,28 @@ namespace TickZoom.Interceptors
 		}
 	
 		public void CancelOrders() {
-			orders.buyStop.Status = OrderStatus.AutoCancel;
-			orders.sellStop.Status = OrderStatus.AutoCancel;
-			orders.buyLimit.Status = OrderStatus.AutoCancel;
-			orders.sellLimit.Status = OrderStatus.AutoCancel;
+            orders.CancelOrders();
 		}
 		
         #region Orders
 
         public void GoFlat() {
         	if( Strategy.Position.IsLong) {
-	        	orders.sellMarket.Price = 0;
-	        	orders.sellMarket.Position = 0;
+	        	orders.SellMarket.Price = 0;
+	        	orders.SellMarket.Position = 0;
 	        	if( isNextBar) {
-	    	    	orders.sellMarket.Status = OrderStatus.NextBar;
+	    	    	orders.SellMarket.Status = OrderStatus.NextBar;
 		       	} else {
-		        	orders.sellMarket.Status = OrderStatus.Active;
+		        	orders.SellMarket.Status = OrderStatus.Active;
 	        	}
         	}
         	if( Strategy.Position.IsShort) {
-	        	orders.buyMarket.Price = 0;
-	        	orders.buyMarket.Position = 0;
+	        	orders.BuyMarket.Price = 0;
+	        	orders.BuyMarket.Position = 0;
 	        	if( isNextBar) {
-	    	    	orders.buyMarket.Status = OrderStatus.NextBar;
+	    	    	orders.BuyMarket.Status = OrderStatus.NextBar;
 		       	} else {
-		        	orders.buyMarket.Status = OrderStatus.Active;
+		        	orders.BuyMarket.Status = OrderStatus.Active;
 	        	}
         	}
 		}
@@ -132,11 +97,11 @@ namespace TickZoom.Interceptors
         			throw new TickZoomException("When flat, a sell order must be active before creating a buy order to exit.");
         		}
 			}
-    		orders.buyStop.Price = price;
+    		orders.BuyStop.Price = price;
         	if( isNextBar) {
-    	    	orders.buyStop.Status = OrderStatus.NextBar;
+    	    	orders.BuyStop.Status = OrderStatus.NextBar;
 	       	} else {
-	        	orders.buyStop.Status = OrderStatus.Active;
+	        	orders.BuyStop.Status = OrderStatus.Active;
         	}
         }
 	
@@ -148,11 +113,11 @@ namespace TickZoom.Interceptors
         			throw new TickZoomException("When flat, a buy order must be active before creating a sell order to exit.");
         		}
         	}
-			orders.sellStop.Price = price;
+			orders.SellStop.Price = price;
         	if( isNextBar) {
-    	    	orders.sellStop.Status = OrderStatus.NextBar;
+    	    	orders.SellStop.Status = OrderStatus.NextBar;
 	       	} else {
-	        	orders.sellStop.Status = OrderStatus.Active;
+	        	orders.SellStop.Status = OrderStatus.Active;
         	}
 		}
         
@@ -164,11 +129,11 @@ namespace TickZoom.Interceptors
         			throw new TickZoomException("When flat, a sell order must be active before creating a buy order to exit.");
         		}
 			}
-    		orders.buyLimit.Price = price;
+    		orders.BuyLimit.Price = price;
         	if( isNextBar) {
-    	    	orders.buyLimit.Status = OrderStatus.NextBar;
+    	    	orders.BuyLimit.Status = OrderStatus.NextBar;
 	       	} else {
-	        	orders.buyLimit.Status = OrderStatus.Active;
+	        	orders.BuyLimit.Status = OrderStatus.Active;
         	}
 		}
 	
@@ -180,11 +145,11 @@ namespace TickZoom.Interceptors
         			throw new TickZoomException("When flat, a buy order must be active before creating a sell order to exit.");
         		}
 			}
-			orders.sellLimit.Price = price;
+			orders.SellLimit.Price = price;
         	if( isNextBar) {
-    	    	orders.sellLimit.Status = OrderStatus.NextBar;
+    	    	orders.SellLimit.Status = OrderStatus.NextBar;
 	       	} else {
-	        	orders.sellLimit.Status = OrderStatus.Active;
+	        	orders.SellLimit.Status = OrderStatus.Active;
         	}
 		}
         

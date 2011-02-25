@@ -94,6 +94,7 @@ namespace Loaders
  			this.testFileName = testSettings.Name;
  			this.intervalDefault = testSettings.IntervalDefault;
 			createStarterCallback = CreateStarter;
+            StaticGlobalFlags.isWriteFinalStats = false;
 		}
 		
 		public StrategyTest() {
@@ -242,6 +243,7 @@ namespace Loaders
 					}
 				}
 				WriteHashes();
+                
 				WriteFinalStats();
 	
 	    		LoadTransactions();
@@ -392,7 +394,8 @@ namespace Loaders
 					writer.WriteLine();
 				}
 			}
-		}
+            StaticGlobalFlags.isWriteFinalStats = true;
+        }
 		
 		public void LoadFinalStats() {
 			string fileDir = @"..\..\Platform\ExamplesPluginTests\Loaders\Trades\";

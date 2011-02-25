@@ -34,67 +34,150 @@ using TickZoom.Common;
 
 namespace TickZoom.Interceptors
 {
+    public class InternalOrders
+    {
+        private Strategy strategy;
+        private TradeDirection direction;
+        public InternalOrders(Strategy strategy, TradeDirection direction)
+        {
+            this.strategy = strategy;
+            this.direction = direction;
+        }
+        public void OnInitialize()
+        {
+            var order = BuyMarket;
+            order = BuyLimit;
+            order = BuyStop;
+            order = SellLimit;
+            order = SellMarket;
+            order = SellStop;
+        }
+        private LogicalOrder buyMarket;
+        public LogicalOrder BuyMarket
+        {
+            get
+            {
+                if (buyMarket == null)
+                {
+                    buyMarket = Factory.Engine.LogicalOrder(strategy.Data.SymbolInfo, strategy);
+                    buyMarket.TradeDirection = direction;
+                    buyMarket.Type = OrderType.BuyMarket;
+                    strategy.AddOrder(buyMarket);
+                }
+                return buyMarket;
+            }
+        }
+        private LogicalOrder sellMarket;
+        public LogicalOrder SellMarket
+        {
+            get
+            {
+                if (sellMarket == null)
+                {
+                    sellMarket = Factory.Engine.LogicalOrder(strategy.Data.SymbolInfo, strategy);
+                    sellMarket.TradeDirection = direction;
+                    sellMarket.Type = OrderType.SellMarket;
+                    strategy.AddOrder(sellMarket);
+                }
+                return sellMarket;
+            }
+        }
+        private LogicalOrder buyStop;
+        public LogicalOrder BuyStop
+        {
+            get
+            {
+                if (buyStop == null)
+                {
+                    buyStop = Factory.Engine.LogicalOrder(strategy.Data.SymbolInfo, strategy);
+                    buyStop.TradeDirection = direction;
+                    buyStop.Type = OrderType.BuyStop;
+                    strategy.AddOrder(buyStop);
+                }
+                return buyStop;
+            }
+        }
 
-	public class EnterCommon : StrategySupport
+        private LogicalOrder sellStop;
+        public LogicalOrder SellStop
+        {
+            get
+            {
+                if (sellStop == null)
+                {
+                    sellStop = Factory.Engine.LogicalOrder(strategy.Data.SymbolInfo, strategy);
+                    sellStop.TradeDirection = direction;
+                    sellStop.Type = OrderType.SellStop;
+                    strategy.AddOrder(sellStop);
+                }
+                return sellStop;
+            }
+        }
+        private LogicalOrder buyLimit;
+        public LogicalOrder BuyLimit
+        {
+            get
+            {
+                if (buyLimit == null)
+                {
+                    buyLimit = Factory.Engine.LogicalOrder(strategy.Data.SymbolInfo, strategy);
+                    buyLimit.TradeDirection = direction;
+                    buyLimit.Type = OrderType.BuyLimit;
+                    strategy.AddOrder(buyLimit);
+                }
+                return buyLimit;
+            }
+        }
+        private LogicalOrder sellLimit;
+        public LogicalOrder SellLimit
+        {
+            get
+            {
+                if (sellLimit == null)
+                {
+                    sellLimit = Factory.Engine.LogicalOrder(strategy.Data.SymbolInfo, strategy);
+                    sellLimit.TradeDirection = direction;
+                    sellLimit.Type = OrderType.SellLimit;
+                    strategy.AddOrder(sellLimit);
+                }
+                return sellLimit;
+            }
+        }
+        public void CancelOrders()
+        {
+            if( buyMarket != null) buyMarket.Status = OrderStatus.AutoCancel;
+            if (sellMarket != null) sellMarket.Status = OrderStatus.AutoCancel;
+            if (buyStop != null) buyStop.Status = OrderStatus.AutoCancel;
+            if (sellStop != null) sellStop.Status = OrderStatus.AutoCancel;
+            if (buyLimit != null) buyLimit.Status = OrderStatus.AutoCancel;
+            if (sellLimit != null) sellLimit.Status = OrderStatus.AutoCancel;
+
+        }
+    }
+    public class EnterCommon : StrategySupport
 	{
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(EnterCommon));
 		private readonly bool debug = log.IsDebugEnabled;
-		public class InternalOrders {
-			public LogicalOrder buyMarket;
-			public LogicalOrder sellMarket;
-			public LogicalOrder buyStop;
-			public LogicalOrder sellStop;
-			public LogicalOrder buyLimit;
-			public LogicalOrder sellLimit;
-		}
-		private InternalOrders orders = new InternalOrders();
+        private InternalOrders orders;
 		
 		private bool enableWrongSideOrders = false;
 		private bool allowReversal = true;
 		private bool isNextBar = false;
 		
 		public EnterCommon(Strategy strategy) : base(strategy) {
+            orders = new InternalOrders(strategy,TradeDirection.Entry);
 		}
 		
 		public void OnInitialize()
 		{
 			if( IsDebug) Log.Debug("OnInitialize()");
 			Strategy.Drawing.Color = Color.Black;
-			orders.buyMarket = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
-			orders.buyMarket.Type = OrderType.BuyMarket;
-			orders.sellMarket = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
-			orders.sellMarket.Type = OrderType.SellMarket;
-			orders.buyStop = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
-			orders.buyStop.Type = OrderType.BuyStop;
-			orders.sellStop = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
-			orders.sellStop.Type = OrderType.SellStop;
-			orders.buyLimit = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
-			orders.buyLimit.Type = OrderType.BuyLimit;
-			orders.sellLimit = Factory.Engine.LogicalOrder(Strategy.Data.SymbolInfo,Strategy);
-			orders.sellLimit.Type = OrderType.SellLimit;
-			Strategy.AddOrder( orders.buyMarket);
-			Strategy.AddOrder( orders.sellMarket);
-			Strategy.AddOrder( orders.buyStop);
-			Strategy.AddOrder( orders.sellStop);
-			Strategy.AddOrder( orders.buyLimit);
-			Strategy.AddOrder( orders.sellLimit);
+            orders.OnInitialize();
 		}
 		
         public void CancelOrders()
         {
-        	orders.buyMarket.Status = OrderStatus.AutoCancel;
-            orders.sellMarket.Status = OrderStatus.AutoCancel;
-        	orders.buyStop.Status = OrderStatus.AutoCancel;
-            orders.sellStop.Status = OrderStatus.AutoCancel;
-            orders.buyLimit.Status = OrderStatus.AutoCancel;
-            orders.sellLimit.Status = OrderStatus.AutoCancel;
-            
-        	orders.buyMarket.Status = OrderStatus.AutoCancel;
-            orders.sellMarket.Status = OrderStatus.AutoCancel;
-        	orders.buyStop.Status = OrderStatus.AutoCancel;
-            orders.sellStop.Status = OrderStatus.AutoCancel;
-            orders.buyLimit.Status = OrderStatus.AutoCancel;
-            orders.sellLimit.Status = OrderStatus.AutoCancel;
+            orders.CancelOrders();
         }
 		
 		private void LogEntry(string description) {
@@ -126,12 +209,14 @@ namespace TickZoom.Interceptors
         	/// comment.
         	/// </summary>
         	/// <param name="allowReversal"></param>
-        	orders.sellMarket.Price = 0;
-        	orders.sellMarket.Position = (int) lots;
-        	if( isNextBar && !orders.buyLimit.IsActive) {
-	        	orders.sellMarket.Status = OrderStatus.NextBar;
+            var order = orders.SellMarket;
+        	order.Price = 0;
+            order.Position = (int)lots;
+            if (isNextBar && !order.IsActive)
+            {
+                order.Status = OrderStatus.NextBar;
         	} else {
-        		orders.sellMarket.Status = OrderStatus.Active;
+                order.Status = OrderStatus.Active;
         	}
         }
         
@@ -156,12 +241,13 @@ namespace TickZoom.Interceptors
         	if( !allowReversal && Strategy.Position.IsShort) {
         		throw new TickZoomException("Strategy cannot enter long market when position is short. Set AllowReversal to true to allow this.");
         	}
-        	orders.buyMarket.Price = 0;
-        	orders.buyMarket.Position = (int) lots;
-        	if( isNextBar && !orders.buyLimit.IsActive) {
-	        	orders.buyMarket.Status = OrderStatus.NextBar;
+            var order = orders.BuyMarket;
+        	order.Price = 0;
+        	order.Position = (int) lots;
+        	if( isNextBar && !order.IsActive) {
+                order.Status = OrderStatus.NextBar;
         	} else {
-        		orders.buyMarket.Status = OrderStatus.Active;
+                order.Status = OrderStatus.Active;
         	}
         }
         
@@ -188,12 +274,12 @@ namespace TickZoom.Interceptors
         	if( Strategy.Position.HasPosition) {
         		throw new TickZoomException("Strategy must be flat before setting a long limit entry.");
         	}
-        	orders.buyLimit.Price = price;
-        	orders.buyLimit.Position = (int) lots;
-        	if( isNextBar && !orders.buyLimit.IsActive) {
-	        	orders.buyLimit.Status = OrderStatus.NextBar;
+        	orders.BuyLimit.Price = price;
+        	orders.BuyLimit.Position = (int) lots;
+        	if( isNextBar && !orders.BuyLimit.IsActive) {
+	        	orders.BuyLimit.Status = OrderStatus.NextBar;
         	} else {
-        		orders.buyLimit.Status = OrderStatus.Active;
+        		orders.BuyLimit.Status = OrderStatus.Active;
         	}
 		}
         
@@ -212,12 +298,12 @@ namespace TickZoom.Interceptors
         	if( Strategy.Position.HasPosition) {
         		throw new TickZoomException("Strategy must be flat before setting a short limit entry.");
         	}
-        	orders.sellLimit.Price = price;
-        	orders.sellLimit.Position = (int) lots;
-        	if( isNextBar && !orders.buyLimit.IsActive) {
-	        	orders.sellLimit.Status = OrderStatus.NextBar;
+        	orders.SellLimit.Price = price;
+        	orders.SellLimit.Position = (int) lots;
+        	if( isNextBar && !orders.SellLimit.IsActive) {
+	        	orders.SellLimit.Status = OrderStatus.NextBar;
         	} else {
-        		orders.sellLimit.Status = OrderStatus.Active;
+        		orders.SellLimit.Status = OrderStatus.Active;
         	}
 		}
         
@@ -236,12 +322,12 @@ namespace TickZoom.Interceptors
         	if( Strategy.Position.HasPosition) {
         		throw new TickZoomException("Strategy must be flat before setting a long stop entry.");
         	}
-        	orders.buyStop.Price = price;
-        	orders.buyStop.Position = (int) lots;
-        	if( isNextBar && !orders.buyLimit.IsActive) {
-	        	orders.buyStop.Status = OrderStatus.NextBar;
+        	orders.BuyStop.Price = price;
+        	orders.BuyStop.Position = (int) lots;
+        	if( isNextBar && !orders.BuyStop.IsActive) {
+	        	orders.BuyStop.Status = OrderStatus.NextBar;
         	} else {
-        		orders.buyStop.Status = OrderStatus.Active;
+        		orders.BuyStop.Status = OrderStatus.Active;
         	}
 		}
 	
@@ -260,12 +346,12 @@ namespace TickZoom.Interceptors
         	if( Strategy.Position.HasPosition) {
         		throw new TickZoomException("Strategy must be flat before setting a short stop entry.");
         	}
-        	orders.sellStop.Price = price;
-        	orders.sellStop.Position = (int) lots;
-        	if( isNextBar && !orders.buyLimit.IsActive) {
-	        	orders.sellStop.Status = OrderStatus.NextBar;
+        	orders.SellStop.Price = price;
+        	orders.SellStop.Position = (int) lots;
+        	if( isNextBar && !orders.SellStop.IsActive) {
+	        	orders.SellStop.Status = OrderStatus.NextBar;
         	} else {
-        		orders.sellStop.Status = OrderStatus.Active;
+        		orders.SellStop.Status = OrderStatus.Active;
         	}
         }
         
@@ -283,17 +369,17 @@ namespace TickZoom.Interceptors
 
 		public bool HasBuyOrder {
 			get {
-				return orders.buyStop.IsActive || orders.buyStop.IsNextBar || 
-					orders.buyLimit.IsActive || orders.buyLimit.IsNextBar ||
-					orders.buyMarket.IsActive || orders.buyMarket.IsNextBar;
+				return orders.BuyStop.IsActive || orders.BuyStop.IsNextBar || 
+					orders.BuyLimit.IsActive || orders.BuyLimit.IsNextBar ||
+					orders.BuyMarket.IsActive || orders.BuyMarket.IsNextBar;
 			}
 		}
 		
 		public bool HasSellOrder {
 			get {
-				return orders.sellStop.IsActive || orders.sellStop.IsNextBar || 
-					orders.sellLimit.IsActive || orders.sellLimit.IsNextBar || 
-					orders.sellMarket.IsActive || orders.sellMarket.IsNextBar;
+				return orders.SellStop.IsActive || orders.SellStop.IsNextBar || 
+					orders.SellLimit.IsActive || orders.SellLimit.IsNextBar || 
+					orders.SellMarket.IsActive || orders.SellMarket.IsNextBar;
 			}
 		}
 		

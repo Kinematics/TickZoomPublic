@@ -606,6 +606,7 @@ namespace TickZoom.Presentation
 
         public void Initialize()
         {
+            Factory.Release();
         	string starterClassName;
         	if( !starters.TryGetValue(starterName, out starterClassName)) {
         		starterClassName = starterName;
