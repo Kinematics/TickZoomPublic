@@ -216,6 +216,7 @@ namespace Loaders
 		[TestFixtureSetUp]
 		public virtual void RunStrategy() {
 			log.Notice("Beginning RunStrategy()");
+			StaticGlobal.Clear();
 			CleanupFiles();
 			StartGUIThread();
 			
@@ -822,6 +823,13 @@ namespace Loaders
 		
 		public void VerifyStatsCount(StrategyInterface strategy) {
 			DynamicStatsCount( strategy.Name);
+		}
+		
+		public void DynamicLatencyTest( string strategyName) {
+			if( string.IsNullOrEmpty(strategyName)) return;
+			if( autoTestMode == AutoTestMode.FIXPlayBack) {
+				Assert.Less(StaticGlobal.MaxLatency,90,"max latency milliseconds");
+			}
 		}
 		
 		public void DynamicStatsCount(string strategyName) {

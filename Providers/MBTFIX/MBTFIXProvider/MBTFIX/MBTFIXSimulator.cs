@@ -119,10 +119,8 @@ namespace TickZoom.MBTFIX
 			mbtMsg.AddHeader("8");
 			string message = mbtMsg.ToString();
 			writePacket.DataOut.Write(message.ToCharArray());
-			if( !fixPacketQueue.EnqueueStruct(ref writePacket)) {
-				throw new ApplicationException("Fix Queue is full.");
-			}
-			if(debug) log.Debug("Sending end of order list: " + message);
+            SendPacket(writePacket);
+            if (debug) log.Debug("Sending end of order list: " + message);
 		}
 		
 		private void FIXPositionList(PacketFIX4_4 packet) {
@@ -132,10 +130,7 @@ namespace TickZoom.MBTFIX
 			mbtMsg.AddHeader("AO");
 			string message = mbtMsg.ToString();
 			writePacket.DataOut.Write(message.ToCharArray());
-			if( !fixPacketQueue.EnqueueStruct(ref writePacket)) {
-				throw new ApplicationException("Fix Queue is full.");
-			}
-			
+            SendPacket(writePacket);			
 			if(debug) log.Debug("Sending end of position list: " + message);
 		}
 		
@@ -280,10 +275,7 @@ namespace TickZoom.MBTFIX
 			mbtMsg.AddHeader("A");
 			string login = mbtMsg.ToString();
 			writePacket.DataOut.Write(login.ToCharArray());
-			if( !fixPacketQueue.EnqueueStruct(ref writePacket)) {
-				throw new ApplicationException("Fix Queue is full.");
-			}
-			
+            SendPacket(writePacket);			
 			if(debug) log.Debug("Sending login response: " + login);
 		}
 		
@@ -320,10 +312,8 @@ namespace TickZoom.MBTFIX
 			string message = mbtMsg.ToString();
 			writePacket.DataOut.Write(message.ToCharArray());
 			if(debug) log.Debug("Sending position update: " + message);
-			if( !fixPacketQueue.EnqueueStruct(ref writePacket)) {
-				throw new ApplicationException("Fix Queue is full.");
-			}
-		}	
+            SendPacket(writePacket);
+        }	
 		
 		private void SendPositionUpdate(SymbolInfo symbol, int position) {
 			var writePacket = fixSocket.CreatePacket();
@@ -339,10 +329,8 @@ namespace TickZoom.MBTFIX
 			string message = mbtMsg.ToString();
 			writePacket.DataOut.Write(message.ToCharArray());
 			if(debug) log.Debug("Sending position update: " + message);
-			if( !fixPacketQueue.EnqueueStruct(ref writePacket)) {
-				throw new ApplicationException("Fix Queue is full.");
-			}
-		}	
+            SendPacket(writePacket);
+        }	
 		
 		private void SendExecutionReport(PhysicalOrder order, string status, double price, int orderQty, int cumQty, int lastQty, int leavesQty, TimeStamp time, PacketFIX4_4 packet) {
 			int orderType = 0;
@@ -404,10 +392,19 @@ namespace TickZoom.MBTFIX
 			string message = mbtMsg.ToString();
 			writePacket.DataOut.Write(message.ToCharArray());
 			if(debug) log.Debug("Sending execution report: " + message);
-			if( !fixPacketQueue.EnqueueStruct(ref writePacket)) {
-				throw new ApplicationException("Fix Queue is full.");
-			}
+            SendPacket(writePacket);
 		}
+
+        private void SendPacket( Packet writePacket)
+        {
+            while (!fixPacketQueue.EnqueueStruct(ref writePacket))
+            {
+                if (fixPacketQueue.IsFull)
+                {
+                    throw new ApplicationException("Fix Queue is full.");
+                }
+            }
+        }
 		
 		private unsafe Yield SymbolRequest(PacketMBTQuotes packet) {
 			var data = packet.Data;
@@ -535,10 +532,8 @@ namespace TickZoom.MBTFIX
 			fixMsg.AddHeader("j");
 			string errorMessage = fixMsg.ToString();
 			writePacket.DataOut.Write(errorMessage.ToCharArray());
-			if( !fixPacketQueue.EnqueueStruct(ref writePacket)) {
-				throw new ApplicationException("Fix Queue is full.");
-			}
-		}
+            SendPacket(writePacket);
+        }
 		
 		protected override void Dispose(bool disposing)
 		{

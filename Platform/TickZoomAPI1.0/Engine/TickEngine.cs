@@ -30,6 +30,36 @@ using System.ComponentModel;
 
 namespace TickZoom.Api
 {
+	public static class StaticGlobal {
+		private static long maxLatency = 0L;
+		private static long maxIncrementalLatency = 0L;
+		private static TaskLock locker = new TaskLock();
+		
+		public static void Clear() {
+			maxLatency = 0L;
+		}
+		
+		public static bool CompareLatency( long latency) {
+			var result = false;
+			if( latency > maxLatency) {
+				locker.Lock();
+				if( latency > maxLatency) {
+					maxLatency = latency;
+					if( latency > maxIncrementalLatency + 20L) {
+						maxIncrementalLatency = latency;
+						result = true;
+					}
+				}
+				locker.Unlock();
+			}
+			return result;
+		}
+		
+		public static long MaxLatency {
+			get { return maxLatency; }
+		}
+	}
+	
 	/// <summary>
 	/// Description of TickEngine.
 	/// </summary>
