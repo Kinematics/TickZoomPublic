@@ -1,4 +1,4 @@
-﻿namespace CSharpEditor
+namespace CSharpEditor
 {
 	partial class MainForm : System.Windows.Forms.Form
 	{

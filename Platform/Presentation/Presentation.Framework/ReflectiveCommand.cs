@@ -1,4 +1,4 @@
-﻿using TickZoom.Api;
+using TickZoom.Api;
 namespace TickZoom.Presentation.Framework
 {
     using System;

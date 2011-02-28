@@ -82,8 +82,8 @@ namespace Krs.Ats.IBNet
 
         /// <summary>
         /// This method is called when the market in an option or its underlier moves.
-        /// TWS’s option model volatilities, prices, and deltas, along with the present
-        /// value of dividends expected on that option’s underlier are received.
+        /// TWSï¿½s option model volatilities, prices, and deltas, along with the present
+        /// value of dividends expected on that optionï¿½s underlier are received.
         /// </summary>
         public event EventHandler<TickOptionComputationEventArgs> TickOptionComputation;
 
@@ -1868,7 +1868,7 @@ namespace Krs.Ats.IBNet
         /// ASK
         /// MIDPOINT
         /// </param>
-        /// <param name="useRth">useRth – Regular Trading Hours only. Valid values include:
+        /// <param name="useRth">useRth ï¿½ Regular Trading Hours only. Valid values include:
         /// 0 = all data available during the time span requested is returned, including time intervals when the market in question was outside of regular trading hours.
         /// 1 = only data within the regular trading hours for the product requested is returned, even if the time time span falls partially or completely outside.
         /// </param>
@@ -2069,7 +2069,7 @@ namespace Krs.Ats.IBNet
 
         /// <summary>
         /// Call the exerciseOptions() method to exercise options. 
-        /// “SMART” is not an allowed exchange in exerciseOptions() calls, and that TWS does a moneyness request for the position in question whenever any API initiated exercise or lapse is attempted.
+        /// ï¿½SMARTï¿½ is not an allowed exchange in exerciseOptions() calls, and that TWS does a moneyness request for the position in question whenever any API initiated exercise or lapse is attempted.
         /// </summary>
         /// <param name="tickerId">the Id for the exercise request.</param>
         /// <param name="contract">this structure contains a description of the contract to be exercised.  If no multiplier is specified, a default of 100 is assumed.</param>
@@ -2809,7 +2809,7 @@ namespace Krs.Ats.IBNet
         /// <summary>
         /// Call this method to request that newly created TWS orders be implicitly associated with the client. When a new TWS order is created, the order will be associated with the client and fed back through the openOrder() and orderStatus() methods on the EWrapper.
         /// 
-        /// TWS orders can only be bound to clients with a clientId of “0”.
+        /// TWS orders can only be bound to clients with a clientId of ï¿½0ï¿½.
         /// </summary>
         /// <param name="autoBind">If set to TRUE, newly created TWS orders will be implicitly associated with the client. If set to FALSE, no association will be made.</param>
         public void RequestAutoOpenOrders(bool autoBind)

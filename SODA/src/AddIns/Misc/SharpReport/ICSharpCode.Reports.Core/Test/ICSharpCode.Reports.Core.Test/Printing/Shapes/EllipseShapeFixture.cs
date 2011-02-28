@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Erstellt mit SharpDevelop.
  * Benutzer: Peter Forstmeier
  * Datum: 04.10.2009

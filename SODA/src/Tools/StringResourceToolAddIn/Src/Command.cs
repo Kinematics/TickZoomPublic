@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Created by SharpDevelop.
  * User: Daniel Grunwald
  * Date: 19.01.2006

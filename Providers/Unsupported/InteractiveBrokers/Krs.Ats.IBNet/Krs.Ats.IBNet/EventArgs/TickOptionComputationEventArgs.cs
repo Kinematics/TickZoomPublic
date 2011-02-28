@@ -24,7 +24,7 @@ namespace Krs.Ats.IBNet
         /// <param name="impliedVol">The implied volatility calculated by the TWS option modeler, using the specificed ticktype value.</param>
         /// <param name="delta">The option delta calculated by the TWS option modeler.</param>
         /// <param name="modelPrice">The model price.</param>
-        /// <param name="pvDividend">Present value of dividends expected on the option’s underlier.</param>
+        /// <param name="pvDividend">Present value of dividends expected on the optionï¿½s underlier.</param>
         public TickOptionComputationEventArgs(int tickerId, TickType tickType, double impliedVol, double delta,
                                               double modelPrice, double pvDividend)
         {
@@ -78,7 +78,7 @@ namespace Krs.Ats.IBNet
         }
 
         /// <summary>
-        /// Present value of dividends expected on the option’s underlier.
+        /// Present value of dividends expected on the optionï¿½s underlier.
         /// </summary>
         public double PVDividend
         {

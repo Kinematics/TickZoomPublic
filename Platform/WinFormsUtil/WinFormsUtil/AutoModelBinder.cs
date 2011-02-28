@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using TickZoom.Presentation.Framework;
 
 namespace TickZoom.GUI

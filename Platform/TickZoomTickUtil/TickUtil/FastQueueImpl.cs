@@ -93,8 +93,9 @@ namespace TickZoom.TickUtil
         	}
         	var nameString = name as string;
         	if( !string.IsNullOrEmpty(nameString)) {
-        		nameString.Contains("-Receive");
-        		backupLevel = 900;
+        		if( nameString.Contains("-Receive")) {
+	        		backupLevel = 900;
+        		}
         	}
 			instanceLog = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueue."+name);
 			if( debug) log.Debug("Created with capacity " + maxSize);
@@ -154,7 +155,7 @@ namespace TickZoom.TickUtil
 	            	if( !isBackingUp) {
 		            	isBackingUp = true;
 	    	        	log.Info( name + " queue is backing up. Now " + queue.Count);
-						log.Info( LatencyManager.GetInstance().GetStats() + "\n" + Factory.Parallel.GetStats());
+//						log.Info( LatencyManager.GetInstance().GetStats() + "\n" + Factory.Parallel.GetStats());
 	            	} else {
 	            		if( queue.Count > maxLastBackup) {
 	            			maxLastBackup = queue.Count;
@@ -245,7 +246,7 @@ namespace TickZoom.TickUtil
  			if( count == 0) {
             	if( isBackingUp) {
             		isBackingUp = false;
-            		log.Info( name + " queue now cleared after backup up to " + maxLastBackup + " items.");
+            		log.Info( name + " queue now cleared after backup to " + maxLastBackup + " items.");
             		maxLastBackup = 0;
             	}
 	    	}

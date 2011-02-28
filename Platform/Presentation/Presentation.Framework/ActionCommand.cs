@@ -1,4 +1,4 @@
-﻿#region Header
+#region Header
 
 /*
  * Software: TickZoom Trading Platform

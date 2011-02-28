@@ -102,7 +102,7 @@ namespace ICSharpCode.Reports.Core {
 		
 				if (descriptor == null){
 					throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture,
-					                                                  "Die Liste enthält keine Spalte [{0}].",
+					                                                  "Die Liste enthï¿½lt keine Spalte [{0}].",
 					                                                  col[criteriaIndex].ColumnName));
 				}
 				sortProperties[criteriaIndex] = descriptor;
@@ -119,10 +119,10 @@ namespace ICSharpCode.Reports.Core {
 				object rowItem = this.baseList[rowIndex];
 				object[] values = new object[col.Count];
 				
-				// Hier bereits Wertabruf um dies nicht während des Sortierens tun zu müssen.
+				// Hier bereits Wertabruf um dies nicht wï¿½hrend des Sortierens tun zu mï¿½ssen.
 				for (int criteriaIndex = 0; criteriaIndex < sortProperties.Length; criteriaIndex++){
 					object value = sortProperties[criteriaIndex].GetValue(rowItem);
-					// Hier auf Verträglichkeit testen um Vergleiche bei Sortierung zu vereinfachen.
+					// Hier auf Vertrï¿½glichkeit testen um Vergleiche bei Sortierung zu vereinfachen.
 					// Muss IComparable und gleicher Typ sein.
 					
 					if (value != null && value != DBNull.Value)

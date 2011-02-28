@@ -1,4 +1,4 @@
-﻿namespace SimpleExpressionEvaluator.Evaluation
+namespace SimpleExpressionEvaluator.Evaluation
 {
     public interface IVariableResolutionService
     {

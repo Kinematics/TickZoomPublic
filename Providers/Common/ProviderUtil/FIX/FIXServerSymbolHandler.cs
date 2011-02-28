@@ -48,10 +48,10 @@ namespace TickZoom.FIX
 		private TrueTimer tickTimer;
 		
 		public FIXServerSymbolHandler( FIXSimulatorSupport fixSimulatorSupport, 
-			    bool isPlayBack, string symbolString,
-			    Action<Packet,SymbolInfo,Tick> onTick,
-			    Action<PhysicalFill, int,int,int> onPhysicalFill,
-			    Action<PhysicalOrder,string> onRejectOrder) {
+		    bool isPlayBack, string symbolString,
+		    Action<Packet,SymbolInfo,Tick> onTick,
+		    Action<PhysicalFill, int,int,int> onPhysicalFill,
+		    Action<PhysicalOrder,string> onRejectOrder) {
 			this.fixSimulatorSupport = fixSimulatorSupport;
 			this.isPlayBack = isPlayBack;
 			this.onTick = onTick;
@@ -73,7 +73,6 @@ namespace TickZoom.FIX
 		}
 		
 		private void HasItem( object source) {
-//			if( trace) log.Trace( source + " send has item event.");
 			queueTask.IncreaseActivity();
 		}
 		
@@ -161,7 +160,7 @@ namespace TickZoom.FIX
 					   		fillSimulator.ProcessOrders();
 					   	}
 				   	}
-				   	if( trace) log.Trace("Dequeue tick " + nextTick.UtcTime);
+				   	if( trace) log.Trace("Dequeue tick " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
 				   	result = Yield.DidWork.Invoke(ProcessTick);
 				}
 			} catch( QueueException ex) {
@@ -190,7 +189,7 @@ namespace TickZoom.FIX
 						if( tickTimer.Active) tickTimer.Cancel();
 						if( nextTick.UtcTime.Internal > currentTime.Internal + overlapp &&
 						   tickTimer.Start(nextTick.UtcTime)) {
-							if( trace) log.Trace("Set next timer for " + nextTick.UtcTime  + "." + nextTick.UtcTime.Microsecond + " at " + currentTime  + "." + currentTime.Microsecond);
+							if( trace) log.Trace("Set next timer for " + nextTick.UtcTime  + "." + nextTick.UtcTime.Microsecond + " at " + currentTime  + "." + currentTime.Microsecond);							
 							tickStatus = TickStatus.Timer;
 						} else {
 							if( trace) log.Trace("Current time " + currentTime + " was greater than tick time " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);

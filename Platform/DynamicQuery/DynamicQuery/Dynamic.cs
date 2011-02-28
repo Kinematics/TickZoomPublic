@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Microsoft Public License (Ms-PL)
  * 
  * Published: October 12, 2006

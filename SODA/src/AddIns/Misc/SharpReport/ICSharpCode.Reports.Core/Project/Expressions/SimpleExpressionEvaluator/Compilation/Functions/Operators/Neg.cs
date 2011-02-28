@@ -1,4 +1,4 @@
-﻿using SimpleExpressionEvaluator.Compilation;
+using SimpleExpressionEvaluator.Compilation;
 using SimpleExpressionEvaluator.Compilation.Functions.Operators;
 using SimpleExpressionEvaluator.Utilities;
 

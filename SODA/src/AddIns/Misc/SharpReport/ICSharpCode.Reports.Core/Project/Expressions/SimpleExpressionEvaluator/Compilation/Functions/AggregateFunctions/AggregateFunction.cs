@@ -1,4 +1,4 @@
-﻿using ICSharpCode.Reports.Core;
+using ICSharpCode.Reports.Core;
 using System;
 using System.Collections;
 using System.Collections.Generic;

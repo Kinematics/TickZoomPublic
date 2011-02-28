@@ -1,7 +1,7 @@
 // <file>
 //     <copyright see="prj:///doc/copyright.txt"/>
 //     <license see="prj:///doc/license.txt"/>
-//     <owner name="Mike Krüger" email="mike@icsharpcode.net"/>
+//     <owner name="Mike Krï¿½ger" email="mike@icsharpcode.net"/>
 //     <version>$Revision: 3657 $</version>
 // </file>
 

@@ -1,4 +1,4 @@
-﻿// CSharp Editor Example with Code Completion
+// CSharp Editor Example with Code Completion
 // Copyright (c) 2006, Daniel Grunwald
 // All rights reserved.
 // 

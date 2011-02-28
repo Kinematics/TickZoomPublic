@@ -61,7 +61,7 @@ namespace NoGoop.ObjBrowser.Dialogs
 			l = new Label();
 			l.Dock = DockStyle.Top;
 			l.AutoSize = true;
-			l.Text = " © 2002-2006 oakland software inc. All Rights Reserved";
+			l.Text = " ï¿½ 2002-2006 oakland software inc. All Rights Reserved";
 			Controls.Add(l);
 
 			// Spacing

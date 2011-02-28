@@ -155,14 +155,14 @@ namespace CheckFileHeaders
 		string CheckAuthor(ref string author)
 		{
 			switch (author) {
-				case "Mike Krüger":
-					author = "Mike Krüger";
+				case "Mike Krï¿½ger":
+					author = "Mike Krï¿½ger";
 					return "mike@icsharpcode.net";
 				case "Daniel Grunwald":
 					return "daniel@danielgrunwald.de";
-				case "David Srbecký":
+				case "David Srbeckï¿½":
 				case "David Srbecky":
-					author = "David Srbecký";
+					author = "David Srbeckï¿½";
 					return "dsrbecky@gmail.com";
 				case "Andrea Paatz":
 					author = "Andrea Paatz";

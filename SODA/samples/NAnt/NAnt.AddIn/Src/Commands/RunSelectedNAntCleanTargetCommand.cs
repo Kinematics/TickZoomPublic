@@ -1,4 +1,4 @@
-﻿// SharpDevelop samples
+// SharpDevelop samples
 // Copyright (c) 2007, AlphaSierraPapa
 // All rights reserved.
 //

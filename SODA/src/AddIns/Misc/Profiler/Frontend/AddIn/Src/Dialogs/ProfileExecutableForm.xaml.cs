@@ -1,4 +1,4 @@
-﻿using ICSharpCode.SharpDevelop;
+using ICSharpCode.SharpDevelop;
 using System;
 using System.Diagnostics;
 using System.Globalization;

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Created by SharpDevelop.
  * User: Peter Forstmeier
  * Date: 06.05.2010

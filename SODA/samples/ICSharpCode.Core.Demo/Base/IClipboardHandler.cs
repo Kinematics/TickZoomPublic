@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2005 Daniel Grunwald
+// Copyright (c) 2005 Daniel Grunwald
 // Licensed under the terms of the "BSD License", see doc/license.txt
 
 using System;

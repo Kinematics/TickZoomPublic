@@ -1,4 +1,4 @@
-﻿namespace SampleApp
+namespace SampleApp
 {
     partial class ColumnHandling
     {

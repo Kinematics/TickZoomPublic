@@ -1,4 +1,4 @@
-﻿namespace TickZoom.Presentation.Framework
+namespace TickZoom.Presentation.Framework
 {
     public interface IScreen
     {

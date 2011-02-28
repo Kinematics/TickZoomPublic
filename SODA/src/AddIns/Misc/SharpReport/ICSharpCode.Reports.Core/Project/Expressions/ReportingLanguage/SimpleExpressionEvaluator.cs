@@ -1,4 +1,4 @@
-﻿using SimpleExpressionEvaluator;
+using SimpleExpressionEvaluator;
 
 namespace ICSharpCode.Reports.Expressions.ReportingLanguage
 {

@@ -1,4 +1,4 @@
-﻿using SimpleExpressionEvaluator.Compilation;
+using SimpleExpressionEvaluator.Compilation;
 using SimpleExpressionEvaluator.Evaluation;
 
 namespace SimpleExpressionEvaluator.Compilation

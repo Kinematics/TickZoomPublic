@@ -1,6 +1,6 @@
 // <file>
 //     <copyright see="prj:///doc/copyright.txt"/>
-//     <owner name="David Srbecký" email="dsrbecky@gmail.com"/>
+//     <owner name="David Srbeckï¿½" email="dsrbecky@gmail.com"/>
 //     <version>$Revision: 3648 $</version>
 // </file>
 #region License

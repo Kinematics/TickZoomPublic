@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2007, Hybrid DSP
  * All rights reserved.
  *

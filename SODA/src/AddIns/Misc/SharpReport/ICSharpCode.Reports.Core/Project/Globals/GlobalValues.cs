@@ -337,7 +337,7 @@ namespace ICSharpCode.Reports.Core {
 			string[] resources = thisExe.GetManifestResourceNames();
 			string list = String.Empty;
 			foreach (string resource in resources) list += resource + NL;
-//			System.Windows.Forms.MessageBox.Show("Verfügbare Ressource-Namen:" + NL + list);
+//			System.Windows.Forms.MessageBox.Show("Verfï¿½gbare Ressource-Namen:" + NL + list);
 
 			
 		}

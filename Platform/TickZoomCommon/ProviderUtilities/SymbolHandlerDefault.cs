@@ -66,7 +66,7 @@ namespace TickZoom.Common
         	this.symbol = symbol;
 			this.receiver = receiver;
 			this.quotesLatency = new LatencyMetric( "SymbolHandler-Quotes-" + symbol.Symbol.StripInvalidPathChars());
-			this.salesLatency = new LatencyMetric( "SymbolHandler-Sales-" + symbol.Symbol.StripInvalidPathChars());
+			this.salesLatency = new LatencyMetric( "SymbolHandler-Trade-" + symbol.Symbol.StripInvalidPathChars());
 		}
 		
 		bool errorWrongLevel1Type = false;
@@ -166,11 +166,17 @@ namespace TickZoom.Common
 				box.TickBinary = tickIO.Extract();
 				if( tickIO.IsTrade && tickIO.Price == 0D) {
 					log.Warn("Found trade tick with zero price: " + tickIO);
-				}
+				}		
 				salesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
+//				var delta = box.TickBinary.UtcTime - lastTime;
+//				if( delta > 500) {
+//					log.Warn("SymbolHandler found " + delta + " microseconds difference between: \n" + new TimeStamp(box.TickBinary.UtcTime) + "\n" + new TimeStamp(lastTime));
+//				}
+//				lastTime = box.TickBinary.UtcTime;
 				receiver.OnEvent(symbol,(int)EventType.Tick,box);
 			}
 		}
+		private long lastTime;
         
 		public OrderAlgorithm LogicalOrderHandler {
 			get { return logicalOrderHandler; }

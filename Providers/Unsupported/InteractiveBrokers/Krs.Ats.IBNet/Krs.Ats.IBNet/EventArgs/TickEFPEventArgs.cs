@@ -28,9 +28,9 @@ namespace Krs.Ats.IBNet
         /// financing rate that can be directly compared to broker rates.</param>
         /// <param name="formattedBasisPoints">Annualized basis points as a formatted string that depicts them in percentage form.</param>
         /// <param name="impliedFuture">Implied futures price.</param>
-        /// <param name="holdDays">Number of “hold days” until the expiry of the EFP.</param>
+        /// <param name="holdDays">Number of ï¿½hold daysï¿½ until the expiry of the EFP.</param>
         /// <param name="futureExpiry">Expiration date of the single stock future.</param>
-        /// <param name="dividendImpact">The “dividend impact” upon the annualized basis points interest rate.</param>
+        /// <param name="dividendImpact">The ï¿½dividend impactï¿½ upon the annualized basis points interest rate.</param>
         /// <param name="dividendsToExpiry">The dividends expected until the expiration of the single stock future.</param>
         public TickEfpEventArgs(int tickerId, TickType tickType, double basisPoints, string formattedBasisPoints,
                                 double impliedFuture, int holdDays, string futureExpiry, double dividendImpact,
@@ -90,7 +90,7 @@ namespace Krs.Ats.IBNet
         }
 
         /// <summary>
-        /// Number of “hold days” until the expiry of the EFP.
+        /// Number of ï¿½hold daysï¿½ until the expiry of the EFP.
         /// </summary>
         public double HoldDays
         {
@@ -106,7 +106,7 @@ namespace Krs.Ats.IBNet
         }
 
         /// <summary>
-        /// The “dividend impact” upon the annualized basis points interest rate.
+        /// The ï¿½dividend impactï¿½ upon the annualized basis points interest rate.
         /// </summary>
         public double DividendImpact
         {

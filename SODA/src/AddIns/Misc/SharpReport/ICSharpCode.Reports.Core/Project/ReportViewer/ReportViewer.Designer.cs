@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Created by SharpDevelop.
  * User: Forstmeier Helmut
  * Date: 16.10.2006

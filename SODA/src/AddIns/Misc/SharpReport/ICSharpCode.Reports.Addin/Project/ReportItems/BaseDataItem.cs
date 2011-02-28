@@ -4,7 +4,7 @@
  * Datum: 28.01.2008
  * Zeit: 16:47
  * 
- * Sie können diese Vorlage unter Extras > Optionen > Codeerstellung > Standardheader ändern.
+ * Sie kï¿½nnen diese Vorlage unter Extras > Optionen > Codeerstellung > Standardheader ï¿½ndern.
  */
 
 using System;

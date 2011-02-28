@@ -41,24 +41,27 @@ namespace TickZoom.TickUtil
 	/// </summary>
 	public class TickWriterDefault : TickWriter
 	{
-		BackgroundWorker backgroundWorker;
-   		int maxCount = 0;
-   		SymbolInfo symbol = null;
-		string fileName = null;
-		Task appendTask = null;
+		private BackgroundWorker backgroundWorker;
+   		private int maxCount = 0;
+   		private SymbolInfo symbol = null;
+		private string fileName = null;
+		private Task appendTask = null;
 		protected TickQueue writeQueue;
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(TickWriter));
 		private readonly bool debug = log.IsDebugEnabled;
 		private readonly bool trace = log.IsTraceEnabled;
-		bool keepFileOpen = true;
-		bool eraseFileToStart = false;
-		bool logProgress = false;
-		FileStream fs = null;
-		MemoryStream memory = null;
-		bool isInitialized = false;
-		string priceDataFolder;
-		string appDataFolder;
-		Progress progress = new Progress();
+		private bool keepFileOpen = true;
+		private bool eraseFileToStart = false;
+		private bool logProgress = false;
+		private FileStream fs = null;
+        private TaskLock memoryLocker = new TaskLock();
+		private MemoryStream memory = null;
+		private bool isInitialized = false;
+		private string priceDataFolder;
+		private string appDataFolder;
+		private Progress progress = new Progress();
+		private Action writeFileAction;
+		private IAsyncResult writeFileResult;
 		
 		public TickWriterDefault(bool eraseFileToStart)
 		{
@@ -75,6 +78,7 @@ namespace TickZoom.TickUtil
 			if (appDataFolder == null) {
 				throw new ApplicationException("Must set " + property + " property in app.config");
 			}
+			writeFileAction = WriteToFile;
 		}
 		
 		public void Start() {
@@ -146,7 +150,7 @@ namespace TickZoom.TickUtil
 
 		protected virtual void StartAppendThread() {
 			string baseName = Path.GetFileNameWithoutExtension(fileName);
-			appendTask = Factory.Parallel.IOLoop(baseName + " writer",OnException, AppendData);
+			appendTask = Factory.Parallel.Loop(baseName + " writer",OnException, AppendData);
 			appendTask.IsActivityEnabled = true;
 			writeQueue.Connect(HasItem);
 			appendTask.Start();
@@ -160,23 +164,48 @@ namespace TickZoom.TickUtil
 		TickIO tickIO = new TickImpl();
 		
 		protected virtual Yield AppendData() {
+			var result = Yield.NoWork.Repeat;
 			try {
 				if( writeQueue.Count == 0) {
-					appendTask.Pause();
-					return Yield.DidWork.Repeat;
+					return result;
 				}
 				if( !keepFileOpen) {
 	    			fs = new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.Read, 1024, FileOptions.WriteThrough);
 	    			if( trace) log.Trace("!keepFileOpen - Open()");
 	    			memory = new MemoryStream();
 				}
-				while( writeQueue.TryDequeue(ref tick)) {
+				while( writeQueue.Count > 0) {
+					if( writeFileResult != null) {
+						if( writeFileResult.IsCompleted) {
+							writeFileAction.EndInvoke(writeFileResult);
+							writeFileResult = null;
+						} else {
+							break;
+						}
+					}
+					if( !writeQueue.TryDequeue(ref tick)) {
+						break;
+					}
 					appendTask.DecreaseActivity();
 					tickIO.Inject(tick);
 					if( trace) {
 						log.Trace("Writing to file: " + tickIO);
 					}
-					WriteToFile(memory, tickIO);
+                    if( !memoryLocker.TryLock())
+                    {
+                        throw new ApplicationException("memory locker already locked");
+                    }
+                    try
+                    {
+                        tickIO.ToWriter(memory);
+                    } finally
+                    {
+                        memoryLocker.Unlock();
+                    }
+			    	if( memory.Position > 5000) {
+			    		writeFileResult = writeFileAction.BeginInvoke(null, null);
+			    	}
+                    result = Yield.DidWork.Repeat;
 				}
 				if( !keepFileOpen)
 				{
@@ -184,32 +213,24 @@ namespace TickZoom.TickUtil
                     fs = null;
                     if (trace) log.Trace("!keepFileOpen - Close()");
 		    	}
-	    		return Yield.DidWork.Repeat;
+	    		return result;
 		    } catch (QueueException ex) {
 				if( ex.EntryType == EventType.Terminate) {
                     log.Notice("Last tick written: " + tickIO);
-					log.Debug("Exiting, queue terminated.");
-					if( fs != null)
-					{
-                        CloseFile(fs);
-                        fs = null;
-                        log.Info("Flushed and closed file " + fileName);
-                        log.Debug("Terminate - Close()");
-					}
+                    if( debug) log.Debug("Exiting, queue terminated.");
+					Dispose();
 					return Yield.Terminate;
 				} else {
 					Exception exception = new ApplicationException("Queue returned unexpected: " + ex.EntryType);
 					writeQueue.SetException(exception);
 					writeQueue.Dispose();
+					Dispose();
 					throw ex;
 				}
 			} catch( Exception ex) {
 				writeQueue.SetException(ex);
 				writeQueue.Dispose();
-				if( fs != null) {
-                    CloseFile(fs);
-                    fs = null;
-                }
+				Dispose();
 				throw;
     		}
 		}
@@ -236,14 +257,16 @@ namespace TickZoom.TickUtil
 	    private long tickCount = 0;
 		private int origSleepSeconds = 3;
 		private int currentSleepSeconds = 3;
-		private void WriteToFile(MemoryStream memory, ReadWritable<TickBinary> tick) {
+		private void WriteToFile() {
 			int errorCount = 0;
 			do {
 			    try { 
 					if( trace) log.Trace("Writing tick: " + tick);
-			    	tick.ToWriter(memory);
-			    	fs.Write(memory.GetBuffer(),0,(int)memory.Position);			    	
-			    	memory.Position = 0;
+			        using (memoryLocker.Using())
+			        {
+                        fs.Write(memory.GetBuffer(), 0, (int)memory.Position);
+                        memory.Position = 0;
+                    }
 		    		if( errorCount > 0) {
 				    	log.Notice(symbol + ": Retry successful."); 
 		    		}
@@ -319,6 +342,9 @@ namespace TickZoom.TickUtil
 						}
 						appendTask.Join();
 					}
+			    	if( memory != null && memory.Position > 0) {
+						WriteToFile();
+			    	}
 					if( fs!=null ) {
                         CloseFile(fs);
                         fs = null;
