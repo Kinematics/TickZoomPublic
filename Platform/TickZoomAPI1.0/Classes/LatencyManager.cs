@@ -31,11 +31,22 @@ using System.Threading;
 
 namespace TickZoom.Api
 {
+	public struct LatencyLogEntry {
+		public int Id;
+		public int TickTime;
+		public int UtcTime;
+	}
 	public class LatencyManager : IDisposable {
+		private static readonly Log log = Factory.Log.GetLogger(typeof(LatencyManager));
+		private static readonly bool debug = log.IsDebugEnabled;
 		private static int count;
 		private object listMapLocker = new object();
 		private Dictionary<long,LinkedList<LatencyMetric>> listMap = new Dictionary<long,LinkedList<LatencyMetric>>();
 		private static LatencyManager instance;
+		private DataSeries<LatencyLogEntry> latencyLog = Factory.Engine.Series<LatencyLogEntry>();
+		private int logIndex = 0;
+		private long latencyLogStartTime = TimeStamp.UtcNow.Internal;
+		private TaskLock latencyLogLocker = new TaskLock();
 		
 		public static LatencyManager GetInstance() {
 			if( instance == null) {
@@ -43,11 +54,36 @@ namespace TickZoom.Api
 			}
 			return instance;
 		}
+		
 		public static LatencyManager Register(LatencyMetric metric, out int id, out int count, out LatencyMetric previous) {
 			GetInstance().Register(metric, out previous);
 			id = instance.GetNextId();
 			count = instance.Count;
 			return instance;
+		}
+		
+		public void Log( int id, long utcTickTime) {
+			var entry = new LatencyLogEntry {
+				Id = id,
+				TickTime = (int) (utcTickTime - latencyLogStartTime) / 100,
+				UtcTime = (int) (TimeStamp.UtcNow.Internal - latencyLogStartTime) / 100,
+			};
+			using( latencyLogLocker.Using()) {
+				latencyLog.Add(entry);
+			}
+		}
+		
+		public string WriteLog(int entries) {
+			using( latencyLogLocker.Using()) {
+				var begin = Math.Max(0,Math.Min(entries,latencyLog.Count)-1);
+				var startTime = latencyLog[begin].UtcTime;
+				var sb = new StringBuilder();
+				for( int i=begin; i>=0; i--) {
+					var entry = latencyLog[i];
+					sb.AppendLine( entry.Id + " => " + entry.TickTime + " at " + entry.UtcTime + " latency " + (entry.UtcTime - entry.TickTime) + ")");
+				}
+				return sb.ToString();
+			}
 		}
 		
 		private void Register( LatencyMetric metric, out LatencyMetric previous) {

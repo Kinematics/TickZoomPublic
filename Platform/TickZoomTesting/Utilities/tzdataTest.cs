@@ -89,10 +89,7 @@ namespace TickZoom.Utilities
 	       	var sb = new StringBuilder();
 	       	filter.Output = sb.WriteLine;
 	       	filter.Run(args);
-			string expectedOutput = @"USD_JPY: 10113 ticks.
-From 2005-05-05 07:01:17.187 to 2005-05-10 07:00:07.355
-0 duplicates elimated.
-";
+			string expectedOutput = "USD_JPY: 10113 ticks.\r\nFrom 2005-05-05 07:01:17.187 to 2005-05-10 07:00:07.355\r\n0 duplicates elimated.\r\n";
 			string output = sb.ToString();
 			Assert.AreEqual(expectedOutput,output);			
 		}
@@ -202,14 +199,14 @@ From 2005-05-05 07:01:17.187 to 2005-05-10 07:00:07.355
 			string[] args = { appData + @"\Test\\DataCache\ESH0.tck" };
 			Query query = new Query();
 			query.Run(args);
-			string expectedOutput = @"Symbol: /ESH0
-Version: 8
-Ticks: 15683
-Trade Only: 15683
-From: 2010-02-16 16:49:28.769.0 (local), 2010-02-16 21:49:28.769.0 (UTC)
-  To: 2010-02-16 16:59:56.140.0 (local), 2010-02-16 21:59:56.140.0 (UTC)
-Prices duplicates: 14489
-";
+			string expectedOutput = "Symbol: /ESH0" + Environment.NewLine +
+"Version: 8" + Environment.NewLine +
+"Ticks: 15683" + Environment.NewLine +
+"Trade Only: 15683" + Environment.NewLine +
+"From: 2010-02-16 16:49:28.769.0 (local), 2010-02-16 21:49:28.769.0 (UTC)" + Environment.NewLine +
+"  To: 2010-02-16 16:59:56.140.0 (local), 2010-02-16 21:59:56.140.0 (UTC)" + Environment.NewLine +
+"Prices duplicates: 14489" + Environment.NewLine +
+"";
 			string output = query.ToString();
 			Assert.AreEqual(expectedOutput,output);			
 		}
