@@ -57,7 +57,7 @@ namespace TickZoom.TickUtil
         	item.Symbol = o.Symbol;
         	item.EventType = (int) EventType.Tick;
     		item.Tick = o;
-    		return TryEnqueueStruct(ref item);
+    		return TryEnqueueStruct(ref item, item.Tick.UtcTime);
 	    }
 	    
 	    public void Enqueue(EventType entryType, SymbolInfo symbol)
@@ -74,7 +74,7 @@ namespace TickZoom.TickUtil
 	    	if( symbol != null) {
 	    		item.Symbol = symbol.BinaryIdentifier;
 	    	}
-	    	return TryEnqueueStruct(ref item);
+	    	return TryEnqueueStruct(ref item, TimeStamp.UtcNow.Internal);
 	    }
 	    
 	    public void Enqueue(EventType entryType, string error)
@@ -88,7 +88,7 @@ namespace TickZoom.TickUtil
 	    {
         	QueueItem item = new QueueItem();
 	    	item.EventType = (int) entryType;
-	    	return TryEnqueueStruct(ref item);
+	    	return TryEnqueueStruct(ref item,TimeStamp.UtcNow.Internal);
 	    }
 	    
 	    public void Dequeue(ref TickBinary tick)

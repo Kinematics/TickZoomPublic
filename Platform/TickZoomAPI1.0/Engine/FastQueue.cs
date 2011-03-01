@@ -64,10 +64,10 @@ namespace TickZoom.Api
 
 	public interface FastQueue<T> : Queue
 	{
-		bool EnqueueStruct(ref T tick);
+		bool EnqueueStruct(ref T tick, long utcTime);
 		bool DequeueStruct(ref T tick);
 		bool PeekStruct(ref T tick);
-	    bool TryEnqueueStruct(ref T tick);
+	    bool TryEnqueueStruct(ref T tick, long utcTime);
 	    bool TryDequeueStruct(ref T tick);
 	}
 }

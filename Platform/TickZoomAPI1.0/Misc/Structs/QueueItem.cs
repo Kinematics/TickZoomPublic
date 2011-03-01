@@ -37,62 +37,19 @@ namespace TickZoom.Api
 	    public object EventDetail;
     }
 
-    [StructLayout(LayoutKind.Explicit)]
 	public struct ProviderEvent {
-	    [FieldOffset(0)] public int Type;
-	    [FieldOffset(4)] public StartStop StartStop;
-	    [FieldOffset(4)] public StartSymbol StartSymbol;
-	    [FieldOffset(4)] public StartSymbol StopSymbol;
-	    [FieldOffset(4)] public PositionChange PositionChange;
-	    [FieldOffset(4)] public CustomEvent CustomEvent;
-    }
-    
-    public struct PositionChange {
+	    public int Type;
 	    public int Receiver;
         public long Symbol;
 	    public int Position;
 	    public int OrdersCount;
 	    public int OrdersMemoryId;
-    }
-    
-    public struct CustomEvent {
-	    public int Receiver;
-        public long Symbol;
 	    public int DetailMemoryId;
-    }
-    
-    public struct OnPositionChange {
-	    public int Receiver;
-        public long Symbol;
         public LogicalFillBinary Fill;
-    }
-    
-    public struct StartStop {
-	    public int Receiver;
-    }
-    
-    public struct StartSymbol
-    {
-	    public int Receiver;
-        public long Symbol;
         public TimeStamp StartTime;
-    }
-    
-    public struct StopSymbol
-    {
-	    public int Receiver;
-        public long Symbol;
-    }
-    
-    public struct ErrorEvent
-    {
         public string Message;
+        public PositionChangeDetail Detail;
     }
-    
-    public struct EventChange
-    {
-        public long Symbol;
-    }	    
 }
 
 

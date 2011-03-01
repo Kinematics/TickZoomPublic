@@ -1,4 +1,4 @@
-﻿#region Copyright
+#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2009 M. Wayne Walter
@@ -288,8 +288,10 @@ namespace TickZoom.MBTFIX
 			string message = "G|100=DEMOXJSP;8055=demo01\n";
 			if( debug) log.Debug("Login response: " + message);
 			writePacket.DataOut.Write(message.ToCharArray());
-			if( !quotePacketQueue.EnqueueStruct(ref writePacket)) {
-				throw new ApplicationException("Fix Queue is full.");
+			while( !quotePacketQueue.EnqueueStruct(ref writePacket,packet.UtcTime)) {
+				if( quotePacketQueue.IsFull) {
+					throw new ApplicationException("Quote Queue is full.");
+				}
 			}
 		}
 		
@@ -397,7 +399,7 @@ namespace TickZoom.MBTFIX
 
         private void SendPacket( Packet writePacket)
         {
-            while (!fixPacketQueue.EnqueueStruct(ref writePacket))
+            while (!fixPacketQueue.EnqueueStruct(ref writePacket, writePacket.UtcTime))
             {
                 if (fixPacketQueue.IsFull)
                 {
@@ -407,49 +409,34 @@ namespace TickZoom.MBTFIX
         }
 		
 		private unsafe Yield SymbolRequest(PacketMBTQuotes packet) {
-			var data = packet.Data;
-			data.Position += 2;
-			SymbolInfo symbolInfo = null;
-			fixed( byte *bptr = data.GetBuffer()) {
-				byte *ptr = bptr + data.Position;
-				while( ptr - bptr < data.Length) {
-					int key = packet.GetKey(ref ptr);
-					switch( key) {
-						case 1003: // Symbol
-							var symbol = packet.GetString( ref ptr);
-							symbolInfo = Factory.Symbol.LookupSymbol(symbol);
-							log.Info("Received symbol request for " + symbolInfo);
-							AddSymbol(symbol, OnTick, OnPhysicalFill, OnRejectOrder);
-							break;
-						case 2000: // Type of data.
-							var feedType = packet.GetString( ref ptr);
-							switch( feedType) {
-								case "20000": // Level 1
-									if( symbolInfo.QuoteType != QuoteType.Level1) {
-										throw new ApplicationException("Requested data feed of Level1 but Symbol.QuoteType is " + symbolInfo.QuoteType);
-									}
-									break;
-								case "20001": // Level 2
-									if( symbolInfo.QuoteType != QuoteType.Level2) {
-										throw new ApplicationException("Requested data feed of Level2 but Symbol.QuoteType is " + symbolInfo.QuoteType);
-									}
-									break;
-								case "20002": // Level 1 & Level 2
-									if( symbolInfo.QuoteType != QuoteType.Level2) {
-										throw new ApplicationException("Requested data feed of Level1 and Level2 but Symbol.QuoteType is " + symbolInfo.QuoteType);
-									}
-									break;
-								case "20003": // Trades
-									if( symbolInfo.TimeAndSales != TimeAndSales.ActualTrades) {
-										throw new ApplicationException("Requested data feed of Trades but Symbol.TimeAndSale is " + symbolInfo.TimeAndSales);
-									}
-									break;
-								case "20004": // Option Chains
-									break;
-							}
-							break;
+			var symbolInfo = Factory.Symbol.LookupSymbol(packet.Symbol);
+			log.Info("Received symbol request for " + symbolInfo);
+			AddSymbol(symbolInfo.Symbol, OnTick, OnPhysicalFill, OnRejectOrder);
+			switch( packet.FeedType) {
+				case "20000": // Level 1
+					if( symbolInfo.QuoteType != QuoteType.Level1) {
+						throw new ApplicationException("Requested data feed of Level1 but Symbol.QuoteType is " + symbolInfo.QuoteType);
 					}
-				}
+					break;
+				case "20001": // Level 2
+					if( symbolInfo.QuoteType != QuoteType.Level2) {
+						throw new ApplicationException("Requested data feed of Level2 but Symbol.QuoteType is " + symbolInfo.QuoteType);
+					}
+					break;
+				case "20002": // Level 1 & Level 2
+					if( symbolInfo.QuoteType != QuoteType.Level2) {
+						throw new ApplicationException("Requested data feed of Level1 and Level2 but Symbol.QuoteType is " + symbolInfo.QuoteType);
+					}
+					break;
+				case "20003": // Trades
+					if( symbolInfo.TimeAndSales != TimeAndSales.ActualTrades) {
+						throw new ApplicationException("Requested data feed of Trades but Symbol.TimeAndSale is " + symbolInfo.TimeAndSales);
+					}
+					break;
+				case "20004": // Option Chains
+					break;
+				default:
+					throw new ApplicationException("Sorry, unknown data type: " + packet.FeedType);
 			}
 			return Yield.DidWork.Repeat;
 		}

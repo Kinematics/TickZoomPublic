@@ -44,7 +44,6 @@ namespace TickZoom.Api
 		private Dictionary<long,LinkedList<LatencyMetric>> listMap = new Dictionary<long,LinkedList<LatencyMetric>>();
 		private static LatencyManager instance;
 		private DataSeries<LatencyLogEntry> latencyLog = Factory.Engine.Series<LatencyLogEntry>();
-		private int logIndex = 0;
 		private long latencyLogStartTime = TimeStamp.UtcNow.Internal;
 		private TaskLock latencyLogLocker = new TaskLock();
 		

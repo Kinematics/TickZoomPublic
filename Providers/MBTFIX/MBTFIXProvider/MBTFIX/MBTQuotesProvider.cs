@@ -108,25 +108,23 @@ namespace TickZoom.MBTQuotes
 		
 		protected override Yield ReceiveMessage()
 		{
-			Packet packet;
-			if(Socket.TryGetPacket(out packet)) {
-				if( trace) log.Trace("Received tick: " + new string(packet.DataIn.ReadChars(packet.Remaining)));
+			Packet rawPacket;
+			if(Socket.TryGetPacket(out rawPacket)) {
+				var packet = (PacketMBTQuotes) rawPacket;
 				packet.BeforeRead();
-				while( packet.Remaining > 0) {
-					char firstChar = (char) packet.Data.GetBuffer()[packet.Data.Position];
-					switch( firstChar) {
-						case '1':
-							Level1Update( (PacketMBTQuotes) packet);
-							break;
-						case '2':
-							log.Error( "Message type '2' unknown packet is: " + packet);
-							break;
-						case '3':
-							TimeAndSalesUpdate( (PacketMBTQuotes) packet);
-							break;
-						default:
-							throw new ApplicationException("MBTQuotes message type '" + firstChar + "' was unknown: \n" + new string(packet.DataIn.ReadChars(packet.Remaining)));
-					}
+				if( trace) log.Trace("Received tick: " + new string(packet.DataIn.ReadChars(packet.Remaining)));
+				switch( packet.MessageType) {
+					case '1':
+						Level1Update( (PacketMBTQuotes) packet);
+						break;
+					case '2':
+						log.Error( "Message type '2' unknown packet is: " + packet);
+						break;
+					case '3':
+						TimeAndSalesUpdate( (PacketMBTQuotes) packet);
+						break;
+					default:
+						throw new ApplicationException("MBTQuotes message type '" + packet.MessageType + "' was unknown: \n" + new string(packet.DataIn.ReadChars(packet.Remaining)));
 				}
 				if( Socket.ReceiveQueueCount > 0) {
 					return Yield.DidWork.Invoke( ReceiveMessageMethod);
@@ -139,144 +137,65 @@ namespace TickZoom.MBTQuotes
 		}
 		
 		private unsafe void Level1Update( PacketMBTQuotes packet) {
-			SymbolHandler handler = null;
-			MemoryStream data = packet.Data;
-			data.Position += 2;
-			string time = null;
-			string date = null;
-			fixed( byte *bptr = data.GetBuffer()) {
-				byte *ptr = bptr + data.Position;
-				while( ptr - bptr < data.Length) {
-					int key = packet.GetKey(ref ptr);
-					switch( key) {
-						case 1003: // Symbol
-							string symbol = packet.GetString( ref ptr);
-							SymbolInfo symbolInfo = Factory.Symbol.LookupSymbol(symbol);
-							handler = symbolHandlers[symbolInfo.BinaryIdentifier];
-							break;
-						case 2014: // Time
-							time = packet.GetString( ref ptr);
-							break;
-						case 2015: // Date
-							date = packet.GetString( ref ptr);
-							break;
-						case 2003: // Bid
-							handler.Bid = packet.GetDouble(ref ptr);
-							break;
-						case 2004: // Ask
-							handler.Ask = packet.GetDouble(ref ptr);
-							break;
-						case 2005: // Bid Size
-							handler.AskSize = packet.GetInt(ref ptr);
-							break;
-						case 2006: // Ask Size
-							handler.BidSize = packet.GetInt(ref ptr);
-							break;
-						default:
-							packet.SkipValue(ref ptr);
-							break;
-					}
-					if( *(ptr-1) == 10) {
-						if( UseLocalTickTime) {
-							var currentTime = TimeStamp.UtcNow;
-							if( currentTime <= prevTime) {
-								currentTime.Internal = prevTime.Internal + 1;
-							}
-							prevTime = currentTime;
-							handler.Time = currentTime;
-						} else {
-							var strings = date.Split( new char[] { '/' } );
-							date = strings[2] + "/" + strings[0] + "/" + strings[1];
-							handler.Time = new TimeStamp( date + " " + time);
-						}
-						handler.SendQuote();
-						data.Position ++;
-						return;
-					}
+			SymbolInfo symbolInfo = Factory.Symbol.LookupSymbol(packet.Symbol);
+			var handler = symbolHandlers[symbolInfo.BinaryIdentifier];
+			handler.Bid = packet.Bid;
+			handler.Ask = packet.Ask;
+			handler.AskSize = packet.AskSize;
+			handler.BidSize = packet.BidSize;
+			if( UseLocalTickTime) {
+				var currentTime = TimeStamp.UtcNow;
+				if( currentTime == prevTime) {
+					currentTime.Internal = prevTime.Internal + 1;
 				}
+				prevTime = currentTime;
+				handler.Time = currentTime;
+			} else {
+				handler.Time = new TimeStamp(packet.UtcTime);
 			}
-			throw new ApplicationException("Expected Level 1 Quote to end with new line character. Packet:\n" + packet);
+			handler.SendQuote();
+			return;
 		}
 		
 		private unsafe void TimeAndSalesUpdate( PacketMBTQuotes packet) {
-			SymbolHandler handler = null;
-			MemoryStream data = packet.Data;
-			data.Position += 2;
-			string time = null;
-			string date = null;
-			SymbolInfo symbolInfo = null;
-			fixed( byte *bptr = data.GetBuffer()) {
-				byte *ptr = bptr + data.Position;
-				while( ptr - bptr < data.Length) {
-					int key = packet.GetKey(ref ptr);
-					switch( key) {
-						case 1003: // Symbol
-							string symbol = packet.GetString( ref ptr);
-							symbolInfo = Factory.Symbol.LookupSymbol(symbol);
-							handler = symbolHandlers[symbolInfo.BinaryIdentifier];
-							break;
-						case 2014: // Time
-							time = packet.GetString( ref ptr);
-							break;
-						case 2015: // Date
-							date = packet.GetString( ref ptr);
-							break;
-						case 2002: // Last Trade Price
-							handler.Last = packet.GetDouble(ref ptr);
-							if( trace) {
-								log.Trace( "Got last trade price: " + handler.Last);// + "\n" + packet);
-							}
-							break;
-						case 2007: // Last Trade Size
-							handler.LastSize = packet.GetInt(ref ptr);
-							break;
-						case 2082: // Condition
-							int condition = packet.GetInt(ref ptr);
-							if( condition != 0 &&
-							    condition != 53 &&
-							    condition != 45) {
-								log.Info( "Trade quote received with non-zero condition: " + condition);
-							}
-							break;
-						case 2083: // Status
-							int status = packet.GetInt(ref ptr);
-							if( status != 0) {
-								log.Info( "Trade quote received with non-zero status: " + status);
-							}
-							break;
-						case 2084: // Type
-							int type = packet.GetInt(ref ptr);
-							if( type != 0) {
-								log.Info( "Trade quote received with non-zero type: " + type);
-							}
-							break;
-						default:
-							packet.SkipValue(ref ptr);
-							break;
-					}
-					if( *(ptr-1) == 10) {
-						if( UseLocalTickTime) {
-							var currentTime = TimeStamp.UtcNow;
-							if( currentTime <= prevTime) {
-								currentTime.Internal = prevTime.Internal + 1;
-							}
-							prevTime = currentTime;
-							handler.Time = currentTime;
-						} else {
-							var strings = date.Split( new char[] { '/' } );
-							date = strings[2] + "/" + strings[0] + "/" + strings[1];
-							handler.Time = new TimeStamp( date + " " + time);
-						}
-						if( handler.Last == 0D) {
-							log.Warn("About to call SendTimeAndSales with Last price = zero.");
-						}
-						handler.SendTimeAndSales();
-						data.Position ++;
-						return;
-					}
-				}
+			var symbol = packet.Symbol;
+			var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
+			SymbolHandler handler;
+			handler = symbolHandlers[symbolInfo.BinaryIdentifier];
+			handler.Last = packet.Last;
+			if( trace) {
+				log.Trace( "Got last trade price: " + handler.Last);// + "\n" + packet);
 			}
-			throw new ApplicationException("Expected Trade Quote to end with new line character.");
+			handler.LastSize = packet.LastSize;
+			int condition = packet.Condition;
+			if( condition != 0 &&
+			    condition != 53 &&
+			    condition != 45) {
+				log.Info( "Trade quote received with non-zero condition: " + condition);
+			}
+			int status = packet.Status;
+			if( status != 0) {
+				log.Info( "Trade quote received with non-zero status: " + status);
+			}
+			int type = packet.Type;
+			if( type != 0) {
+				log.Info( "Trade quote received with non-zero type: " + type);
+			}
+			if( UseLocalTickTime) {
+				var currentTime = TimeStamp.UtcNow;
+				if( currentTime <= prevTime) {
+					currentTime.Internal = prevTime.Internal + 1;
+				}
+				prevTime = currentTime;
+				handler.Time = currentTime;
+			} else {
+				handler.Time = new TimeStamp(packet.UtcTime);
+			}
+			if( handler.Last == 0D) {
+				log.Warn("About to call SendTimeAndSales with Last price = zero.");
+			}
+			handler.SendTimeAndSales();
+			return;
 		}
 		
 		private void OnException( Exception ex) {

@@ -231,13 +231,17 @@ namespace TickZoom.FIX
 			if( quotePacket == null) {
 				quotePacket = fixSimulatorSupport.QuoteSocket.CreatePacket();
 			} else if( quotePacket.IsFull) {
-				if( fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket)) {
+				if( fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket, quotePacket.UtcTime)) {
 					quotePacket = fixSimulatorSupport.QuoteSocket.CreatePacket();
 				} else {
 					return Yield.NoWork.Repeat;
 				}
 			}
 			onTick( quotePacket, symbol, nextTick);
+			var current = nextTick.UtcTime.Internal;
+			if( current < quotePacket.UtcTime) {
+				quotePacket.UtcTime = current;
+			}
 			tickStatus = TickStatus.Sent;
 			TryEnqueueTick();
 			return Yield.DidWork.Invoke(ProcessQueue);
@@ -246,7 +250,7 @@ namespace TickZoom.FIX
 		private void TryEnqueueTick() {
 			if( fixSimulatorSupport.QuotePacketQueue.Count == 0 &&
 			    fixSimulatorSupport.QuoteSocket.SendQueueCount == 0 &&
-			    fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket)) {
+			    fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket,quotePacket.UtcTime)) {
 				quotePacket = fixSimulatorSupport.QuoteSocket.CreatePacket();
 			} else {
 				var startTime = TimeStamp.UtcNow;

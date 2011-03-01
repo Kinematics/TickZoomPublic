@@ -46,6 +46,15 @@ namespace TickZoom.TickUtil
 		}
 	}
 	
+	public struct FastQueueEntry<T> {
+		public T Entry;
+		public long utcTime;
+		public FastQueueEntry(T entry, long utcTime) {
+			this.Entry = entry;
+			this.utcTime = utcTime;
+		}
+	}
+	
 	public class FastQueueImpl<T> : FastQueue<T> // where T : struct
 	{
 		private static readonly Log log = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueueImpl<" + typeof(FastQueueImpl<T>).GetGenericArguments()[0].Name + ">");
@@ -66,9 +75,11 @@ namespace TickZoom.TickUtil
 		TaskLock spinLock = new TaskLock();
 	    readonly int spinCycles = 1000;
 	    int timeout = 30000; // milliseconds
-	    private static NodePool<T> nodePool;
-		private static TaskLock nodePoolLocker = new TaskLock();
-	    private ActiveList<T> queue;
+        private static TaskLock nodePoolLocker = new TaskLock();
+        private static NodePool<FastQueueEntry<T>> nodePool;
+	    private static Pool<Queue<FastQueueEntry<T>>> queuePool;
+        private ActiveList<FastQueueEntry<T>> queue;
+	    volatile bool terminate = false;
 	    int processorCount = Environment.ProcessorCount;
 		bool isStarted = false;
 		bool isPaused = false;
@@ -80,6 +91,11 @@ namespace TickZoom.TickUtil
 	    int highWaterMark;
 		Exception exception;
 		int backupLevel = 20;
+		long earliestUtcTime = long.MaxValue;
+		
+		public long EarliestUtcTime {
+			get { return earliestUtcTime; }
+		}
 
         public FastQueueImpl(object name)
             : this(name, 1000)
@@ -110,7 +126,7 @@ namespace TickZoom.TickUtil
 			this.maxSize = maxSize;
 			this.lowWaterMark = maxSize / 2;
 			this.highWaterMark = maxSize / 2;
-			queue = new ActiveList<T>();
+            queue = new ActiveList<FastQueueEntry<T>>();
 			queue.Clear();
 			TickUtilFactoryImpl.AddQueue(this);
 	    }
@@ -133,8 +149,8 @@ namespace TickZoom.TickUtil
         	spinLock.Unlock();
 	    }
 	    
-        public bool EnqueueStruct(ref T tick) {
-        	return TryEnqueueStruct(ref tick);
+        public bool EnqueueStruct(ref T tick, long utcTime) {
+        	return TryEnqueueStruct(ref tick, utcTime);
         }
         
 	    public void Connect(Action<object> action) {
@@ -143,7 +159,7 @@ namespace TickZoom.TickUtil
 	    
 		private bool isBackingUp = false;
 		private int maxLastBackup = 0;
-	    public bool TryEnqueueStruct(ref T tick)
+	    public bool TryEnqueueStruct(ref T tick, long utcTime)
 	    {
             // If the queue is full, wait for an item to be removed
             if( queue == null ) return false;
@@ -155,7 +171,6 @@ namespace TickZoom.TickUtil
 	            	if( !isBackingUp) {
 		            	isBackingUp = true;
 	    	        	log.Info( name + " queue is backing up. Now " + queue.Count);
-//						log.Info( LatencyManager.GetInstance().GetStats() + "\n" + Factory.Parallel.GetStats());
 	            	} else {
 	            		if( queue.Count > maxLastBackup) {
 	            			maxLastBackup = queue.Count;
@@ -173,10 +188,13 @@ namespace TickZoom.TickUtil
 		    		}
 	            }
 	            if( queue == null ) return false;
-	            if( queue.Count>=maxSize) {
+	            var count = queue.Count;
+	            if( count>=maxSize) {
 	            	return false;
+	            } else if( count == 0) {
+	            	this.earliestUtcTime = utcTime;
 	            }
-	            var node = NodePool.Create(tick);
+	            var node = NodePool.Create(new FastQueueEntry<T>(tick,utcTime));
 	           	queue.AddFirst(node);
 	            if( hasItem != null) hasItem(this);
             } finally {
@@ -193,9 +211,26 @@ namespace TickZoom.TickUtil
 	    	return TryPeekStruct(ref tick);
 	    }
 	    
-	    public bool TryPeekStruct(ref T tick)
+	    public bool TryPeekStruct(ref T tick) {
+	    	FastQueueEntry<T> entry;
+	    	if( TryPeekStruct(out entry)) {
+	    		tick = entry.Entry;
+	    		return true;
+	    	} else {
+	    		return false;
+	    	}
+	    }
+	    
+	    private bool TryPeekStruct(out FastQueueEntry<T> entry)
 	    {
-	    	tick = default(T);
+            if( terminate) {
+	    		if( exception != null) {
+	    			throw new ApplicationException("Dequeue failed.",exception);
+	    		} else {
+	            	throw new QueueException(EventType.Terminate);
+	    		}
+            }
+	    	entry = default(FastQueueEntry<T>);
 	    	if( !isStarted) { 
 	    		if( !StartDequeue()) return false;
 	    	}
@@ -210,7 +245,7 @@ namespace TickZoom.TickUtil
 		    		}
 	            }
 		        if( queue == null || queue.Count==0) return false;
-	            tick = queue.Last.Value;
+		        entry = queue.Last.Value;
 	    	} finally {
 	            SpinUnLock();
 	    	}
@@ -236,9 +271,10 @@ namespace TickZoom.TickUtil
 	            }
 		        if( queue == null || queue.Count==0) return false;
 		        var last = queue.Last;
-		        tick = last.Value;
+		        tick = last.Value.Entry;
 		        queue.Remove(last);
 		        NodePool.Free(last);
+	            earliestUtcTime = queue.Count == 0 ? long.MaxValue : queue.Last.Value.utcTime;
 	            count = queue.Count;
 	    	} finally {
 	            SpinUnLock();
@@ -385,12 +421,17 @@ namespace TickZoom.TickUtil
 		}
 		
 		public string GetStats() {
-			double average = lockCount == 0 ? 0 : ((lockSpins*spinCycles)/lockCount);
+			var average = lockCount == 0 ? 0 : ((lockSpins*spinCycles)/lockCount);
 			var sb = new StringBuilder();
 			sb.Append("Queue Name=");
 			sb.Append(name);
 			sb.Append(" items=");
 			sb.Append(Count);
+			if( earliestUtcTime != long.MaxValue) {
+				sb.Append(" age=");
+				var age = TimeStamp.UtcNow.Internal - earliestUtcTime;
+				sb.Append(age);
+			}
 		    sb.Append(" locks( count=");
 			sb.Append(lockCount);
 		    sb.Append(" spins=");
@@ -412,15 +453,31 @@ namespace TickZoom.TickUtil
 			return sb.ToString();
 		}
 	    
-		public static NodePool<T> NodePool {
-	    	get { if( nodePool == null) {
+		public static NodePool<FastQueueEntry<T>> NodePool {
+	    	get {
+                if( nodePool == null) {
 					using(nodePoolLocker.Using()) {
 	    				if( nodePool == null) {
-	    					nodePool = new NodePool<T>();
+	    					nodePool = new NodePool<FastQueueEntry<T>>();
+	    				}
+	    			}
+                }
+                return nodePool;
+	    	}
+		}
+
+		public static Pool<Queue<FastQueueEntry<T>>> QueuePool {
+	    	get {
+                if( queuePool == null) {
+                    using (nodePoolLocker.Using())
+                    {
+                        if (queuePool == null)
+                        {
+	    					queuePool = Factory.TickUtil.Pool<Queue<FastQueueEntry<T>>>();
 	    				}
 	    			}
 				}
-	    		return nodePool;
+	    		return queuePool;
 	    	}
 		}
 		

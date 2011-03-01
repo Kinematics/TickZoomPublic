@@ -44,6 +44,7 @@ namespace TickZoom.Api
 		bool IsFull { get; }
 		int Position { get; set; }
 		int Length { get; }
+		long UtcTime { get; set; }
 		BinaryReader DataIn { get; }
 		BinaryWriter DataOut { get; }
 		MemoryStream Data {	get; }

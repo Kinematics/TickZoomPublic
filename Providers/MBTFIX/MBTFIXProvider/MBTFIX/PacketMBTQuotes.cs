@@ -46,6 +46,45 @@ namespace TickZoom.MBTQuotes
 		private BinaryWriter dataOut;
 		private static int packetIdCounter = 0;
 		private int id = 0;
+		private string symbol;
+		private string feedType;
+		private double bid;
+		private double ask;
+		private int askSize;
+		private int bidSize;
+		private string time;
+		private string date;
+		private long utcTime = long.MaxValue;
+		private double last;
+		
+		public double Last {
+			get { return last; }
+		}
+		private int lastSize;
+		
+		public int LastSize {
+			get { return lastSize; }
+		}
+		private int condition;
+		
+		public int Condition {
+			get { return condition; }
+		}
+		private int status;
+		
+		public int Status {
+			get { return status; }
+		}
+		private int type;
+		
+		public int Type {
+			get { return type; }
+		}
+		private char messageType;
+		
+		public char MessageType {
+			get { return messageType; }
+		}
 		
 		public PacketMBTQuotes() {
 			id = ++packetIdCounter;
@@ -92,11 +131,76 @@ namespace TickZoom.MBTQuotes
 		public unsafe void CreateHeader(int counter) {
 		}
 		
-		private int FindSplitAt() {
+		private unsafe void ParseData() {
+			data.Position = 2;
+			fixed( byte *bptr = data.GetBuffer()) {
+				messageType = (char) *bptr;
+				byte *ptr = bptr + data.Position;
+				byte *end = bptr + data.Length;
+				while( ptr - bptr < data.Length) {
+					int key = GetKey(ref ptr, end);
+					switch( key) {
+						case 1003: // Symbol
+							symbol = GetString( ref ptr, end);
+							break;
+						case 2000: // Type of Data
+							feedType = GetString( ref ptr, end);
+							break;
+						case 2014: // Time
+							time = GetString( ref ptr, end);
+							break;
+						case 2015: // Date
+							date = GetString( ref ptr, end);
+							break;
+						case 2003: // Bid
+							bid = GetDouble(ref ptr, end);
+							break;
+						case 2004: // Ask
+							ask = GetDouble(ref ptr, end);
+							break;
+						case 2005: // Bid Size
+							askSize = GetInt(ref ptr, end);
+							break;
+						case 2006: // Ask Size
+							bidSize = GetInt(ref ptr, end);
+							break;
+						case 2002: // Last Trade Price
+							last = GetDouble(ref ptr, end);
+							break;
+						case 2007: // Last Trade Size
+							lastSize = GetInt(ref ptr, end);
+							break;
+						case 2082: // Condition
+							condition = GetInt(ref ptr, end);
+							break;
+						case 2083: // Status
+							status = GetInt(ref ptr, end);
+							break;
+						case 2084: // Type
+							type = GetInt(ref ptr, end);
+							break;
+						default:
+							SkipValue(ref ptr, end);
+							break;
+					}
+					if( *(ptr-1) == 10) {
+						if( !string.IsNullOrEmpty(date) && !string.IsNullOrEmpty(time)) {
+							var strings = date.Split( new char[] { '/' } );
+							date = strings[2] + "/" + strings[0] + "/" + strings[1];
+							utcTime = new TimeStamp( date + " " + time).Internal;
+						}
+						return;
+					}
+				}
+			}
+		}
+		
+		private int TryFindSplit() {
 			byte[] bytes = data.GetBuffer();
 			int length = (int) data.Length;
 			for( int i=0; i<length; i++) {
 				if( bytes[i] == '\n') {
+					ParseData();
 					return i+1;
 				}
 			}
@@ -104,7 +208,7 @@ namespace TickZoom.MBTQuotes
 		}
 		
 		public bool TrySplit(MemoryStream other) {
-			int splitAt = FindSplitAt();
+			int splitAt = TryFindSplit();
 			if( splitAt == data.Length) {
 				data.Position = data.Length;
 				return false;
@@ -117,10 +221,10 @@ namespace TickZoom.MBTQuotes
 			}
 		}
 		
-		public unsafe int GetKey( ref byte *ptr) {
+		private unsafe int GetKey( ref byte *ptr, byte *end) {
 			byte *bptr = ptr;
 	        int val = *ptr - 48;
-	        while (*(++ptr) != EqualSign && *ptr != EndOfMessage) {
+	        while (*(++ptr) != EqualSign && *ptr != EndOfMessage && ptr < end) {
 	        	val = val * 10 + *ptr - 48;
 	        }
 	        ++ptr;
@@ -128,10 +232,10 @@ namespace TickZoom.MBTQuotes
 	        return val;
 		}
         
-		public unsafe int GetInt( ref byte *ptr) {
+		private unsafe int GetInt( ref byte *ptr, byte *end) {
 			byte *bptr = ptr;
 	        int val = *ptr - 48;
-	        while (*(++ptr) != EndOfField && *ptr != EndOfMessage) {
+	        while (*(++ptr) != EndOfField && *ptr != EndOfMessage && ptr < end) {
 	        	val = val * 10 + *ptr - 48;
 	        }
 	        ++ptr;
@@ -139,10 +243,10 @@ namespace TickZoom.MBTQuotes
 	        return val;
 		}
 		
-		public unsafe double GetDouble( ref byte *ptr) {
+		private unsafe double GetDouble( ref byte *ptr, byte *end) {
 			byte *bptr = ptr;
 	        int val = 0;
-	        while (*(ptr) != DecimalPoint && *ptr != EndOfField && *ptr != EndOfMessage) {
+	        while (*(ptr) != DecimalPoint && *ptr != EndOfField && *ptr != EndOfMessage && ptr < end) {
 	        	val = val * 10 + *ptr - 48;
 	        	++ptr;
 	        }
@@ -154,7 +258,7 @@ namespace TickZoom.MBTQuotes
 		        int divisor = 10;
 		        int fract = *ptr - 48;
 		        int decimals = 1;
-		        while (*(++ptr) != EndOfField && *ptr != EndOfMessage) {
+		        while (*(++ptr) != EndOfField && *ptr != EndOfMessage && ptr < end) {
 		        	fract = fract * 10 + *ptr - 48;
 		        	divisor *= 10;
 		        	decimals++;
@@ -166,9 +270,9 @@ namespace TickZoom.MBTQuotes
 	        }
 		}
 		
-		public unsafe string GetString( ref byte* ptr) {
+		private unsafe string GetString( ref byte* ptr, byte *end) {
 			byte *sptr = ptr;
-			while (*(++ptr) != 59 && *ptr != 10);
+			while (*(++ptr) != 59 && *ptr != 10 && ptr < end);
 	        int length = (int) (ptr - sptr);
 	        ++ptr;
 			var result = new string(dataIn.ReadChars(length));
@@ -176,9 +280,9 @@ namespace TickZoom.MBTQuotes
 			return result;
 		}
         
-		public unsafe void SkipValue( ref byte* ptr) {
+		private unsafe void SkipValue( ref byte* ptr, byte *end) {
 			byte *bptr = ptr;
-	        while (*(++ptr) != 59 && *ptr != 10);
+	        while (*(++ptr) != 59 && *ptr != 10 && ptr < end);
 	        ++ptr;
 	        Position += (int) (ptr - bptr);
 		}
@@ -238,6 +342,43 @@ namespace TickZoom.MBTQuotes
 		
 		public int MaxSize {
 			get { return maxSize; }
+		}
+		
+		public long UtcTime {
+			get { return utcTime; }
+			set { utcTime = value; }
+		}
+				
+		public string Symbol {
+			get { return symbol; }
+		}
+		
+		public double Bid {
+			get { return bid; }
+		}
+		
+		public double Ask {
+			get { return ask; }
+		}
+		
+		public int AskSize {
+			get { return askSize; }
+		}
+		
+		public int BidSize {
+			get { return bidSize; }
+		}
+		
+		public string Time {
+			get { return time; }
+		}
+		
+		public string Date {
+			get { return date; }
+		}
+		
+		public string FeedType {
+			get { return feedType; }
 		}
 	}
 }

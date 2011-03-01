@@ -32,11 +32,13 @@ namespace TickZoom.Api
 	public class PositionChangeDetail {
 		private SymbolInfo symbol;
 		private int position;
+		private long utcTime;
 		private Iterable<LogicalOrder> orders;
-		public PositionChangeDetail(SymbolInfo symbol, int position, Iterable<LogicalOrder> orders) {
+		public PositionChangeDetail(SymbolInfo symbol, int position, Iterable<LogicalOrder> orders, long utcTime) {
 			this.symbol = symbol;
 			this.position = position;
 			this.orders = orders;
+			this.utcTime = utcTime;
 		}
 		
 		public int Position {
@@ -49,6 +51,10 @@ namespace TickZoom.Api
 		
 		public SymbolInfo Symbol {
 			get { return symbol; }
+		}
+		
+		public long UtcTime {
+			get { return utcTime; }
 		}
 	}
 }

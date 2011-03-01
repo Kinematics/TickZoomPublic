@@ -48,7 +48,7 @@ namespace TickZoom.FIX
 		private BinaryWriter dataOut;
 		private static int packetIdCounter = 0;
 		private int id = 0;
-		
+		private long utcTime;
 		private GCHandle handle;
 		private byte* ptr;
 		private byte* end;
@@ -307,6 +307,7 @@ namespace TickZoom.FIX
 					break;
 				case 52:
 					result = GetString(out timeStamp);
+					utcTime = new TimeStamp(timeStamp).Internal;
 					break;
 				case 10:
 					result = GetInt(out checkSum);
@@ -376,6 +377,11 @@ namespace TickZoom.FIX
 		
 		public int MaxSize {
 			get { return maxSize; }
+		}
+		
+		public long UtcTime {
+			get { return utcTime; }
+			set { utcTime = value; }
 		}
 	}
 }
