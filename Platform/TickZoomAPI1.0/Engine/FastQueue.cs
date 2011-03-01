@@ -56,10 +56,11 @@ namespace TickZoom.Api
 		PauseEnqueue PauseEnqueue { get; set; }
 		bool IsPaused { get; }
 		int Capacity { get; }
+		long EarliestUtcTime { get; }
 	    bool IsFull {
 	    	get;
 	    }
-		void Connect(Action<object> hasItem);
+		void Connect(Action<object> hasItem, Action<object,long> onUtcChange);
 	}
 
 	public interface FastQueue<T> : Queue

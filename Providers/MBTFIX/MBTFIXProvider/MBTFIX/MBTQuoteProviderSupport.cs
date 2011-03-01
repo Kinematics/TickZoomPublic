@@ -88,6 +88,7 @@ namespace TickZoom.MBTQuotes
 			socket = Factory.Provider.Socket("MBTQuoteSocket");
 			socket.OnDisconnect = OnDisconnect;
 			socket.PacketFactory = new PacketFactoryMBTQuotes();
+			socket.ReceiveQueue.Connect( null, (obj,utc) => socketTask.UtcTime = utc);
 			if( debug) log.Debug("Created new " + socket);
 			connectionStatus = Status.New;
 			if( trace) {
@@ -122,10 +123,10 @@ namespace TickZoom.MBTQuotes
         	// Initiate socket connection.
         	while( true) {
         		try { 
-				Factory.Provider.Manager.AddWriter(socket);
-				socket.Connect(addrStr,port);
-				if( debug) log.Debug("Requested Connect for " + socket);
-				return;
+					Factory.Provider.Manager.AddWriter(socket);
+					socket.Connect(addrStr,port);
+					if( debug) log.Debug("Requested Connect for " + socket);
+					return;
         		} catch( SocketErrorException ex) {
         			log.Error("Non fatal error while trying to connect: " + ex.Message);
         			RegenerateSocket();

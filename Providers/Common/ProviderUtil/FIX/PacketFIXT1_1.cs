@@ -307,7 +307,9 @@ namespace TickZoom.FIX
 					break;
 				case 52:
 					result = GetString(out timeStamp);
-					utcTime = new TimeStamp(timeStamp).Internal;
+					if( result) {
+						utcTime = new TimeStamp(timeStamp).Internal;
+					}
 					break;
 				case 10:
 					result = GetInt(out checkSum);

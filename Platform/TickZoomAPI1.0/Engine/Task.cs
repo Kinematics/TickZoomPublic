@@ -68,5 +68,9 @@ namespace TickZoom.Api
 			get;
 			set;
 		}
+		long UtcTime {
+			get;
+			set;
+		}
 	}
 }

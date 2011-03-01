@@ -34,5 +34,6 @@ namespace TickZoom.Api
 		void AddWriter(Socket socket);
 		void Start();
 		string GetStats();
+		void OnUtcChange( object source, long utcTime);
 	}
 }

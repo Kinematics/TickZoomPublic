@@ -52,5 +52,6 @@ namespace TickZoom.Api
 		Action<Socket> OnDisconnect { get; set; }
 		int SendQueueCount { get; }
 		int ReceiveQueueCount { get; }
+		FastQueue<Packet> ReceiveQueue { get; }
 	}
 }

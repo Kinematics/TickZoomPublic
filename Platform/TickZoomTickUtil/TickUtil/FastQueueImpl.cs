@@ -92,6 +92,7 @@ namespace TickZoom.TickUtil
 		Exception exception;
 		int backupLevel = 20;
 		long earliestUtcTime = long.MaxValue;
+		Action<object,long> onUtcChange;
 		
 		public long EarliestUtcTime {
 			get { return earliestUtcTime; }
@@ -153,8 +154,9 @@ namespace TickZoom.TickUtil
         	return TryEnqueueStruct(ref tick, utcTime);
         }
         
-	    public void Connect(Action<object> action) {
-	    	this.hasItem = action;
+	    public void Connect(Action<object> onHasItem, Action<object,long> onUtcChange) {
+	    	this.hasItem = onHasItem;
+	    	this.onUtcChange = onUtcChange;
 	    }
 	    
 		private bool isBackingUp = false;
@@ -193,6 +195,9 @@ namespace TickZoom.TickUtil
 	            	return false;
 	            } else if( count == 0) {
 	            	this.earliestUtcTime = utcTime;
+	            	if( onUtcChange != null) {
+	            		onUtcChange(this,utcTime);
+	            	}
 	            }
 	            var node = NodePool.Create(new FastQueueEntry<T>(tick,utcTime));
 	           	queue.AddFirst(node);
@@ -254,6 +259,13 @@ namespace TickZoom.TickUtil
 	    
 	    public bool TryDequeueStruct(ref T tick)
 	    {
+            if( terminate) {
+	    		if( exception != null) {
+	    			throw new ApplicationException("Dequeue failed.",exception);
+	    		} else {
+	            	throw new QueueException(EventType.Terminate);
+	    		}
+            }
 	    	tick = default(T);
 	    	if( !isStarted) { 
 	    		if( !StartDequeue()) return false;
@@ -274,8 +286,16 @@ namespace TickZoom.TickUtil
 		        tick = last.Value.Entry;
 		        queue.Remove(last);
 		        NodePool.Free(last);
-	            earliestUtcTime = queue.Count == 0 ? long.MaxValue : queue.Last.Value.utcTime;
 	            count = queue.Count;
+	            if( count == 0) {
+		            earliestUtcTime = long.MaxValue;
+		            if( onUtcChange != null) {
+			            onUtcChange(this,earliestUtcTime);
+		            }
+	            } else
+	            {
+                    earliestUtcTime = queue.Count == 0 ? long.MaxValue : queue.Last.Value.utcTime;
+                }
 	    	} finally {
 	            SpinUnLock();
 	    	}
@@ -495,6 +515,11 @@ namespace TickZoom.TickUtil
 		
 		public string Name {
 			get { return name; }
+		}
+		
+		public Action<object,long> OnUtcChange {
+			get { return onUtcChange; }
+			set { onUtcChange = value; }
 		}
 	}
 }

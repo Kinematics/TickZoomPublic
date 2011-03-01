@@ -45,11 +45,9 @@ namespace TickZoom.Api
 		public bool TryLock() {
 	    	var currentThreadId = Thread.CurrentThread.ManagedThreadId;
 	    	if( isLocked == currentThreadId) {
-	    		Thread.BeginCriticalRegion();
 	    		Interlocked.Increment(ref lockCount);
 	    		return true;
 	    	} else if( isLocked == UNLOCKED && Interlocked.CompareExchange(ref isLocked,currentThreadId,UNLOCKED) == UNLOCKED) {
-	    		Thread.BeginCriticalRegion();
 	    		Interlocked.Increment(ref lockCount);
 	    		return true;
 	    	} else {
@@ -72,8 +70,11 @@ namespace TickZoom.Api
 	    		if( count <= 0) {
 	    			ForceUnlock();
 	    		}
+	    	} else if( isLocked == UNLOCKED) {
+	    		string message = "Attempt to unlock when already unlocked on thread id: " + Thread.CurrentThread.ManagedThreadId;
+	    		throw new ApplicationException( message);
 	    	} else {
-	    		string message = "Attempt to unlock from a different managed thread.";
+	    		string message = "Attempt to unlock from a different managed thread. Expected: " + isLocked + " but was " + Thread.CurrentThread.ManagedThreadId;
 	    		throw new ApplicationException( message);
 	    	}
 	    }
@@ -81,7 +82,6 @@ namespace TickZoom.Api
 	    public void ForceUnlock() {
 	    	Interlocked.Exchange(ref lockCount, 0);
 	    	Interlocked.Exchange(ref isLocked, UNLOCKED);
-	    	Thread.EndCriticalRegion();
 	    }
 		
 		public void Dispose()

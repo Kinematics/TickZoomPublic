@@ -110,10 +110,8 @@ namespace TickZoom.FIX
 			Factory.Provider.Manager.AddWriter(socket);
 			log.Info("Received FIX connection: " + socket);
 			StartFIXSimulation();
-			if( task == null) {
-				task = Factory.Parallel.Loop("FIXSimulator", OnException, MainLoop);
-				task.Start();
-			}
+			TryInitializeTask();
+			fixSocket.ReceiveQueue.Connect(null,(obj,utc) => task.UtcTime = utc);
 		}
 
 		protected virtual void OnConnectQuotes(Socket socket)
@@ -124,8 +122,15 @@ namespace TickZoom.FIX
 			Factory.Provider.Manager.AddWriter(socket);
 			log.Info("Received quotes connection: " + socket);
 			StartQuoteSimulation();
+			TryInitializeTask();
+			quoteSocket.ReceiveQueue.Connect(null,(obj,utc) => task.UtcTime = utc);
+		}
+		
+		private void TryInitializeTask() {
 			if( task == null) {
 				task = Factory.Parallel.Loop("FIXSimulator", OnException, MainLoop);
+				quotePacketQueue.Connect(null,(obj,utc) => task.UtcTime = utc);
+				fixPacketQueue.Connect(null,(obj,utc) => task.UtcTime = utc);
 				task.Start();
 			}
 		}
