@@ -59,25 +59,45 @@ namespace TickZoom.Examples
 			Strategy strategy = CreateStrategy("ExampleOrderStrategy","ExampleOrder-"+symbol) as Strategy;
 			strategy.SymbolDefault = symbol;
 			strategy.Performance.Equity.GraphEquity = false;
+		    var indicator = new IndicatorTest();
+		    indicator.Name = strategy.Name + ".IndicatorTest";
+		    indicator.Drawing.IsVisible = true;
+		    indicator.Drawing.GraphType = GraphType.Line;
+		    strategy.AddDependency(indicator);
 	    	AddDependency( "Portfolio", "ExampleOrder-"+symbol);
 
 			symbol = properties.Starter.SymbolInfo[1].Symbol;
 			strategy = CreateStrategy("ExampleOrderStrategy","ExampleOrder-"+symbol) as Strategy;
 			strategy.SymbolDefault = symbol;
 			strategy.Performance.Equity.GraphEquity = false;
-	    	AddDependency( "Portfolio", "ExampleOrder-"+symbol);
+            indicator = new IndicatorTest();
+            indicator.Name = strategy.Name + ".IndicatorTest";
+            indicator.Drawing.IsVisible = true;
+            indicator.Drawing.GraphType = GraphType.Line;
+            strategy.AddDependency(indicator);
+            AddDependency("Portfolio", "ExampleOrder-" + symbol);
 			
 			strategy = CreateStrategy("ExampleReversalStrategy","ExampleReversal-"+symbol) as Strategy;
 			strategy.SymbolDefault = symbol;
 			strategy.Performance.Equity.GraphEquity = false;
-	    	AddDependency( "Portfolio", "ExampleReversal-"+symbol);
+            indicator = new IndicatorTest();
+            indicator.Name = strategy.Name + ".IndicatorTest";
+            indicator.Drawing.IsVisible = true;
+            indicator.Drawing.GraphType = GraphType.Line;
+            strategy.AddDependency(indicator);
+            AddDependency("Portfolio", "ExampleReversal-" + symbol);
 	    	
 	    	for( int i=2; i<properties.Starter.SymbolProperties.Length; i++) {
 				symbol = properties.Starter.SymbolInfo[i].Symbol;
 				strategy = CreateStrategy("ExampleOrderStrategy","ExampleOrder-"+symbol) as Strategy;
 				strategy.SymbolDefault = symbol;
 				strategy.Performance.Equity.GraphEquity = false;
-		    	AddDependency( "Portfolio", "ExampleOrder-"+symbol);
+                indicator = new IndicatorTest();
+                indicator.Name = strategy.Name + ".IndicatorTest";
+                indicator.Drawing.IsVisible = true;
+                indicator.Drawing.GraphType = GraphType.Line;
+                strategy.AddDependency(indicator);
+                AddDependency("Portfolio", "ExampleOrder-" + symbol);
 	    	}
 			
 			TopModel = GetPortfolio("Portfolio");

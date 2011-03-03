@@ -160,36 +160,40 @@ namespace TickZoom.Logging
 			}
 
 			private Dictionary<Level,int> childrenByLevel;
+            private object childrenLocker = new object();
 			
 			private void FindAnyEnabled() {
-				childrenByLevel = new Dictionary<Level,int>();
-				foreach( var level in levels) {
-					childrenByLevel[level] = 0;
-				}
-				ILogger[] loggers = null;
-				while( loggers == null) {
-					try {
-						loggers = Logger.Repository.GetCurrentLoggers();
-					} catch( InvalidOperationException) {
-						
-					}
-				}
-				for( var i=0; i<loggers.Length; i++) {
-					var child = loggers[i];
-					foreach( var level in levels) {
-						if( child.IsEnabledFor(level)) {
-							if( child.Name.StartsWith(Logger.Name)) {
-						        childrenByLevel[level]++;
-							} else if( child.Name.Contains("*") || child.Name.Contains("?")) {
-								var wildcard = new Wildcard(child.Name, RegexOptions.IgnoreCase);
-								if( wildcard.IsMatch(Logger.Name)) {
-									childrenByLevel[level]++;
-								}
-							}
-						}
-					}
-				}
-			}
+                lock(childrenLocker)
+                {
+                    childrenByLevel = new Dictionary<Level, int>();
+			        foreach( var level in levels) {
+					    childrenByLevel[level] = 0;
+				    }
+				    ILogger[] loggers = null;
+				    while( loggers == null) {
+					    try {
+						    loggers = Logger.Repository.GetCurrentLoggers();
+					    } catch( InvalidOperationException) {
+    						
+					    }
+				    }
+				    for( var i=0; i<loggers.Length; i++) {
+					    var child = loggers[i];
+					    foreach( var level in levels) {
+						    if( child.IsEnabledFor(level)) {
+							    if( child.Name.StartsWith(Logger.Name)) {
+                                    childrenByLevel[level]++;
+							    } else if( child.Name.Contains("*") || child.Name.Contains("?")) {
+								    var wildcard = new Wildcard(child.Name, RegexOptions.IgnoreCase);
+								    if( wildcard.IsMatch(Logger.Name)) {
+									    childrenByLevel[level]++;
+								    }
+							    }
+						    }
+					    }
+				    }
+                }
+            }
 			
 			private bool CheckAnyEnabled(Level level) {
 				return childrenByLevel[level] > 0;

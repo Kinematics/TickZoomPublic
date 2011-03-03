@@ -229,6 +229,7 @@ namespace Loaders
 						Thread.Sleep(10);
 					}
                     topModel = config.TopModel;
+
                     if (config.Starter is FIXPlayBackStarter)
                     {
 		    			var starter = config.Starter as FIXPlayBackStarter;
@@ -261,7 +262,7 @@ namespace Loaders
 				throw;
 			}
 		}
-		
+
 		private ModelLoaderInterface GetLoaderInstance() {
 			var type = loader.GetType();
 			return (ModelLoaderInterface) type.Assembly.CreateInstance(type.FullName);
@@ -303,8 +304,14 @@ namespace Loaders
 		}
 		
 		[TestFixtureTearDown]
-		public virtual void EndStrategy() {
-            if (config != null)
+		public virtual void EndStrategy()
+		{
+            if (ShowCharts)
+            {
+                log.Warn("Popped up MessageBox: Finished with Charts?");
+                MessageBox.Show("Finished with Charts?");
+            }
+		    if (config != null)
             {
                 config.Stop();
             }

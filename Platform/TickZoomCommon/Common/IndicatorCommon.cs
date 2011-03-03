@@ -33,6 +33,7 @@ using System.Reflection;
 
 using TickZoom.Api;
 using TickZoom.Statistics;
+using System.Text;
 
 namespace TickZoom.Common
 {
@@ -44,7 +45,10 @@ namespace TickZoom.Common
 		private readonly Log instanceLog;
 		private readonly bool instanceDebug;
 		private readonly bool instanceTrace;
-		private bool isChartDynamic = false;
+        private static readonly Log barDataLog = Factory.SysLog.GetLogger("BarDataLog");
+        private readonly bool barDataDebug = barDataLog.IsDebugEnabled;
+        private DataHasher barHasher = new DataHasher();
+        private bool isChartDynamic = false;
 		double startValue = Double.NaN;
 		bool isStartValueSet = false;
 		Interval fastUpdateInterval = null;
@@ -122,8 +126,42 @@ namespace TickZoom.Common
 			}
 		}
 		
-		public override bool OnIntervalClose() {
-			Update();
+		public override bool OnIntervalClose()
+		{
+            if (barDataDebug && !QuietMode)
+            {
+                var bars = Bars;
+                var time = bars.Time[0];
+                var endTime = bars.EndTime[0];
+                barHasher.Writer.Write(Name);
+                barHasher.Writer.Write(time.Internal);
+                barHasher.Writer.Write(endTime.Internal);
+                barHasher.Writer.Write(bars.Open[0]);
+                barHasher.Writer.Write(bars.High[0]);
+                barHasher.Writer.Write(bars.Low[0]);
+                barHasher.Writer.Write(bars.Close[0]);
+                barHasher.Writer.Write(bars.Volume[0]);
+                barHasher.Update();
+
+                var sb = new StringBuilder();
+                sb.Append(Name);
+                sb.Append(",");
+                sb.Append(time);
+                sb.Append(",");
+                sb.Append(endTime);
+                sb.Append(",");
+                sb.Append(bars.Open[0]);
+                sb.Append(",");
+                sb.Append(bars.High[0]);
+                sb.Append(",");
+                sb.Append(bars.Low[0]);
+                sb.Append(",");
+                sb.Append(bars.Close[0]);
+                sb.Append(",");
+                sb.Append(bars.Volume[0]);
+                barDataLog.Debug(sb.ToString());
+            }
+            Update();
 			return true;
 		}
 		
@@ -136,7 +174,6 @@ namespace TickZoom.Common
 		}	
 		
 		public virtual void Update() {
-			
 		}
 		
 		[Browsable(false)]
@@ -230,4 +267,15 @@ namespace TickZoom.Common
 			input.Release();
 		}
 	}
+    /// <summary>
+    /// For testing values properly passed to indicators.
+    /// </summary>
+    public class IndicatorTest : IndicatorCommon
+    {
+        public override void Update()
+        {
+            this[0] = Input[0];
+        }
+
+    }
 }

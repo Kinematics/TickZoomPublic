@@ -240,6 +240,7 @@ namespace TickZoom.Statistics
 				Bars bars = model.Bars;
 				var time = bars.Time[0];
                 var endTime = bars.EndTime[0];
+                barHasher.Writer.Write(model.Name);
                 barHasher.Writer.Write(time.Internal);
                 barHasher.Writer.Write(endTime.Internal);
                 barHasher.Writer.Write(bars.Open[0]);
