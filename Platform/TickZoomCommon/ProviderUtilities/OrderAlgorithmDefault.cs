@@ -642,19 +642,11 @@ namespace TickZoom.Common
 			var count = Interlocked.Increment(ref recursiveCounter);
 			if( count == 1) {
 				while( recursiveCounter > 0) {
-                    if( !performCompareLocker.TryLock())
-                    {
-                        throw new ApplicationException("Perform compare already locked.");
-                    }
-                    Interlocked.Exchange(ref recursiveCounter, 1);
-                    try
-                    {
+					Interlocked.Exchange( ref recursiveCounter, 1);
+					try {
                         PerformCompareInternal();
-                    }
-                    finally
-                    {
-                        Interlocked.Decrement(ref recursiveCounter);
-                        performCompareLocker.Unlock();
+					} finally {
+						Interlocked.Decrement( ref recursiveCounter);
                     }
 				}
 			}

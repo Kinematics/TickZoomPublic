@@ -110,12 +110,22 @@ namespace TickZoom.Interceptors
 			ProcessOrders();
 			if( confirmOrders != null) confirmOrders.OnChangeBrokerOrder(order, origBrokerOrder);
 		}
-		
-		public PhysicalOrder GetOrderById( string orderId) {
-			LogOpenOrders();
+
+        public bool TryGetOrderById(string orderId, out PhysicalOrder physicalOrder)
+        {
+            LogOpenOrders();
+            lock (orderMapLocker)
+            {
+                return orderMap.TryGetValue(orderId, out physicalOrder);
+            }
+        }
+
+
+        public PhysicalOrder GetOrderById(string orderId)
+        {
 			PhysicalOrder order;
 			lock( orderMapLocker) {
-				if( !orderMap.TryGetValue( orderId, out order)) {
+				if( !TryGetOrderById( orderId, out order)) {
 					throw new ApplicationException( symbol + ": Cannot find physical order by id: " + orderId);
 				}
 			}
@@ -124,16 +134,24 @@ namespace TickZoom.Interceptors
 		
 		private PhysicalOrder CancelBrokerOrder(object origBrokerOrder) {
 			var oldOrderId = (string) origBrokerOrder;
-			var oldOrder = GetOrderById(oldOrderId);
-			var node = (LinkedListNode<PhysicalOrder>) oldOrder.Reference;
-			if( node.List != null) {
-				node.List.Remove(node);
-			}
-			lock( orderMapLocker) {
-				orderMap.Remove( oldOrderId);
-			}
-			LogOpenOrders();
-			return oldOrder;
+		    PhysicalOrder physicalOrder;
+            if( TryGetOrderById(oldOrderId, out physicalOrder))
+		    {
+                var node = (LinkedListNode<PhysicalOrder>)physicalOrder.Reference;
+		        if (node.List != null)
+		        {
+		            node.List.Remove(node);
+		        }
+		        lock (orderMapLocker)
+		        {
+		            orderMap.Remove(oldOrderId);
+		        }
+		        LogOpenOrders();
+		    } else
+		    {
+		        log.Info("PhysicalOrder too late to cancel or already canceled, ignoring: " + origBrokerOrder);
+		    }
+            return physicalOrder;
 		}
 		
 		private void CreateBrokerOrder(PhysicalOrder order) {

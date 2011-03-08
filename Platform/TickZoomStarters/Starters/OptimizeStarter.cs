@@ -97,7 +97,7 @@ namespace TickZoom.Starters
 			
 			var engines = new Stack<TickEngine>();
 			for( int i=0; i<totalEngineCount; i++) {
-				engines.Push( SetupEngine( false));
+				engines.Push( SetupEngine( true));
 			}
 			
 			ModelInterface topModel = new Portfolio();
@@ -115,7 +115,7 @@ namespace TickZoom.Starters
 					engine.QueueTask();
 					engineIterations.Add(engine);
 					topModel = new Portfolio();
-					if (engineIterations.Count >= 1) { // Environment.ProcessorCount) {
+					if (engineIterations.Count >= Environment.ProcessorCount) {
 						ProcessIteration();
 					}
 				}
