@@ -79,7 +79,7 @@ namespace TickZoom.Starters
 			base.Run(model);
 		}
 
-		private string GetDefaultLogConfig() {
+		public static string GetDefaultLogConfig() {
 			return @"<?xml version=""1.0"" encoding=""utf-8"" ?>
 <configuration>
  <log4net>

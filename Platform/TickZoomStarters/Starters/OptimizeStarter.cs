@@ -59,7 +59,7 @@ namespace TickZoom.Starters
 		List<TickEngine> engineIterations;
 		public override void Run(ModelLoaderInterface loader)
 		{
-			Factory.SysLog.ResetConfiguration();
+            Factory.SysLog.Reconfigure("Optimize", HistoricalStarter.GetDefaultLogConfig());
 			try {
 				if( loader.OptimizeOutput == null) {
 					Directory.CreateDirectory( Path.GetDirectoryName(FileName));
@@ -97,7 +97,7 @@ namespace TickZoom.Starters
 			
 			var engines = new Stack<TickEngine>();
 			for( int i=0; i<totalEngineCount; i++) {
-				engines.Push( SetupEngine( true));
+				engines.Push( SetupEngine( false));
 			}
 			
 			ModelInterface topModel = new Portfolio();
@@ -115,7 +115,7 @@ namespace TickZoom.Starters
 					engine.QueueTask();
 					engineIterations.Add(engine);
 					topModel = new Portfolio();
-					if (engineIterations.Count >= Environment.ProcessorCount) {
+					if (engineIterations.Count >= 1) { // Environment.ProcessorCount) {
 						ProcessIteration();
 					}
 				}

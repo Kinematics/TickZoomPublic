@@ -607,8 +607,8 @@ namespace TickZoom.Common
 		
 		public void ProcessFill( PhysicalFill physical, int totalSize, int cumulativeSize, int remainingSize) {
 			if( debug) log.Debug( "ProcessFill() physical: " + physical);
-//			log.Warn( "ProcessFill() physical: " + physical);
-			physicalOrders.Remove(physical.Order);
+            //log.warn("processfill() physical: " + physical);
+            //physicalOrders.Remove(physical.Order);
 			var isCompletePhysicalFill = physical.Order.Size == 0;
 			if( isCompletePhysicalFill) {
 				if( debug) log.Debug("Physical order completely filled: " + physical.Order);
@@ -637,16 +637,25 @@ namespace TickZoom.Common
 			ProcessFill( fill, isCompletePhysicalFill);
 		}		
 
+        private TaskLock performCompareLocker = new TaskLock();
 		private void PerformCompareProtected() {
 			var count = Interlocked.Increment(ref recursiveCounter);
 			if( count == 1) {
 				while( recursiveCounter > 0) {
-					Interlocked.Exchange( ref recursiveCounter, 1);
-					try {
-						PerformCompareInternal();
-					} finally {
-						Interlocked.Decrement( ref recursiveCounter);
-					}
+                    if( !performCompareLocker.TryLock())
+                    {
+                        throw new ApplicationException("Perform compare already locked.");
+                    }
+                    Interlocked.Exchange(ref recursiveCounter, 1);
+                    try
+                    {
+                        PerformCompareInternal();
+                    }
+                    finally
+                    {
+                        Interlocked.Decrement(ref recursiveCounter);
+                        performCompareLocker.Unlock();
+                    }
 				}
 			}
 		}
