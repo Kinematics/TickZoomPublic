@@ -742,6 +742,11 @@ namespace TickZoom.Api
 			_timeStamp += dMilliseconds * MicrosecondsPerMillisecond;
 		}
 
+		public void AddMicroseconds( long dMicroseconds )
+		{
+			_timeStamp += dMicroseconds;
+		}
+
 		public void AddSeconds( long dSeconds )
 		{
 			_timeStamp += dSeconds * MicrosecondsPerSecond;

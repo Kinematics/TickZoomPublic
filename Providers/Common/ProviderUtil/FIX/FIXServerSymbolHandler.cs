@@ -132,6 +132,7 @@ namespace TickZoom.FIX
 			
 			try { 
 				if( reader.ReadQueue.TryDequeue( ref binary)) {
+					tickStatus = TickStatus.None;
 					tickCounter++;
 				   	if( isPlayBack) {
 						if( isFirstTick) {
@@ -197,9 +198,12 @@ namespace TickZoom.FIX
 						}		
 						break;
 					case TickStatus.Sent:
-						tickStatus = TickStatus.None;
-						result = Yield.DidWork.Return;
+						result = Yield.DidWork.Invoke(DequeueTick);
 						break;
+					case TickStatus.Timer:
+						break;
+					default:
+						throw new ApplicationException("Unknown tick status: " + tickStatus);
 				}
 				return result;
 			} else {
@@ -235,16 +239,34 @@ namespace TickZoom.FIX
 				}
 			}
 			onTick( quotePacket, symbol, nextTick);
-			if( fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket)) {
-				quotePacket = fixSimulatorSupport.QuoteSocket.CreatePacket();
-			}
+			tickStatus = TickStatus.Sent;
+			TryEnqueueTick();
 			return Yield.DidWork.Invoke(ProcessQueue);
+		}
+
+		private void TryEnqueueTick() {
+			if( fixSimulatorSupport.QuotePacketQueue.Count == 0 &&
+			    fixSimulatorSupport.QuoteSocket.SendQueueCount == 0 &&
+			    fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket)) {
+				quotePacket = fixSimulatorSupport.QuoteSocket.CreatePacket();
+			} else {
+				var startTime = TimeStamp.UtcNow;
+				do {
+					startTime.AddMilliseconds(100);
+				} while( !tickTimer.Start(startTime));
+			}
 		}
 		
 		private Yield PlayBackTick() {
-			var result = SendPlayBackTick();
-			tickStatus = TickStatus.Sent;
-			return result;
+			if( tickStatus == TickStatus.Timer) {
+				if( trace) log.Trace("Sending tick from timer event: " + nextTick.UtcTime);
+				var result = SendPlayBackTick();
+				if( !result.IsIdle) {
+					result = ProcessOnTickCallBack();
+				}
+			}
+			TryEnqueueTick();
+			return Yield.DidWork.Repeat;
 		}
 		
 		private void OnException( Exception ex) {

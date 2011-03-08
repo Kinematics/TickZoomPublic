@@ -53,6 +53,7 @@ namespace TickZoom.TickUtil
 		private readonly bool trace = log.IsTraceEnabled;
 		private readonly Log instanceLog;
 		private Action<object> hasItem;
+		private bool disableBackupLogging = false;
 		string name;
 		long lockSpins = 0;
 		long lockCount = 0;
@@ -78,6 +79,7 @@ namespace TickZoom.TickUtil
 	    int lowWaterMark;
 	    int highWaterMark;
 		Exception exception;
+		int backupLevel = 20;
 
         public FastQueueImpl(object name)
             : this(name, 1000)
@@ -86,6 +88,14 @@ namespace TickZoom.TickUtil
         }
 
 	    public FastQueueImpl(object name, int maxSize) {
+        	if( "TickWriter".Equals(name) || "DataReceiverDefault".Equals(name)) {
+        		disableBackupLogging = true;
+        	}
+        	var nameString = name as string;
+        	if( !string.IsNullOrEmpty(nameString)) {
+        		nameString.Contains("-Receive");
+        		backupLevel = 900;
+        	}
 			instanceLog = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueue."+name);
 			if( debug) log.Debug("Created with capacity " + maxSize);
             if( name is string)
@@ -130,12 +140,27 @@ namespace TickZoom.TickUtil
 	    	this.hasItem = action;
 	    }
 	    
+		private bool isBackingUp = false;
+		private int maxLastBackup = 0;
 	    public bool TryEnqueueStruct(ref T tick)
 	    {
             // If the queue is full, wait for an item to be removed
             if( queue == null ) return false;
             if( queue.Count>=maxSize) {
             	return false;
+            }
+            if( !disableBackupLogging) {
+	            if( queue.Count >= backupLevel) {
+	            	if( !isBackingUp) {
+		            	isBackingUp = true;
+	    	        	log.Info( name + " queue is backing up. Now " + queue.Count);
+						log.Info( LatencyManager.GetInstance().GetStats() + "\n" + Factory.Parallel.GetStats());
+	            	} else {
+	            		if( queue.Count > maxLastBackup) {
+	            			maxLastBackup = queue.Count;
+	            		}
+	            	}
+	            }
             }
             if( !SpinLockNB()) return false;
             try { 
@@ -198,6 +223,7 @@ namespace TickZoom.TickUtil
 	    		if( !StartDequeue()) return false;
 	    	}
 	        if( queue == null || queue.Count==0) return false;
+	        var count = 0;
 	    	if( !SpinLockNB()) return false;
 	    	try {
 	            if( isDisposed) {
@@ -212,18 +238,18 @@ namespace TickZoom.TickUtil
 		        tick = last.Value;
 		        queue.Remove(last);
 		        NodePool.Free(last);
-		        // Code below used to track down a bug. No long needed.
-//	            if( tick is QueueItem) {
-//	            	var obj = (object) tick;
-//	            	var item = (QueueItem) obj;
-//	            	if( item.EventType == (int) EventType.Tick && item.Symbol == 0) {
-//	            		throw new ApplicationException("Symbol cannot be 0.");
-//	            	}
-//	            }
+	            count = queue.Count;
 	    	} finally {
 	            SpinUnLock();
 	    	}
-            return true;
+ 			if( count == 0) {
+            	if( isBackingUp) {
+            		isBackingUp = false;
+            		log.Info( name + " queue now cleared after backup up to " + maxLastBackup + " items.");
+            		maxLastBackup = 0;
+            	}
+	    	}
+	    	return true;
 	    }
 	    
 	    public void Clear() {
