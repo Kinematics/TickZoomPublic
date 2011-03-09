@@ -115,7 +115,7 @@ namespace TickZoom.MBTQuotes
 				if( trace) log.Trace("Received tick: " + new string(packet.DataIn.ReadChars(packet.Remaining)));
 				switch( packet.MessageType) {
 					case '1':
-						Level1Update( (PacketMBTQuotes) packet);
+						Level1Update( packet);
 						break;
 					case '2':
 						log.Error( "Message type '2' unknown packet is: " + packet);
@@ -139,10 +139,18 @@ namespace TickZoom.MBTQuotes
 		private unsafe void Level1Update( PacketMBTQuotes packet) {
 			SymbolInfo symbolInfo = Factory.Symbol.LookupSymbol(packet.Symbol);
 			var handler = symbolHandlers[symbolInfo.BinaryIdentifier];
-			handler.Bid = packet.Bid;
-			handler.Ask = packet.Ask;
-			handler.AskSize = packet.AskSize;
-			handler.BidSize = packet.BidSize;
+			if( packet.Bid != 0) {
+				handler.Bid = packet.Bid;
+			}
+			if( packet.Ask != 0) {
+				handler.Ask = packet.Ask;
+			}
+			if( packet.AskSize != 0) {
+				handler.AskSize = packet.AskSize;
+			}
+			if( packet.BidSize != 0) {
+				handler.BidSize = packet.BidSize;
+			}
 			if( UseLocalTickTime) {
 				var currentTime = TimeStamp.UtcNow;
 				if( currentTime == prevTime) {

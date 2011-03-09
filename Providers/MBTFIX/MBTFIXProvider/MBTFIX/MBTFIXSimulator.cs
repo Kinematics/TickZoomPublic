@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 
@@ -441,9 +442,15 @@ namespace TickZoom.MBTFIX
 			return Yield.DidWork.Repeat;
 		}
 		
+        private Dictionary<long,TickIO> lastTicks = new Dictionary<long,TickIO>();
 		private void OnTick( Packet quotePacket, SymbolInfo symbol, Tick tick) {
 			if( trace) log.Trace("Sending tick: " + tick);
-			StringBuilder sb = new StringBuilder();
+			TickIO lastTick;
+			if( !lastTicks.TryGetValue( symbol.BinaryIdentifier, out lastTick)) {
+			   	lastTick = Factory.TickUtil.TickIO();
+			   	lastTicks[symbol.BinaryIdentifier] = lastTick;
+			}
+			var sb = new StringBuilder();
 			if( tick.IsTrade) {
 				sb.Append("3|"); // Trade
 			} else {
@@ -466,21 +473,31 @@ namespace TickZoom.MBTFIX
 				sb.Append(';');
 			}
 			sb.Append("2050=0;"); //Unknown
-			sb.Append("2003="); // Last Bid
-			sb.Append(tick.Bid);
-			sb.Append(';');
+			if( tick.lBid != lastTick.lBid) {
+				sb.Append("2003="); // Last Bid
+				sb.Append(tick.Bid);
+				sb.Append(';');
+			}
 			sb.Append("2051=0;"); //Unknown
-			sb.Append("2004="); //Last Ask 
-			sb.Append(tick.Ask);
-			sb.Append(';');
+			if( tick.lAsk != lastTick.lAsk) {
+				sb.Append("2004="); //Last Ask 
+				sb.Append(tick.Ask);
+				sb.Append(';');
+			}
 			sb.Append("2052=00/00/2010;"); //Unknown
-			sb.Append("2005="); 
-			sb.Append(Math.Max((int)tick.AskLevel(0),1));
-			sb.Append(';');
+			var askSize = Math.Max((int)tick.AskLevel(0),1);
+			if( askSize != lastTick.AskLevel(0)) {
+				sb.Append("2005="); 
+				sb.Append(askSize);
+				sb.Append(';');
+			}
+			var bidSize = Math.Max((int)tick.BidLevel(0),1);
 			sb.Append("2053=00/00/2010;"); //Unknown
-			sb.Append("2006=");
-			sb.Append(Math.Max((int)tick.BidLevel(0),1));
-			sb.Append(';');
+			if( bidSize != lastTick.BidLevel(0)) {
+				sb.Append("2006=");
+				sb.Append(bidSize);
+				sb.Append(';');
+			}
 			sb.Append("2008=0.0;"); // Yesterday Close
 			sb.Append("2056=0.0;"); // Unknown
 			sb.Append("2009=0.0;"); // High today
@@ -505,6 +522,7 @@ namespace TickZoom.MBTFIX
 			var message = sb.ToString();
 			if( trace) log.Trace("Tick message: " + message);
 			quotePacket.DataOut.Write(message.ToCharArray());
+			lastTick.Inject(tick.Extract());
 		}
 		
 		private void CloseWithQuotesError(PacketMBTQuotes packet, string message) {
