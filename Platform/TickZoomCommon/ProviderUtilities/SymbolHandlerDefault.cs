@@ -93,7 +93,7 @@ namespace TickZoom.Common
 						box.TickBinary = tickIO.Extract();
 						quotesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
 						receiver.OnEvent(symbol,(int)EventType.Tick,box);
-						if( trace) log.Trace("Sent tick for " + symbol + ": " + tickIO);
+						if( trace) log.Trace("Sent quote for " + symbol + ": " + tickIO);
 					}
 				}
 			}
@@ -174,6 +174,7 @@ namespace TickZoom.Common
 //				}
 //				lastTime = box.TickBinary.UtcTime;
 				receiver.OnEvent(symbol,(int)EventType.Tick,box);
+				if( trace) log.Trace("Sent trade tick for " + symbol + ": " + tickIO);
 			}
 		}
 		private long lastTime;

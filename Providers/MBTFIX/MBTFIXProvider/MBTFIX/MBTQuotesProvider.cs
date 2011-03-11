@@ -168,8 +168,7 @@ namespace TickZoom.MBTQuotes
 		private unsafe void TimeAndSalesUpdate( PacketMBTQuotes packet) {
 			var symbol = packet.Symbol;
 			var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
-			SymbolHandler handler;
-			handler = symbolHandlers[symbolInfo.BinaryIdentifier];
+			var handler = symbolHandlers[symbolInfo.BinaryIdentifier];
 			handler.Last = packet.Last;
 			if( trace) {
 				log.Trace( "Got last trade price: " + handler.Last);// + "\n" + packet);

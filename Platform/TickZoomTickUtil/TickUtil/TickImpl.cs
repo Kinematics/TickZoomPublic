@@ -58,6 +58,10 @@ namespace TickZoom.TickUtil
 
 		byte dataVersion;
 		TickBinary binary;
+		long lastBid;
+		long lastAsk;
+		long lastPrice;
+		int lastSize;
 		TickBinary lastBinary;
 		TimeStamp localTime;
 
@@ -308,7 +312,8 @@ namespace TickZoom.TickUtil
 			var temp = Math.Pow( 0.1, priceDecimals);
 			pricePrecision = temp.ToLong();
 		}
-		
+
+		private static readonly long debugDiffMax = 500.0.ToLong();
 		private unsafe void ToWriterVersion10(MemoryStream writer) {
 			dataVersion = 10;
 			writer.SetLength( writer.Position+minTickSize);
@@ -326,19 +331,22 @@ namespace TickZoom.TickUtil
 				if( !isCompressStarted) {
 					if( debug) log.Debug("Writing Reset token during tick compression.");
 					WriteField( BinaryField.Reset, &ptr, 1);
-					var ts = new TimeStamp( binary.UtcTime);
 					isCompressStarted = true;
 				}
 				WriteField( BinaryField.ContentMask, &ptr, binary.ContentMask - lastBinary.ContentMask);
 				var diff = (binary.UtcTime - lastBinary.UtcTime);
 				WriteField( BinaryField.Time, &ptr, diff);
 				if( IsQuote) {
-					WriteField( BinaryField.Bid, &ptr, (binary.Bid - lastBinary.Bid) / pricePrecision);
-					WriteField( BinaryField.Ask, &ptr, (binary.Ask - lastBinary.Ask) / pricePrecision);
+					WriteField( BinaryField.Bid, &ptr, (binary.Bid - lastBid) / pricePrecision);
+					WriteField( BinaryField.Ask, &ptr, (binary.Ask - lastAsk) / pricePrecision);
+					lastBid = binary.Bid;
+					lastAsk = binary.Ask;
 				}
 				if( IsTrade) {
-					WriteField( BinaryField.Price, &ptr, (binary.Price - lastBinary.Price) / pricePrecision);
-					WriteField( BinaryField.Size, &ptr, binary.Size - lastBinary.Size);
+					WriteField( BinaryField.Price, &ptr, (binary.Price - lastPrice) / pricePrecision);
+					WriteField( BinaryField.Size, &ptr, binary.Size - lastSize);
+					lastPrice = binary.Price;
+					lastSize = binary.Size;
 				}
 				if( HasDepthOfMarket) {
 					var field = (byte) ((byte) BinaryField.BidSize << 3);
@@ -496,6 +504,7 @@ namespace TickZoom.TickUtil
 			}
 		}
 		
+		private static readonly long debugMaximum = 2000.0.ToLong();
 		private unsafe int FromFileVersion10(byte *fptr, int length) {
 			// Backwards compatibility. The first iteration of version
 			// 9 never stored the price precision in the file.
@@ -540,6 +549,9 @@ namespace TickZoom.TickUtil
 						break;
 					case BinaryField.Price:
 						binary.Price += ReadField( &ptr) * pricePrecision;
+						if( binary.Price > debugMaximum) {
+							log.Info("Found high price: " + binary.Price);
+						}
 						break;
 					case BinaryField.Size:
 						binary.Size += (int) ReadField( &ptr);

@@ -74,12 +74,14 @@ namespace TickZoom.Api
 		
 		public string WriteLog(int entries) {
 			using( latencyLogLocker.Using()) {
-				var begin = Math.Max(0,Math.Min(entries,latencyLog.Count)-1);
-				var startTime = latencyLog[begin].UtcTime;
 				var sb = new StringBuilder();
-				for( int i=begin; i>=0; i--) {
-					var entry = latencyLog[i];
-					sb.AppendLine( entry.Id + " => " + entry.TickTime + " at " + entry.UtcTime + " latency " + (entry.UtcTime - entry.TickTime) + ")");
+				if( latencyLog.Count > 0) {
+					var begin = Math.Max(0,Math.Min(entries,latencyLog.Count)-1);
+					var startTime = latencyLog[begin].UtcTime;
+					for( int i=begin; i>=0; i--) {
+						var entry = latencyLog[i];
+						sb.AppendLine( entry.Id + " => " + entry.TickTime + " at " + entry.UtcTime + " latency " + (entry.UtcTime - entry.TickTime) + ")");
+					}
 				}
 				return sb.ToString();
 			}

@@ -172,7 +172,7 @@ namespace TickZoom.TickUtil
 	            if( queue.Count >= backupLevel) {
 	            	if( !isBackingUp) {
 		            	isBackingUp = true;
-	    	        	log.Info( name + " queue is backing up. Now " + queue.Count);
+		            	if( debug) log.Debug( name + " queue is backing up. Now " + queue.Count);
 	            	} else {
 	            		if( queue.Count > maxLastBackup) {
 	            			maxLastBackup = queue.Count;
@@ -302,7 +302,7 @@ namespace TickZoom.TickUtil
  			if( count == 0) {
             	if( isBackingUp) {
             		isBackingUp = false;
-            		log.Info( name + " queue now cleared after backup to " + maxLastBackup + " items.");
+            		if( debug) log.Debug( name + " queue now cleared after backup to " + maxLastBackup + " items.");
             		maxLastBackup = 0;
             	}
 	    	}

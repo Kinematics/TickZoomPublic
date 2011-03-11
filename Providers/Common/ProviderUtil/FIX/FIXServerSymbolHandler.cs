@@ -123,7 +123,7 @@ namespace TickZoom.FIX
 
 		private long intervalTime = 1000000;
 		private long prevTickTime;
-		private bool isVolumeTest = false;
+		private bool isVolumeTest = true;
 		private long tickCounter = 0;
 		private Yield DequeueTick() {
 			var result = Yield.NoWork.Repeat;
@@ -146,7 +146,7 @@ namespace TickZoom.FIX
 							binary.UtcTime += playbackOffset;
 						}
 						if( tickCounter > 10) {
-							intervalTime = 300;
+							intervalTime = 2000;
 						}
 						var time = new TimeStamp( binary.UtcTime);
 				   	} 
