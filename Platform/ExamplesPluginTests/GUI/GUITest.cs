@@ -262,7 +262,7 @@ namespace Other
 				string compareFile2 = appData + @"\Test\ServerCache\ESZ9.tck";
 				using ( TickReader reader1 = Factory.TickUtil.TickReader()) {
 					reader1.Initialize(compareFile1,config.SymbolList);
-                    reader1.ReadQueue.Connect(null,(x,y) => {} );
+                    reader1.ReadQueue.Connect(null);
                     TickBinary tick1 = new TickBinary();
 					try {
 						int count = 0;

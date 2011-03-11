@@ -61,7 +61,6 @@ namespace TickZoom.TickUtil
 		private readonly bool debug = log.IsDebugEnabled;
 		private readonly bool trace = log.IsTraceEnabled;
 		private readonly Log instanceLog;
-		private Action<object> hasItem;
 		private bool disableBackupLogging = false;
 		string name;
 		long lockSpins = 0;
@@ -92,7 +91,7 @@ namespace TickZoom.TickUtil
 		Exception exception;
 		int backupLevel = 20;
 		long earliestUtcTime = long.MaxValue;
-		Action<object,long> onUtcChange;
+		private Task task;
 		
 		public long EarliestUtcTime {
 			get { return earliestUtcTime; }
@@ -154,9 +153,8 @@ namespace TickZoom.TickUtil
         	return TryEnqueueStruct(ref tick, utcTime);
         }
         
-	    public void Connect(Action<object> onHasItem, Action<object,long> onUtcChange) {
-	    	this.hasItem = onHasItem;
-	    	this.onUtcChange = onUtcChange;
+	    public void Connect(Task task) {
+			this.task = task;
 	    }
 	    
 		private bool isBackingUp = false;
@@ -195,13 +193,13 @@ namespace TickZoom.TickUtil
 	            	return false;
 	            } else if( count == 0) {
 	            	this.earliestUtcTime = utcTime;
-	            	if( onUtcChange != null) {
-	            		onUtcChange(this,utcTime);
+	            	if( task != null) {
+	            		task.UpdateUtcTime(this,utcTime);
 	            	}
 	            }
 	            var node = NodePool.Create(new FastQueueEntry<T>(tick,utcTime));
 	           	queue.AddFirst(node);
-	            if( hasItem != null) hasItem(this);
+	           	if( task != null) task.IncreaseActivity();
             } finally {
 	            SpinUnLock();
             }
@@ -289,8 +287,8 @@ namespace TickZoom.TickUtil
 	            count = queue.Count;
 	            if( count == 0) {
 		            earliestUtcTime = long.MaxValue;
-		            if( onUtcChange != null) {
-			            onUtcChange(this,earliestUtcTime);
+		            if( task != null) {
+			            task.UpdateUtcTime(this,earliestUtcTime);
 		            }
 	            } else
 	            {
@@ -346,7 +344,7 @@ namespace TickZoom.TickUtil
 				        if( queue!=null) {
 				    		while( !SpinLockNB()) ;
 				    		try {
-						    	hasItem = null;
+						    	task = null;
 						    	var next = queue.First;
 						    	for( var node = next; node != null; node = next) {
 						    		next = node.Next;
@@ -517,10 +515,6 @@ namespace TickZoom.TickUtil
 			get { return name; }
 		}
 		
-		public Action<object,long> OnUtcChange {
-			get { return onUtcChange; }
-			set { onUtcChange = value; }
-		}
 	}
 }
 

@@ -102,7 +102,7 @@ namespace TickZoom.FIX
 				fixFilterController.Dispose();
 			}
 			socket = Factory.Provider.Socket("MBTFIXSocket");
-			socket.ReceiveQueue.Connect(null,(obj,utc) => socketTask.UtcTime = utc);
+			socket.ReceiveQueue.Connect( socketTask);
 			socket.OnDisconnect = OnDisconnect;
 			socket.PacketFactory = new PacketFactoryFIX4_4();
 			if( debug) log.Debug("Created new " + socket);

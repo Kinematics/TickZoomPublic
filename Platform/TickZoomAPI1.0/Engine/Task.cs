@@ -42,6 +42,7 @@ namespace TickZoom.Api
 		void Boost();
 		void IncreaseActivity();
 		void DecreaseActivity();
+		void UpdateUtcTime(object source,long utcTime);
 		bool HasActivity {
 			get;
 		}
@@ -68,9 +69,6 @@ namespace TickZoom.Api
 			get;
 			set;
 		}
-		long UtcTime {
-			get;
-			set;
-		}
+		
 	}
 }

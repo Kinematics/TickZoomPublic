@@ -66,7 +66,7 @@ namespace TickZoom.FIX
 			queueTask = Factory.Parallel.Loop("FIXServerSymbol-"+symbolString, OnException, ProcessQueue);
 			tickTimer = Factory.Parallel.CreateTimer(queueTask,PlayBackTick);
 			queueTask.IsActivityEnabled = true;
-			reader.ReadQueue.Connect( HasItem, (obj,utc) => queueTask.UtcTime = utc);
+			reader.ReadQueue.Connect( queueTask);
 			queueTask.Start();
 			latency = new LatencyMetric("FIXServerSymbolHandler-"+symbolString.StripInvalidPathChars());
 			reader.ReadQueue.StartEnqueue();

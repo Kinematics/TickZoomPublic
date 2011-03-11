@@ -152,7 +152,7 @@ namespace TickZoom.TickUtil
 			string baseName = Path.GetFileNameWithoutExtension(fileName);
 			appendTask = Factory.Parallel.Loop(baseName + " writer",OnException, AppendData);
 			appendTask.IsActivityEnabled = true;
-			writeQueue.Connect(HasItem,(obj,utc) => appendTask.UtcTime = utc);
+			writeQueue.Connect(appendTask);
 			appendTask.Start();
 		}
 		

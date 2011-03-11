@@ -88,7 +88,7 @@ namespace TickZoom.MBTQuotes
 			socket = Factory.Provider.Socket("MBTQuoteSocket");
 			socket.OnDisconnect = OnDisconnect;
 			socket.PacketFactory = new PacketFactoryMBTQuotes();
-			socket.ReceiveQueue.Connect( null, (obj,utc) => socketTask.UtcTime = utc);
+			socket.ReceiveQueue.Connect( socketTask);
 			if( debug) log.Debug("Created new " + socket);
 			connectionStatus = Status.New;
 			if( trace) {

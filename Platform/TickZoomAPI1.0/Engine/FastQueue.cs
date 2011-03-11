@@ -60,7 +60,7 @@ namespace TickZoom.Api
 	    bool IsFull {
 	    	get;
 	    }
-		void Connect(Action<object> hasItem, Action<object,long> onUtcChange);
+		void Connect(Task task);
 	}
 
 	public interface FastQueue<T> : Queue
