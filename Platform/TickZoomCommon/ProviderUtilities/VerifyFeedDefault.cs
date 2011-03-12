@@ -103,6 +103,7 @@ namespace TickZoom.Common
 				}
 				try { 
 					if( tickQueue.TryDequeue(ref tickBinary)) {
+						tickQueue.RemoveStruct();
 						tickIO.Inject(tickBinary);
 						if (debug && countLog < 5) {
 							log.Debug("Received a tick " + tickIO);
@@ -148,6 +149,7 @@ namespace TickZoom.Common
 				}
 				try { 
 					if( tickQueue.TryDequeue(ref tickBinary)) {
+						tickQueue.RemoveStruct();
 						tickIO.Inject(tickBinary);
 						if (debug && countLog < 5) {
 							log.Debug("Received a tick " + tickIO);
@@ -190,6 +192,7 @@ namespace TickZoom.Common
 					if( !tickQueue.TryDequeue(ref binary)) {
 						Thread.Sleep(100);
 					} else {
+						tickQueue.RemoveStruct();
 						if( SyncTicks.Enabled) tickSync.RemoveTick();
 					}
 				} catch (QueueException ex) {
@@ -216,6 +219,7 @@ namespace TickZoom.Common
 				try {
 					// Remove ticks just so as to get to the event we want to see.
 					if( tickQueue.TryDequeue(ref tickBinary)) {
+						tickQueue.RemoveStruct();
 						if (customEventType> 0) {
 							assertEvent(customEventSymbol,customEventType,customEventDetail);
 							count++;
@@ -261,6 +265,7 @@ namespace TickZoom.Common
 					if( !tickQueue.TryDequeue(ref binary)) {
 						Thread.Sleep(10);
 					} else {
+						tickQueue.RemoveStruct();
 						if( !actionAlreadyRun && action != null) {
 							actionAlreadyRun = true;
 							action();
@@ -366,6 +371,7 @@ namespace TickZoom.Common
 					if (!tickQueue.TryDequeue(ref tickBinary)) {
 						return Yield.NoWork.Repeat;
 					}
+					tickQueue.RemoveStruct();
 					if( keepReceived) {
 						received.Add(tickBinary);
 					}

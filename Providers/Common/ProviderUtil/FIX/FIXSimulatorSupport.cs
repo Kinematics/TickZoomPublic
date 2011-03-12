@@ -1,4 +1,4 @@
-﻿#region Copyright
+#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2009 M. Wayne Walter
@@ -194,6 +194,8 @@ namespace TickZoom.FIX
 		
 		private enum State { Start, ProcessFIX, WriteFIX, ProcessQuotes, WriteQuotes, Return };
 		private State state = State.Start;
+		private bool hasQuotePacket = false;
+		private bool hasFIXPacket = false;
 		private Yield MainLoop() {
 			var result = false;
 			switch( state) {
@@ -204,33 +206,39 @@ namespace TickZoom.FIX
 						TryRequestHeartbeat( TimeStamp.UtcNow);
 					}
 				ProcessFIX:
-					if( ProcessFIXPackets()) {
+					hasFIXPacket = ProcessFIXPackets();
+					if( hasFIXPacket ) {
 						result = true;
 					}
 				WriteFIX:
-					if( !WriteToFIX()) {
-						state = State.WriteFIX;
-						return Yield.NoWork.Repeat;
-					}
-					if( fixPacketQueue.Count > 0) {
-						state = State.ProcessFIX;
-						return Yield.DidWork.Repeat;
+					if( hasFIXPacket) {
+						if( !WriteToFIX()) {
+							state = State.WriteFIX;
+							return Yield.NoWork.Repeat;
+						}
+						if( fixPacketQueue.Count > 0) {
+							state = State.ProcessFIX;
+							return Yield.DidWork.Repeat;
+						}
 					}
 					if( QuotesReadLoop()) {
 						result = true;
 					}
 				ProcessQuotes: 
-					if( ProcessQuotePackets()) {
+					hasQuotePacket = ProcessQuotePackets();
+					if( hasQuotePacket) {
 						result = true;
 					}
 				WriteQuotes:
-					if( !WriteToQuotes()) {
-						state = State.WriteQuotes;
-						return Yield.NoWork.Repeat;
-					}
-					if( quotePacketQueue.Count > 0) {
-						state = State.ProcessQuotes;
-						return Yield.DidWork.Invoke(MainLoopMethod);
+					if( hasQuotePacket) {
+						if( !WriteToQuotes()) {
+							state = State.WriteQuotes;
+							return Yield.NoWork.Repeat;
+						}
+						if( quotePacketQueue.Count > 0) {
+							state = State.ProcessQuotes;
+							return Yield.DidWork.Invoke(MainLoopMethod);
+						}
 					}
 					break;
 				case State.ProcessFIX:
@@ -255,14 +263,24 @@ namespace TickZoom.FIX
 				return false;
 			}
 			if( trace) log.Trace("ProcessFIXPackets( " + fixPacketQueue.Count + " packets in queue.)");
-			return fixPacketQueue.DequeueStruct(ref fixWritePacket);
+			if( fixPacketQueue.DequeueStruct(ref fixWritePacket)) {
+				fixPacketQueue.RemoveStruct();
+				return true;
+			} else {
+				return false;
+			}
 		}
 		private bool ProcessQuotePackets() {
 			if( quoteWritePacket == null && quotePacketQueue.Count == 0) {
 				return false;
 			}
 			if( trace) log.Trace("ProcessQuotePackets( " + quotePacketQueue.Count + " packets in queue.)");
-			return quotePacketQueue.DequeueStruct(ref quoteWritePacket);
+			if( quotePacketQueue.DequeueStruct(ref quoteWritePacket)) {
+				QuotePacketQueue.RemoveStruct();
+				return true;
+			} else {
+				return false;
+			}
 		}
 		private bool Resend(PacketFIXT1_1 packetFIX) {
 			var writePacket = fixSocket.CreatePacket();			
@@ -433,8 +451,10 @@ namespace TickZoom.FIX
 				writePacket.DataOut.Write(message.ToCharArray());
 				writePacket.UtcTime = TimeStamp.UtcNow.Internal;
 				if( trace) log.Trace("Requesting heartbeat: " + message);
-				if( !fixPacketQueue.EnqueueStruct(ref writePacket,writePacket.UtcTime)) {
-					throw new ApplicationException("Fix Queue is full.");
+				while( !fixPacketQueue.EnqueueStruct(ref writePacket,writePacket.UtcTime)) {
+					if( fixPacketQueue.IsFull) {
+						throw new ApplicationException("Fix Queue is full.");
+					}
 				}
 			}
 			return Yield.DidWork.Return;

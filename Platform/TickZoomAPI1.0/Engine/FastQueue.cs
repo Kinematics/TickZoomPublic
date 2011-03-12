@@ -70,6 +70,7 @@ namespace TickZoom.Api
 		bool PeekStruct(ref T tick);
 	    bool TryEnqueueStruct(ref T tick, long utcTime);
 	    bool TryDequeueStruct(ref T tick);
+	    void RemoveStruct();
 	}
 }
 

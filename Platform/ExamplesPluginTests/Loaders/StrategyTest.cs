@@ -225,15 +225,16 @@ namespace Loaders
 				try { 
 					config = SetupConfigStarter(autoTestMode);
                     config.Start();
+                    var tempStarter = config.Starter;
                     while (config.IsBusy)
                     {
 						Thread.Sleep(10);
 					}
                     topModel = config.TopModel;
 
-                    if (config.Starter is FIXPlayBackStarter)
+                    if (tempStarter is FIXPlayBackStarter)
                     {
-		    			var starter = config.Starter as FIXPlayBackStarter;
+		    			var starter = tempStarter as FIXPlayBackStarter;
 		    			realTimeOffset = starter.FixServer.RealTimeOffset;
 		    			var realTimeOffsetElapsed = new Elapsed(realTimeOffset);
 		    			log.Info("Real time offset is " + realTimeOffset + " or " + realTimeOffsetElapsed);
@@ -850,11 +851,6 @@ namespace Loaders
 			if( !a.Equals(b)) {
 				assertFlag = true;				
 				log.Error("Mismatch:\nExpected '" + a + "'\n but was '" + b + "': " + message);
-//				if( a is TimeStamp) {
-//					var ats = (TimeStamp) a;
-//					var bts = (TimeStamp) b;
-//					log.Info("Expected: " + ats.Internal + " but was " + bts.Internal);
-//				}
 			}
 		}
 		

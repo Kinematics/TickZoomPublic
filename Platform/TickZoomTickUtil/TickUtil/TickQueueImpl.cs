@@ -104,6 +104,7 @@ namespace TickZoom.TickUtil
 	    	bool result = TryDequeueStruct(ref item);
 	    	if( result) {
 	    		if( item.EventType != (int) EventType.Tick) {
+	    			RemoveStruct();
 		    		string symbol;
 		    		if( item.Symbol != 0) {
 		    			symbol = item.Symbol.ToSymbol();
@@ -113,8 +114,8 @@ namespace TickZoom.TickUtil
 		    		throw new QueueException( (EventType) item.EventType, symbol);
 		    	} else {
 	    			tick = item.Tick;
-	    			}
-		    	}
+	    		}
+		    }
 	    	return result;
 	    }
 	    

@@ -267,7 +267,7 @@ namespace Loaders
 			list.Add( spyTradeDataOnly);
 			
 			var spyQuoteDataOnly = new AutoTestSettings {
-			    Mode = AutoTestMode.Historical,
+			    Mode = AutoTestMode.None,
 			    Name = "RealTimeSPYQuoteOnly",
 			    Loader = new TestDataOnlyLoader(),
 				Symbols = "SPYQuoteOnly",

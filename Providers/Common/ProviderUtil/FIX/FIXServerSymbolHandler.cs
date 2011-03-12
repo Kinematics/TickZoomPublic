@@ -1,4 +1,4 @@
-﻿#region Copyright
+#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2009 M. Wayne Walter
@@ -46,6 +46,7 @@ namespace TickZoom.FIX
 		private FIXSimulatorSupport fixSimulatorSupport;
 		private LatencyMetric latency;
 		private TrueTimer tickTimer;
+		private TrueTimer packetTimer;
 		
 		public FIXServerSymbolHandler( FIXSimulatorSupport fixSimulatorSupport, 
 		    bool isPlayBack, string symbolString,
@@ -65,6 +66,7 @@ namespace TickZoom.FIX
 			tickSync.ForceClear();
 			queueTask = Factory.Parallel.Loop("FIXServerSymbol-"+symbolString, OnException, ProcessQueue);
 			tickTimer = Factory.Parallel.CreateTimer(queueTask,PlayBackTick);
+			packetTimer = Factory.Parallel.CreateTimer(queueTask,TryEnqueuePacket);
 			queueTask.IsActivityEnabled = true;
 			reader.ReadQueue.Connect( queueTask);
 			queueTask.Start();
@@ -118,12 +120,16 @@ namespace TickZoom.FIX
 					if( trace) log.Trace("Locked tickSync for " + symbol);
 				}
 			}
-			return Yield.DidWork.Invoke(DequeueTick);
+			if( tickStatus == TickStatus.None || tickStatus == TickStatus.Sent) {
+				return Yield.DidWork.Invoke(DequeueTick);
+			} else {
+				return Yield.NoWork.Repeat;
+			}
 		}
 
 		private long intervalTime = 1000000;
 		private long prevTickTime;
-		private bool isVolumeTest = true;
+		private bool isVolumeTest = false;
 		private long tickCounter = 0;
 		private Yield DequeueTick() {
 			var result = Yield.NoWork.Repeat;
@@ -146,7 +152,7 @@ namespace TickZoom.FIX
 							binary.UtcTime += playbackOffset;
 						}
 						if( tickCounter > 10) {
-							intervalTime = 2000;
+							intervalTime = 1000;
 						}
 						var time = new TimeStamp( binary.UtcTime);
 				   	} 
@@ -164,7 +170,6 @@ namespace TickZoom.FIX
 				   	result = Yield.DidWork.Invoke(ProcessTick);
 				}
 			} catch( QueueException ex) {
-				queueTask.DecreaseActivity();
 				if( ex.EntryType != EventType.EndHistorical) {
 					throw;
 				}
@@ -197,7 +202,7 @@ namespace TickZoom.FIX
 						}		
 						break;
 					case TickStatus.Sent:
-						result = Yield.DidWork.Invoke(DequeueTick);
+						result = Yield.DidWork.Invoke(ProcessQueue);
 						break;
 					case TickStatus.Timer:
 						break;
@@ -206,14 +211,13 @@ namespace TickZoom.FIX
 				}
 				return result;
 			} else {
-				queueTask.DecreaseActivity();
+				if( trace) log.Trace("Invoking ProcessOnTickCallBack");
 				return Yield.DidWork.Invoke( ProcessOnTickCallBack);
 			}
 		}
 		
 		private Yield SendPlayBackTick() {
 			latency.TryUpdate( nextTick.lSymbol, nextTick.UtcTime.Internal);
-			queueTask.DecreaseActivity();
 		   	if( isFirstTick) {
 			   	fillSimulator.StartTick( nextTick);
 		   		isFirstTick = false;
@@ -238,26 +242,33 @@ namespace TickZoom.FIX
 				}
 			}
 			onTick( quotePacket, symbol, nextTick);
+			if( trace) log.Trace("Added tick to packet: " + nextTick.UtcTime);
 			var current = nextTick.UtcTime.Internal;
 			if( current < quotePacket.UtcTime) {
 				quotePacket.UtcTime = current;
 			}
+ 			reader.ReadQueue.RemoveStruct();
 			tickStatus = TickStatus.Sent;
-			TryEnqueueTick();
+			TryEnqueuePacket();
 			return Yield.DidWork.Invoke(ProcessQueue);
 		}
 
-		private void TryEnqueueTick() {
+		private Yield TryEnqueuePacket() {
+			if( quotePacket.Data.GetBuffer().Length == 0) {
+				return Yield.NoWork.Repeat;
+			}
 			if( fixSimulatorSupport.QuotePacketQueue.Count == 0 &&
 			    fixSimulatorSupport.QuoteSocket.SendQueueCount == 0 &&
 			    fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket,quotePacket.UtcTime)) {
+				if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quotePacket.UtcTime));
 				quotePacket = fixSimulatorSupport.QuoteSocket.CreatePacket();
 			} else {
 				var startTime = TimeStamp.UtcNow;
 				do {
-					startTime.AddMilliseconds(100);
-				} while( !tickTimer.Start(startTime));
+					startTime.AddMicroseconds(100);
+				} while( !packetTimer.Start(startTime));
 			}
+			return Yield.DidWork.Repeat;
 		}
 		
 		private Yield PlayBackTick() {
@@ -265,10 +276,10 @@ namespace TickZoom.FIX
 				if( trace) log.Trace("Sending tick from timer event: " + nextTick.UtcTime);
 				var result = SendPlayBackTick();
 				if( !result.IsIdle) {
+					if( trace) log.Trace("From timer, invoking ProcessOnTickCallBack");
 					result = ProcessOnTickCallBack();
 				}
 			}
-			TryEnqueueTick();
 			return Yield.DidWork.Repeat;
 		}
 		

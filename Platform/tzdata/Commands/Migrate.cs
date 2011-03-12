@@ -69,6 +69,7 @@ namespace TickZoom.TZData
 						while( !reader.ReadQueue.TryDequeue(ref tickBinary)) {
 							Thread.Sleep(1);
 						}
+						reader.ReadQueue.RemoveStruct();
 						tickIO.Inject(tickBinary);
 						while( !writer.TryAdd(tickIO)) {
 							Thread.Sleep(1);

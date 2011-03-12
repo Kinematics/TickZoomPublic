@@ -41,7 +41,7 @@ namespace TickZoom.Api
 		/// </summary>
 		void Boost();
 		void IncreaseActivity();
-		void DecreaseActivity();
+		void DecreaseActivityX();
 		void UpdateUtcTime(object source,long utcTime);
 		bool HasActivity {
 			get;

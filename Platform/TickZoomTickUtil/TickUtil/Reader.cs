@@ -460,7 +460,7 @@ namespace TickZoom.TickUtil
 			if (!receiver.OnEvent(symbol, (int)EventType.EndHistorical, null)) {
 				return Yield.NoWork.Repeat;
 			} else {
-				log.Info("EndHistorical for " + symbol);
+				if( debug) log.Debug("EndHistorical for " + symbol);
 				return Yield.DidWork.Invoke(FinishTask);
 			}
 		}

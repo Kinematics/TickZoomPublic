@@ -57,7 +57,7 @@ namespace TickZoom.TickUtil
 	
 	public class FastQueueImpl<T> : FastQueue<T> // where T : struct
 	{
-		private static readonly Log log = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueueImpl<" + typeof(FastQueueImpl<T>).GetGenericArguments()[0].Name + ">");
+		private static readonly Log log = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueueImpl.<" + typeof(FastQueueImpl<T>).GetGenericArguments()[0].Name + ">");
 		private readonly bool debug = log.IsDebugEnabled;
 		private readonly bool trace = log.IsTraceEnabled;
 		private readonly Log instanceLog;
@@ -92,6 +92,7 @@ namespace TickZoom.TickUtil
 		int backupLevel = 20;
 		long earliestUtcTime = long.MaxValue;
 		private Task task;
+		private int count;
 		
 		public long EarliestUtcTime {
 			get { return earliestUtcTime; }
@@ -122,7 +123,6 @@ namespace TickZoom.TickUtil
             {
                 this.name = ((Type) name).Name;
             }
-//            this.name += "\n" + Environment.StackTrace;
 			this.maxSize = maxSize;
 			this.lowWaterMark = maxSize / 2;
 			this.highWaterMark = maxSize / 2;
@@ -188,10 +188,10 @@ namespace TickZoom.TickUtil
 		    		}
 	            }
 	            if( queue == null ) return false;
-	            var count = queue.Count;
-	            if( count>=maxSize) {
+	            var temp = queue.Count;
+	            if( temp>=maxSize) {
 	            	return false;
-	            } else if( count == 0) {
+	            } else if( temp == 0) {
 	            	this.earliestUtcTime = utcTime;
 	            	if( task != null) {
 	            		task.UpdateUtcTime(this,utcTime);
@@ -199,11 +199,25 @@ namespace TickZoom.TickUtil
 	            }
 	            var node = NodePool.Create(new FastQueueEntry<T>(tick,utcTime));
 	           	queue.AddFirst(node);
+	           	Interlocked.Increment(ref count);
 	           	if( task != null) task.IncreaseActivity();
             } finally {
 	            SpinUnLock();
             }
 	        return true;
+	    }
+	    
+	    public void RemoveStruct() {
+            while( !SpinLockNB());
+	    	var tempCount = Interlocked.Decrement(ref count);
+	    	var tempQueueCount = queue.Count;
+	    	SpinUnLock();
+	    	if( tempCount < tempQueueCount) {
+	    		throw new ApplicationException("Attempt to reduce FastQueue count less than internal queue: count " + tempCount + ", queue.Count " + tempQueueCount);
+	    	}
+	    	if( task != null) {
+	    		task.DecreaseActivityX();
+	    	}
 	    }
 	    
 	    public bool DequeueStruct(ref T tick) {
@@ -269,7 +283,7 @@ namespace TickZoom.TickUtil
 	    		if( !StartDequeue()) return false;
 	    	}
 	        if( queue == null || queue.Count==0) return false;
-	        var count = 0;
+	        var temp = 0;
 	    	if( !SpinLockNB()) return false;
 	    	try {
 	            if( isDisposed) {
@@ -280,24 +294,22 @@ namespace TickZoom.TickUtil
 		    		}
 	            }
 		        if( queue == null || queue.Count==0) return false;
+	            if( count != queue.Count) {
+		        	throw new ApplicationException("Attempt to dequeue another item before calling RemoveStruct() for previously dequeued item. count " + temp + ", queue.Count " + queue.Count);
+	            }
 		        var last = queue.Last;
 		        tick = last.Value.Entry;
 		        queue.Remove(last);
 		        NodePool.Free(last);
-	            count = queue.Count;
-	            if( count == 0) {
-		            earliestUtcTime = long.MaxValue;
-		            if( task != null) {
-			            task.UpdateUtcTime(this,earliestUtcTime);
-		            }
-	            } else
-	            {
-                    earliestUtcTime = queue.Count == 0 ? long.MaxValue : queue.Last.Value.utcTime;
-                }
+	            temp = queue.Count;
+                earliestUtcTime = queue.Count == 0 ? long.MaxValue : queue.Last.Value.utcTime;
+	            if( task != null) {
+		            task.UpdateUtcTime(this,earliestUtcTime);
+	            }
 	    	} finally {
 	            SpinUnLock();
 	    	}
- 			if( count == 0) {
+ 			if( temp == 0) {
             	if( isBackingUp) {
             		isBackingUp = false;
             		if( debug) log.Debug( name + " queue now cleared after backup to " + maxLastBackup + " items.");
