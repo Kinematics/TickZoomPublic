@@ -154,7 +154,10 @@ namespace TickZoom.TickUtil
         }
         
 	    public void Connect(Task task) {
-			this.task = task;
+			if( this.task != task) {
+				this.task = task;
+				task.Connect( this);
+			}
 	    }
 	    
 		private bool isBackingUp = false;
@@ -303,9 +306,11 @@ namespace TickZoom.TickUtil
 		        NodePool.Free(last);
 	            temp = queue.Count;
                 earliestUtcTime = queue.Count == 0 ? long.MaxValue : queue.Last.Value.utcTime;
-	            if( task != null) {
-		            task.UpdateUtcTime(this,earliestUtcTime);
-	            }
+                if( queue.Count == 0) {
+		            if( task != null) {
+			            task.UpdateUtcTime(this,earliestUtcTime);
+	    	        }
+                }
 	    	} finally {
 	            SpinUnLock();
 	    	}

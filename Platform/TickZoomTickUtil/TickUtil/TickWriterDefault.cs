@@ -151,7 +151,7 @@ namespace TickZoom.TickUtil
 		protected virtual void StartAppendThread() {
 			string baseName = Path.GetFileNameWithoutExtension(fileName);
 			appendTask = Factory.Parallel.Loop(baseName + " writer",OnException, AppendData);
-			appendTask.IsActivityEnabled = true;
+			appendTask.Scheduler = Scheduler.QualityOfService;
 			writeQueue.Connect(appendTask);
 			appendTask.Start();
 		}

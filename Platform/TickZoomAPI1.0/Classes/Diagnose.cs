@@ -1,4 +1,4 @@
-#region Copyright
+﻿#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2009 M. Wayne Walter
@@ -25,45 +25,20 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Threading;
 
 namespace TickZoom.Api
 {
-	public class SimpleLock : IDisposable {
-		private static Log log = Factory.SysLog.GetLogger(typeof(SimpleLock));
-		private string lastLock = "";
-		private bool debug = log.IsDebugEnabled;
-	    private int isLocked = 0;
-	    
-		public bool IsLocked {
-			get { return isLocked == 1; }
+	public static class Diagnose
+	{
+		public static void Assert( bool condition, Func<object> logMessage) {
+			if( !condition) {
+				var message = logMessage();
+				throw new InvalidOperationException("Debug assertion failed: " + message);
+			}
 		}
-	    
-		public bool TryLock() {
-	    	return isLocked == 0 && Interlocked.CompareExchange(ref isLocked,1,0) == 0;
-	    }
-	    
-		public void Lock() {
-			while( !TryLock());
-	    }
-	    
-	    public SimpleLock Using() {
-	    	Lock();
-	    	return this;
-	    }
-	    
-	    public void Unlock() {
-	    	Interlocked.Exchange(ref isLocked, 0);
-	    }
-		
-		public void Dispose()
-		{
-			Unlock();
-		}
-		
-		public string LastLock {
-			get { return lastLock; }
-		}
-	    
 	}
 }

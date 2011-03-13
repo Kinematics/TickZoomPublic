@@ -28,6 +28,15 @@ using System;
 
 namespace TickZoom.Api
 {
+	[Flags]
+	public enum Scheduler {
+		None = 0,
+		RoundRobin = 1,
+		EarliestTime = 2,
+		Activity = 4,
+		QualityOfService = RoundRobin | EarliestTime | Activity, 
+	}
+	
 	public interface Task {
 		void Start();
 		void Stop();
@@ -43,6 +52,7 @@ namespace TickZoom.Api
 		void IncreaseActivity();
 		void DecreaseActivityX();
 		void UpdateUtcTime(object source,long utcTime);
+		void Connect( Queue queue);
 		bool HasActivity {
 			get;
 		}
@@ -65,7 +75,7 @@ namespace TickZoom.Api
 			set;
 		}
 		
-		bool IsActivityEnabled {
+		Scheduler Scheduler {
 			get;
 			set;
 		}

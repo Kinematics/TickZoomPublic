@@ -1,4 +1,4 @@
-#region Copyright
+﻿#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2009 M. Wayne Walter
@@ -47,6 +47,10 @@ namespace TickZoom.FIX
 		private LatencyMetric latency;
 		private TrueTimer tickTimer;
 		private TrueTimer packetTimer;
+		private long intervalTime = 1000000;
+		private long prevTickTime;
+		private bool isVolumeTest = false;
+		private long tickCounter = 0;
 		
 		public FIXServerSymbolHandler( FIXSimulatorSupport fixSimulatorSupport, 
 		    bool isPlayBack, string symbolString,
@@ -67,7 +71,7 @@ namespace TickZoom.FIX
 			queueTask = Factory.Parallel.Loop("FIXServerSymbol-"+symbolString, OnException, ProcessQueue);
 			tickTimer = Factory.Parallel.CreateTimer(queueTask,PlayBackTick);
 			packetTimer = Factory.Parallel.CreateTimer(queueTask,TryEnqueuePacket);
-			queueTask.IsActivityEnabled = true;
+			queueTask.Scheduler = Scheduler.QualityOfService;
 			reader.ReadQueue.Connect( queueTask);
 			queueTask.Start();
 			latency = new LatencyMetric("FIXServerSymbolHandler-"+symbolString.StripInvalidPathChars());
@@ -127,10 +131,6 @@ namespace TickZoom.FIX
 			}
 		}
 
-		private long intervalTime = 1000000;
-		private long prevTickTime;
-		private bool isVolumeTest = false;
-		private long tickCounter = 0;
 		private Yield DequeueTick() {
 			var result = Yield.NoWork.Repeat;
 			var binary = new TickBinary();
@@ -152,7 +152,7 @@ namespace TickZoom.FIX
 							binary.UtcTime += playbackOffset;
 						}
 						if( tickCounter > 10) {
-							intervalTime = 1000;
+							intervalTime = 300;
 						}
 						var time = new TimeStamp( binary.UtcTime);
 				   	} 

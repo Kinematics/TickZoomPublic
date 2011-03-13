@@ -66,6 +66,7 @@
     <Compile Include="Aspects\DiagramInstance.cs" />
     <Compile Include="Aspects\DiagramObject.cs" />
     <Compile Include="Classes\BootStrapLoader.cs" />
+    <Compile Include="Classes\Diagnose.cs" />
     <Compile Include="Classes\LatencyManager.cs" />
     <Compile Include="Classes\LatencyMetric.cs" />
     <Compile Include="Engine\LogEvent.cs" />
