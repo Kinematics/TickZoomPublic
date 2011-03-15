@@ -46,14 +46,14 @@ namespace TickZoom.MBTQuotes
 		private BinaryWriter dataOut;
 		private static int packetIdCounter = 0;
 		private int id = 0;
-		private string symbol;
-		private string feedType;
+		private StringBuilder symbol = new StringBuilder();
+        private StringBuilder feedType = new StringBuilder();
 		private double bid;
 		private double ask;
 		private int askSize;
 		private int bidSize;
-		private string time;
-		private string date;
+        private StringBuilder time = new StringBuilder();
+        private StringBuilder date = new StringBuilder();
 		private long utcTime = long.MaxValue;
 		private double last;
 		
@@ -141,16 +141,16 @@ namespace TickZoom.MBTQuotes
 					int key = GetKey(ref ptr, end);
 					switch( key) {
 						case 1003: // Symbol
-							symbol = GetString( ref ptr, end);
+							GetString( symbol, ref ptr, end);
 							break;
 						case 2000: // Type of Data
-							feedType = GetString( ref ptr, end);
+							GetString( feedType, ref ptr, end);
 							break;
 						case 2014: // Time
-							time = GetString( ref ptr, end);
+							GetString( time, ref ptr, end);
 							break;
 						case 2015: // Date
-							date = GetString( ref ptr, end);
+							GetString( date, ref ptr, end);
 							break;
 						case 2003: // Bid
 							bid = GetDouble(ref ptr, end);
@@ -183,12 +183,9 @@ namespace TickZoom.MBTQuotes
 							SkipValue(ref ptr, end);
 							break;
 					}
-					if( *(ptr-1) == 10) {
-						if( !string.IsNullOrEmpty(date) && !string.IsNullOrEmpty(time)) {
-							var strings = date.Split( new char[] { '/' } );
-							date = strings[2] + "/" + strings[0] + "/" + strings[1];
-							utcTime = new TimeStamp( date + " " + time).Internal;
-						}
+					if( *(ptr-1) == 10)
+					{
+					    utcTime = long.MinValue;
 						return;
 					}
 				}
@@ -270,14 +267,15 @@ namespace TickZoom.MBTQuotes
 	        }
 		}
 		
-		private unsafe string GetString( ref byte* ptr, byte *end) {
+		private unsafe void GetString( StringBuilder sb, ref byte* ptr, byte *end)
+		{
+		    sb.Length = 0;
 			byte *sptr = ptr;
 			while (*(++ptr) != 59 && *ptr != 10 && ptr < end);
 	        int length = (int) (ptr - sptr);
 	        ++ptr;
-			var result = new string(dataIn.ReadChars(length));
+			sb.Append(dataIn.ReadChars(length));
 			data.Position++;
-			return result;
 		}
         
 		private unsafe void SkipValue( ref byte* ptr, byte *end) {
@@ -345,12 +343,24 @@ namespace TickZoom.MBTQuotes
 		}
 		
 		public long UtcTime {
-			get { return utcTime; }
+			get
+			{
+                if( utcTime == long.MinValue)
+                {
+                    if (date.Length != 0 && time.Length != 0)
+                    {
+                        var strings = date.ToString().Split(new char[] { '/' });
+                        var tempDate = strings[2] + "/" + strings[0] + "/" + strings[1];
+                        utcTime = new TimeStamp(tempDate + " " + time).Internal;
+                    }
+                }
+			    return utcTime;
+			}
 			set { utcTime = value; }
 		}
 				
 		public string Symbol {
-			get { return symbol; }
+			get { return symbol.ToString(); }
 		}
 		
 		public double Bid {
@@ -370,15 +380,15 @@ namespace TickZoom.MBTQuotes
 		}
 		
 		public string Time {
-			get { return time; }
+			get { return time.ToString(); }
 		}
 		
 		public string Date {
-			get { return date; }
+			get { return date.ToString(); }
 		}
 		
 		public string FeedType {
-			get { return feedType; }
+			get { return feedType.ToString(); }
 		}
 	}
 }

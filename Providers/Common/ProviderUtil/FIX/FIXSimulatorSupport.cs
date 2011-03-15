@@ -203,7 +203,7 @@ namespace TickZoom.FIX
 					if( FIXReadLoop()) {
 						result = true;
 					} else {
-						TryRequestHeartbeat( TimeStamp.UtcNow);
+						TryRequestHeartbeat( Factory.Parallel.TickCount);
 					}
 				ProcessFIX:
 					hasFIXPacket = ProcessFIXPackets();
@@ -423,14 +423,14 @@ namespace TickZoom.FIX
 			}
 		}
 
-		private TimeStamp heartbeatTimer;
+		private long heartbeatTimer;
 		private bool firstHeartbeat = true;
-		private void IncreaseHeartbeat(TimeStamp currentTime) {
+		private void IncreaseHeartbeat(long currentTime) {
 			heartbeatTimer = currentTime;
-			heartbeatTimer.AddSeconds(30);
+		    heartbeatTimer += 30*1000; // 30 seconds.
 		}		
 
-		private void TryRequestHeartbeat(TimeStamp currentTime) {
+		private void TryRequestHeartbeat(long currentTime) {
 			if( firstHeartbeat) {
 				IncreaseHeartbeat(currentTime);
 				firstHeartbeat = false;
