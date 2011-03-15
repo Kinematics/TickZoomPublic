@@ -151,7 +151,7 @@ namespace TickZoom.TickUtil
 
 		public void Initialize(string fileName)
 		{
-			this.fileName = fileName;
+            this.fileName = fileName = Path.GetFullPath(fileName);
 			CheckFileExtension();
 			if (debug)
 				log.Debug("File Name = " + fileName);

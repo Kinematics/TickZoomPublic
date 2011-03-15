@@ -12,7 +12,8 @@ using TickZoom.Api;
 
 namespace TickZoom.TZData
 {
-	public abstract class Command : CommandInterface {
+    public abstract class Command : CommandInterface
+    {
 		private Action<string> output = Console.WriteLine;
 		public Action<string> Output {
 			get { return output; }
@@ -296,7 +297,7 @@ namespace TickZoom.TZData
 		}		
 
 		public override string[] Usage() {
-			return new string[] { assemblyName + " importer <symbol> <fromfile> <tofile> [<starttimestamp> <endtimestamp>]" };
+			return new string[] { assemblyName + " import <symbol> <fromfile> <tofile> [<starttimestamp> <endtimestamp>]" };
 		}
 		
 		public string AssemblyName {

@@ -337,15 +337,15 @@ namespace TickZoom.TickUtil
 				var diff = (binary.UtcTime - lastBinary.UtcTime);
 				WriteField( BinaryField.Time, &ptr, diff);
 				if( IsQuote) {
-					WriteField( BinaryField.Bid, &ptr, (binary.Bid - lastBid) / pricePrecision);
-					WriteField( BinaryField.Ask, &ptr, (binary.Ask - lastAsk) / pricePrecision);
-					lastBid = binary.Bid;
-					lastAsk = binary.Ask;
+					WriteField( BinaryField.Bid, &ptr, binary.Bid / pricePrecision - lastBid);
+					WriteField( BinaryField.Ask, &ptr, binary.Ask / pricePrecision - lastAsk);
+                    lastBid = binary.Bid / pricePrecision;
+                    lastAsk = binary.Ask / pricePrecision;
 				}
 				if( IsTrade) {
-					WriteField( BinaryField.Price, &ptr, (binary.Price - lastPrice) / pricePrecision);
+					WriteField( BinaryField.Price, &ptr, binary.Price / pricePrecision - lastPrice);
 					WriteField( BinaryField.Size, &ptr, binary.Size - lastSize);
-					lastPrice = binary.Price;
+					lastPrice = binary.Price / pricePrecision;
 					lastSize = binary.Size;
 				}
 				if( HasDepthOfMarket) {

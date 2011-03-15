@@ -259,14 +259,19 @@ namespace TickZoom.Api
 				strings = time.Split(new char[] {':'});
 				hour = ToInt32(strings[0]);
 				minute = ToInt32(strings[1]);
-				strings = strings[2].Split(new char[] {'.'});
-				second = ToInt32(strings[0]);
-				if( strings.Length>1) {
-					millis = ToInt32(strings[1]);
-				}
-				if( strings.Length>2) {
-					micros = ToInt32(strings[2]);
-				}
+                if( strings.Length > 2)
+                {
+                    strings = strings[2].Split(new char[] { '.' });
+                    second = ToInt32(strings[0]);
+                    if (strings.Length > 1)
+                    {
+                        millis = ToInt32(strings[1]);
+                    }
+                    if (strings.Length > 2)
+                    {
+                        micros = ToInt32(strings[2]);
+                    }
+                }
 			}
 			if( dateSeparator != null) {
 				strings = date.Split(dateSeparator);

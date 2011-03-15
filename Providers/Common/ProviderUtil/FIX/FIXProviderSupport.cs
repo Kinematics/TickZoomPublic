@@ -1,4 +1,4 @@
-#region Copyright
+﻿#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2009 M. Wayne Walter
@@ -71,6 +71,7 @@ namespace TickZoom.FIX
         private bool hasFirstRecovery = false;
         private bool useLocalFillTime = true;
 		private FIXTFactory fixFactory;
+	    private string appDataFolder;
         
 		public bool UseLocalFillTime {
 			get { return useLocalFillTime; }
@@ -91,6 +92,16 @@ namespace TickZoom.FIX
 			socketTask.Start();
   			string logRecoveryString = Factory.Settings["LogRecovery"];
   			logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
+            appDataFolder = Factory.Settings["AppDataFolder"];
+            if (appDataFolder == null)
+            {
+                throw new ApplicationException("Sorry, AppDataFolder must be set.");
+            }
+            failedFile = appDataFolder + @"/Providers/" + providerName + "/LoginFailed.txt";
+            if (File.Exists(failedFile))
+            {
+                log.Error("Please correct the username or password error described in " + failedFile + ". Then delete the file before retrying, please.");
+            }
         }
 		
 		protected void RegenerateSocket() {
@@ -159,7 +170,7 @@ namespace TickZoom.FIX
 			PendingRetry
 		}
 		
-		public void FailLogin(string packetString) {
+		public void WriteFailedLoginFile(string packetString) {
 			string message = "Login failed for user name: " + userName + " and password: " + new string('*',password.Length);
 			string fileMessage = "Resolve the problem and then delete this file before you retry.";
 			string logMessage = "Resolve the problem and then delete the file " + failedFile + " before you retry.";
@@ -173,7 +184,6 @@ namespace TickZoom.FIX
 				fileOut.WriteLine(packetString);
 			}
 			log.Error(message + " " + logMessage + "\n" + packetString);
-			throw new ApplicationException(message + " " + logMessage);
 		}
 		
 		private void OnDisconnect( Socket socket) {
@@ -225,6 +235,10 @@ namespace TickZoom.FIX
 			if( isDisposed ) return Yield.NoWork.Repeat;
 			switch( socket.State) {
 				case SocketState.New:
+                    if( CheckFailedLoginFile() )
+                    {
+                        return Yield.NoWork.Repeat;
+                    }
 					if( receiver != null && Factory.Parallel.TickCount > nextConnectTime) {
 						Initialize();
 						retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
@@ -316,7 +330,13 @@ namespace TickZoom.FIX
 					throw new ApplicationException(message);
 			}
 		}
-		private TimeStamp lastMessage;
+
+	    private bool CheckFailedLoginFile()
+	    {
+            return File.Exists(failedFile);
+        }
+
+	    private TimeStamp lastMessage;
 		
 		private bool CheckForResend(Packet packet) {
 			var packetFIX = (PacketFIXT1_1) packet;
@@ -446,10 +466,7 @@ namespace TickZoom.FIX
 			userName = GetField("UserName",configFile, true);
 			password = GetField("Password",configFile, true);
 			accountNumber = GetField("AccountNumber",configFile, true);
-			
-			if( File.Exists(failedFile) ) {
-				throw new ApplicationException("Please correct the username or password error described in " + failedFile + ". Then delete the file before retrying, please.");
-			}
+
         }
         
         private string GetField( string field, ConfigFile configFile, bool required) {

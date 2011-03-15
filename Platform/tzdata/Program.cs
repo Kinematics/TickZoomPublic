@@ -44,7 +44,8 @@ namespace TickZoom.TZData
 			commands["register"] = new Register();
 			commands["open"] = new Open();
 			commands["import"] = new Import();
-			commands["project"] = new Project();
+            commands["export"] = new Export();
+            commands["project"] = new Project();
 			
 			if( args.Length == 0) {
 				Console.WriteLine("tzdata Usage:");

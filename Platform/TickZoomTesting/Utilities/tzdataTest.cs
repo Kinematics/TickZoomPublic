@@ -165,8 +165,38 @@ namespace TickZoom.Utilities
 		       	}
 	       	}
 		}
-		
-		[Test]
+
+        [Test]
+        public void TestExport()
+        {
+            string storageFolder = Factory.Settings["AppDataFolder"];
+            if (storageFolder == null)
+            {
+                throw new ApplicationException("Must set AppDataFolder property in app.config");
+            }
+            var symbol = Factory.Symbol.LookupSymbol("KC");
+            var sb = new StringBuilder();
+            string[] args =
+            {
+                storageFolder + @"\Test\\DataCache\ESH0.tck",
+                "2010-02-16 16:00",
+                "2010-02-16 21:49:28.793"
+            };
+            var export = new Export();
+            export.Output = sb.WriteLine;
+            export.DataFolder = @"Test\DataCache";
+            export.AssemblyName = "tzdata";
+            export.Run(args);
+
+            var expectedOutput = @"2010-02-16 16:49:28.769 1063,10, 0/0 0,0,0,0,0|0,0,0,0,0
+2010-02-16 16:49:28.791 1062.75,1, 0/0 0,0,0,0,0|0,0,0,0,0
+2010-02-16 16:49:28.792 1062.75,1, 0/0 0,0,0,0,0|0,0,0,0,0
+2010-02-16 16:49:28.793 1062.75,2, 0/0 0,0,0,0,0|0,0,0,0,0
+";
+            Assert.AreEqual(expectedOutput,sb.ToString());
+        }
+
+        [Test]
 		public void TestMigrate()
 		{
 	       	string storageFolder = Factory.Settings["AppDataFolder"];

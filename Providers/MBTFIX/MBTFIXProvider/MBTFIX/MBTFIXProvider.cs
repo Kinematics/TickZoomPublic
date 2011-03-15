@@ -138,8 +138,10 @@ namespace TickZoom.MBTFIX
 				if( IsInterrupted) return Yield.NoWork.Repeat;
 				Factory.Parallel.Yield();
 				if( Factory.Parallel.TickCount > end) {
-					FailLogin(mbtMsg.ToString());
-				}
+					WriteFailedLoginFile(mbtMsg.ToString());
+                    RegenerateSocket();
+                    return Yield.DidWork.Repeat;
+                }
 			}
 
 			if( debug) log.Debug("Received FIX message: " + packet);
