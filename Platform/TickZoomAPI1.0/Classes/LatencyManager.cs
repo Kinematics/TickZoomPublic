@@ -34,11 +34,18 @@ namespace TickZoom.Api
 	public struct LatencyLogEntry {
 		public int Count;
 		public int Id;
-		public int TickTime;
-		public int UtcTime;
+		public long TickTime;
+		public long UtcTime;
 	    public int Selects;
+	    public int TryReceive;
+	    public int Receives;
+	    public int Sends;
+	    public int RoundRobin;
+	    public int Earliest;
 	}
-	public class LatencyManager : IDisposable {
+	public class LatencyManager : IDisposable
+	{
+	    public static long TryReadCounter = 0;
 		private static readonly Log log = Factory.Log.GetLogger(typeof(LatencyManager));
 		private static readonly bool debug = log.IsDebugEnabled;
 		private static int count;
@@ -64,21 +71,64 @@ namespace TickZoom.Api
 		}
 
 	    private long lastSelectCount;
+	    private long lastRoundRobinCount;
+	    private long lastEarliestCount;
+	    private long lastReceiveCount;
+	    private long lastTryReadCount;
+	    private long lastSendCount;
+	    private int previousId = 0;
+	    private int idCounter = 0;
 		public void Log( int id, long utcTickTime)
 		{
-		    var selectCount = Factory.Provider.Manager.SelectCount;
+		    var showLog = false;
+            if (id == previousId)
+            {
+                idCounter++;
+            }
+            else
+            {
+                if (previousId == 0 && idCounter >= 10)
+                {
+                    showLog = true;
+                }
+                idCounter = 0;
+            }
+            var selectCount = Factory.Provider.Manager.SelectCount;
+		    var roundRobinCounter = Factory.Parallel.RoundRobinCounter;
+		    var earliestCounter = Factory.Parallel.EarliestCounter;
+		    var sendCounter = Factory.Provider.Manager.SendCounter;
+		    var receiveCounter = Factory.Provider.Manager.ReceiveCounter;
+		    var tryReadCounter = Interlocked.Read(ref TryReadCounter);
 		    var entry = new LatencyLogEntry {
                 Count = latencyLog.BarCount,
                 Id = id,
-                TickTime = (int) (utcTickTime - latencyLogStartTime)/100,
-                UtcTime = (int) (TimeStamp.UtcNow.Internal - latencyLogStartTime)/100,
-                Selects = (int) (selectCount - lastSelectCount),
+                TickTime = utcTickTime,
+                UtcTime = TimeStamp.UtcNow.Internal,
+                Selects = (int)(selectCount - lastSelectCount),
+                TryReceive = (int) (tryReadCounter - lastTryReadCount),
+                Receives = (int) (receiveCounter - lastReceiveCount),
+                Sends = (int) (sendCounter - lastSendCount),
+                RoundRobin = (int) (roundRobinCounter - lastRoundRobinCount),
+                Earliest = (int) (earliestCounter - lastEarliestCount),
 			};
 		    lastSelectCount = selectCount;
-			using( latencyLogLocker.Using()) {
-				latencyLog.Add(entry);
-			}
-		}
+		    lastTryReadCount = tryReadCounter;
+		    lastReceiveCount = receiveCounter;
+		    lastSendCount = sendCounter;
+		    lastRoundRobinCount = roundRobinCounter;
+		    lastEarliestCount = earliestCounter;
+			latencyLogLocker.Lock();
+			latencyLog.Add(entry);
+            latencyLogLocker.Unlock();
+		    previousId = id;
+            //if (latencyLog.BarCount == 500)
+            ////if (false && showLog)
+            //{
+            //    log.Info(LatencyManager.GetInstance().GetStats() + "\n" + Factory.Parallel.GetStats());
+            //    log.Info("Latency log:\n" + LatencyManager.GetInstance().WriteLog(600));
+            //    System.Diagnostics.Debugger.Break();
+            //}
+        }
 		
 		public int LogCount {
 			get {
@@ -94,7 +144,12 @@ namespace TickZoom.Api
 					var startTime = latencyLog[begin].UtcTime;
 					for( int i=begin; i>=0; i--) {
 						var entry = latencyLog[i];
-						sb.AppendLine( entry.Count + ": " + entry.Id + " => " + entry.TickTime + " at " + entry.UtcTime + " latency " + (entry.UtcTime - entry.TickTime) + "00us, selects " + entry.Selects);
+					    var latency = entry.UtcTime - entry.TickTime;
+					    var tickTime = new TimeStamp(entry.TickTime).TimeOfDay;
+					    var tickTimeStr = tickTime + "." + tickTime.Microseconds;
+					    var time = new TimeStamp(entry.UtcTime).TimeOfDay;
+					    var timeStr = time + "." + time.Microseconds;
+						sb.AppendLine( entry.Count + ": " + entry.Id + " => " + tickTimeStr + " at " + timeStr + " latency " + latency + "us, selects " + entry.Selects + ", send " + entry.Sends + ", receive " + entry.Receives + ", (try " + entry.TryReceive + "), roundR " + entry.RoundRobin + ", earliest " + entry.Earliest);
 					}
 				}
 				return sb.ToString();

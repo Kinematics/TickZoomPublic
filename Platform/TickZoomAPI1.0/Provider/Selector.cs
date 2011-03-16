@@ -37,5 +37,7 @@ namespace TickZoom.Api
 		void OnUtcChange( object source, long utcTime);
 		Task Task { get; }
         long SelectCount { get; }
-    }
+	    long ReceiveCounter { get; }
+	    long SendCounter { get; }
+	}
 }

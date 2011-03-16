@@ -110,6 +110,8 @@ namespace TickZoom.Api
 		Task Loop(object creator, Action<Exception> onException, YieldMethod loop);
 		Task IOLoop(object creator, Action<Exception> onException, YieldMethod loop);
 		void While(object creator, Action<Exception> onException, Func<bool> loop);
+	    long EarliestCounter { get; }
+	    long RoundRobinCounter { get; }
 	}
 	
 	public interface ForLoop {

@@ -156,11 +156,6 @@ namespace TickZoom.Api
 			return value == 0 ? 0 : value > 0 ? 1 : -1;
 		}
 		
-//		public static implicit operator long( Elapsed elapsed )
-//		{
-//			return elapsed.elapsed;
-//		}
-		
 		#region Equals and GetHashCode implementation
 		// The code in this region is useful if you want to use this structure in collections.
 		// If you don't need it, you can just remove the region and the ": IEquatable<Elapsed>" declaration.
@@ -193,7 +188,8 @@ namespace TickZoom.Api
 		
 		public override string ToString()
 		{
-			return TotalHours.ToString().PadLeft(2,'0') + ":" + Minutes.ToString().PadLeft(2,'0') + ":" + Seconds.ToString().PadLeft(2,'0') + "." + Milliseconds.ToString().PadLeft(3,'0');
+		    return TotalHours.ToString().PadLeft(2, '0') + ":" + Minutes.ToString().PadLeft(2, '0') + ":" +
+		           Seconds.ToString().PadLeft(2, '0') + "." + Milliseconds.ToString().PadLeft(3, '0'); // +Microseconds.ToString().PadLeft(3, '0');
 		}
 	}
 }

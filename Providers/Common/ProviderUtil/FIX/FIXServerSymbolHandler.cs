@@ -131,12 +131,25 @@ namespace TickZoom.FIX
 			}
 		}
 
+        private long GetNextUtcTime( long utcTime)
+        {
+            if (isVolumeTest)
+            {
+                return prevTickTime + intervalTime;
+            }
+            else
+            {
+                return utcTime + playbackOffset;
+            }
+        }
+
 		private Yield DequeueTick() {
 			var result = Yield.NoWork.Repeat;
 			var binary = new TickBinary();
 			
 			try { 
-				if( reader.ReadQueue.TryDequeue( ref binary)) {
+				if( reader.ReadQueue.TryDequeue( ref binary))
+				{
 					tickStatus = TickStatus.None;
 					tickCounter++;
 				   	if( isPlayBack) {
@@ -145,12 +158,8 @@ namespace TickZoom.FIX
 							prevTickTime = TimeStamp.UtcNow.Internal + 5000000;
 					   		isFirstTick = false;
 						}
-						if( isVolumeTest) {
-							prevTickTime += intervalTime;
-							binary.UtcTime = prevTickTime;
-						} else {
-							binary.UtcTime += playbackOffset;
-						}
+				   	    binary.UtcTime = GetNextUtcTime(binary.UtcTime);
+				   	    prevTickTime = binary.UtcTime;
 						if( tickCounter > 10) {
 							intervalTime = 1000;
 						}
@@ -246,38 +255,56 @@ namespace TickZoom.FIX
 			}
  			reader.ReadQueue.RemoveStruct();
 			tickStatus = TickStatus.Sent;
-			TryEnqueuePacket();
-			return Yield.DidWork.Invoke(ProcessQueue);
+            if( isPlayBack && reader.ReadQueue.Count > 0)
+            {
+                var result = Yield.DidWork.Invoke(ProcessQueue);
+                var item = default(QueueItem);
+                reader.ReadQueue.PeekStruct(ref item);
+                if (item.EventType == (int)EventType.Tick)
+                {
+                    var nextTime = GetNextUtcTime(item.Tick.UtcTime);
+                    var currentTime = TimeStamp.UtcNow.Internal;
+                    if (nextTime > currentTime)
+                    {
+                        if( trace) log.Trace("Sending tick because next " + new TimeStamp(nextTime).TimeOfDay + " greater than current " + new TimeStamp(currentTime).TimeOfDay);
+                        return Yield.DidWork.Invoke(TryEnqueuePacket);
+                    } else
+                    {
+                        if (trace) log.Trace("Buffering tick because next " + new TimeStamp(nextTime).TimeOfDay + " less than current " + new TimeStamp(currentTime).TimeOfDay);
+                    }
+                }
+                return result;
+            }
+            else
+            {
+                return Yield.DidWork.Invoke(TryEnqueuePacket);
+            }
 		}
 
 		private Yield TryEnqueuePacket() {
 			if( quotePacket.Data.GetBuffer().Length == 0) {
 				return Yield.NoWork.Repeat;
 			}
-			if( fixSimulatorSupport.QuotePacketQueue.Count == 0 &&
-			    fixSimulatorSupport.QuoteSocket.SendQueueCount == 0 &&
-			    fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket,quotePacket.UtcTime)) {
-				if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quotePacket.UtcTime));
-				quotePacket = fixSimulatorSupport.QuoteSocket.CreatePacket();
-			} else {
-				var startTime = TimeStamp.UtcNow;
-				do {
-					startTime.AddMicroseconds(100);
-				} while( !packetTimer.Start(startTime));
-			}
-			return Yield.DidWork.Repeat;
+            TickBinary nextBinary;
+		    while( !fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket,quotePacket.UtcTime))
+		    {
+		        if( fixSimulatorSupport.QuotePacketQueue.IsFull)
+		        {
+		            return Yield.NoWork.Repeat;
+		        }
+		    }
+			if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quotePacket.UtcTime));
+			quotePacket = fixSimulatorSupport.QuoteSocket.CreatePacket();
+			return Yield.DidWork.Return;
 		}
 		
 		private Yield PlayBackTick() {
+            var result = Yield.DidWork.Repeat;
 			if( tickStatus == TickStatus.Timer) {
 				if( trace) log.Trace("Sending tick from timer event: " + nextTick.UtcTime);
-				var result = SendPlayBackTick();
-				if( !result.IsIdle) {
-					if( trace) log.Trace("From timer, invoking ProcessOnTickCallBack");
-					result = ProcessOnTickCallBack();
-				}
+				result = Yield.DidWork.Invoke(SendPlayBackTick);
 			}
-			return Yield.DidWork.Repeat;
+			return result;
 		}
 		
 		private void OnException( Exception ex) {

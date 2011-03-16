@@ -56,15 +56,17 @@ namespace TickZoom.Api
 		}
 		
 		public void TryUpdate( long symbol, long timeStamp) {
-			if( debug) {
-			    if( id == int.MinValue) {
-					this.symbol = symbol;
-					this.manager = LatencyManager.Register(this, out id, out metricCount, out previous);
-					if( trace) log.Trace( "Registered " + name + " metric (" + id + ") on tick " + new TimeStamp( timeStamp) + ")");
-				}
-				Update( timeStamp);
-				tickCount++;
+		    if( id == int.MinValue) {
+				this.symbol = symbol;
+				this.manager = LatencyManager.Register(this, out id, out metricCount, out previous);
+				if( trace) log.Trace( "Registered " + name + " metric (" + id + ") on tick " + new TimeStamp( timeStamp) + ")");
 			}
+            if (debug)
+            {
+                manager.Log(id, timeStamp);
+                Update(timeStamp);
+                tickCount++;
+            }
 		}
 		
 		private void Update( long timeStamp) {
@@ -74,7 +76,6 @@ namespace TickZoom.Api
 				metricCount = manager.Count;
 				
 				latencies.Add(latency);
-				manager.Log(id, timeStamp);
 				if( previous != null) {
 					using( previous.locker.Using()) {
 						var prevIndex = (int) (previous.count - count);
