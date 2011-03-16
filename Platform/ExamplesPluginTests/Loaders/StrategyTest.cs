@@ -829,6 +829,7 @@ namespace Loaders
 		public void DynamicLatencyTest( string strategyName) {
 			if( string.IsNullOrEmpty(strategyName)) return;
 			if( autoTestMode == AutoTestMode.FIXPlayBack) {
+                log.Info("Max Latency Test found: " + StaticGlobal.MaxLatency + "ms.");
 				Assert.Less(StaticGlobal.MaxLatency,90,"max latency milliseconds");
 			}
 		}

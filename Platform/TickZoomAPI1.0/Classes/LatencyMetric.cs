@@ -74,6 +74,7 @@ namespace TickZoom.Api
 				metricCount = manager.Count;
 				
 				latencies.Add(latency);
+				manager.Log(id, timeStamp);
 				if( previous != null) {
 					using( previous.locker.Using()) {
 						var prevIndex = (int) (previous.count - count);

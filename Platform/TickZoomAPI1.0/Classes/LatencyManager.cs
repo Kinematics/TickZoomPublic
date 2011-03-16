@@ -1,4 +1,4 @@
-#region Copyright
+﻿#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2009 M. Wayne Walter
@@ -32,9 +32,11 @@ using System.Threading;
 namespace TickZoom.Api
 {
 	public struct LatencyLogEntry {
+		public int Count;
 		public int Id;
 		public int TickTime;
 		public int UtcTime;
+	    public int Selects;
 	}
 	public class LatencyManager : IDisposable {
 		private static readonly Log log = Factory.Log.GetLogger(typeof(LatencyManager));
@@ -60,15 +62,27 @@ namespace TickZoom.Api
 			count = instance.Count;
 			return instance;
 		}
-		
-		public void Log( int id, long utcTickTime) {
-			var entry = new LatencyLogEntry {
-				Id = id,
-				TickTime = (int) (utcTickTime - latencyLogStartTime) / 100,
-				UtcTime = (int) (TimeStamp.UtcNow.Internal - latencyLogStartTime) / 100,
+
+	    private long lastSelectCount;
+		public void Log( int id, long utcTickTime)
+		{
+		    var selectCount = Factory.Provider.Manager.SelectCount;
+		    var entry = new LatencyLogEntry {
+                Count = latencyLog.BarCount,
+                Id = id,
+                TickTime = (int) (utcTickTime - latencyLogStartTime)/100,
+                UtcTime = (int) (TimeStamp.UtcNow.Internal - latencyLogStartTime)/100,
+                Selects = (int) (selectCount - lastSelectCount),
 			};
+		    lastSelectCount = selectCount;
 			using( latencyLogLocker.Using()) {
 				latencyLog.Add(entry);
+			}
+		}
+		
+		public int LogCount {
+			get {
+				return latencyLog.Count;
 			}
 		}
 		
@@ -80,7 +94,7 @@ namespace TickZoom.Api
 					var startTime = latencyLog[begin].UtcTime;
 					for( int i=begin; i>=0; i--) {
 						var entry = latencyLog[i];
-						sb.AppendLine( entry.Id + " => " + entry.TickTime + " at " + entry.UtcTime + " latency " + (entry.UtcTime - entry.TickTime) + ")");
+						sb.AppendLine( entry.Count + ": " + entry.Id + " => " + entry.TickTime + " at " + entry.UtcTime + " latency " + (entry.UtcTime - entry.TickTime) + "00us, selects " + entry.Selects);
 					}
 				}
 				return sb.ToString();

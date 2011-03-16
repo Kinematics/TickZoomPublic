@@ -41,40 +41,66 @@ namespace TickZoom.Api
 		public bool WillBlock {
 			get { return isLocked != UNLOCKED && isLocked != Thread.CurrentThread.ManagedThreadId; }
 		}
-	    
-		public bool TryLock() {
-	    	var currentThreadId = Thread.CurrentThread.ManagedThreadId;
-	    	if( isLocked == currentThreadId) {
-	    		Interlocked.Increment(ref lockCount);
-	    		return true;
-	    	} else if( isLocked == UNLOCKED && Interlocked.CompareExchange(ref isLocked,currentThreadId,UNLOCKED) == UNLOCKED) {
-	    		Interlocked.Increment(ref lockCount);
-	    		return true;
-	    	} else {
-	    		return false;
-	    	}
+
+        public bool TryLock(int threadId)
+        {
+            if (isLocked == threadId)
+            {
+                Interlocked.Increment(ref lockCount);
+                return true;
+            }
+            else if (isLocked == UNLOCKED && Interlocked.CompareExchange(ref isLocked, threadId, UNLOCKED) == UNLOCKED)
+            {
+                Interlocked.Increment(ref lockCount);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public bool TryLock()
+        {
+	    	return TryLock(Thread.CurrentThread.ManagedThreadId);
 	    }
 	    
 		public void Lock() {
 			while( !TryLock());
 	    }
-	    
-	    public TaskLock Using() {
+
+        public void Lock(int threadId)
+        {
+            while (!TryLock(threadId)) ;
+        }
+
+        public TaskLock Using(int threadId)
+        {
+            Lock(threadId);
+            return this;
+        }
+        public TaskLock Using()
+        {
 	    	Lock();
 	    	return this;
 	    }
+
+        public void Unlock()
+        {
+            Unlock( Thread.CurrentThread.ManagedThreadId);
+        }
 	    
-	    public void Unlock() {
-	    	if( isLocked == Thread.CurrentThread.ManagedThreadId) {
+	    public void Unlock(int threadId) {
+	    	if( isLocked == threadId) {
 	    		var count = Interlocked.Decrement(ref lockCount);
 	    		if( count <= 0) {
 	    			ForceUnlock();
 	    		}
 	    	} else if( isLocked == UNLOCKED) {
-	    		string message = "Attempt to unlock when already unlocked on thread id: " + Thread.CurrentThread.ManagedThreadId;
+	    		string message = "Attempt to unlock when already unlocked on thread id: " + threadId;
 	    		throw new ApplicationException( message);
 	    	} else {
-	    		string message = "Attempt to unlock from a different managed thread. Expected: " + isLocked + " but was " + Thread.CurrentThread.ManagedThreadId;
+	    		string message = "Attempt to unlock from a different managed thread. Expected: " + isLocked + " but was " + threadId;
 	    		throw new ApplicationException( message);
 	    	}
 	    }

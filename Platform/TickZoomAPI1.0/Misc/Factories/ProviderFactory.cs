@@ -47,12 +47,8 @@ namespace TickZoom.Api
 		ServiceConnection ConnectionManager();
 		Serializers Serializers();
 		Socket Socket(string name);
-		Selector Manager {
-			get;
-		}
-		EventLog EventLog {
-			get;
-		}
+		Selector Manager { get; }
+		EventLog EventLog { get; }
 	}
 }
 	

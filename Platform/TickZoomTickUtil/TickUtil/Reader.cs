@@ -448,11 +448,21 @@ namespace TickZoom.TickUtil
 			if( box == null) {
 				throw new ApplicationException("Box is null.");
 			}
-			if (!receiver.OnEvent(symbol, (int)EventType.Tick, box)) {
-				return Yield.NoWork.Repeat;
-			} else {
-				return Yield.DidWork.Return;
-			}
+            try
+            {
+                if (!receiver.OnEvent(symbol, (int)EventType.Tick, box))
+                {
+                    return Yield.NoWork.Repeat;
+                }
+                else
+                {
+                    return Yield.DidWork.Return;
+                }
+            } catch( QueueException)
+            {
+                // receiver terminated.
+                return Yield.DidWork.Invoke(FinishTask);
+            }
 		}
 
 		private Yield SendFinish()

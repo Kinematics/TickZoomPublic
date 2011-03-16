@@ -281,7 +281,7 @@ namespace Loaders
 			// Real time (slow running) CSCO real time test.
 			spyQuoteDataOnly = spyQuoteDataOnly.Copy();
 			spyQuoteDataOnly.Mode = AutoTestMode.None;
-			spyQuoteDataOnly.RelativeEndTime = new Elapsed(0,2,30);
+			spyQuoteDataOnly.RelativeEndTime = new Elapsed(0,3,00);
 			list.Add( spyQuoteDataOnly);
 			
 			var multiSymbolOrders = new AutoTestSettings {

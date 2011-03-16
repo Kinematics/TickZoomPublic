@@ -504,7 +504,6 @@ namespace TickZoom.TickUtil
 			}
 		}
 		
-		private static readonly long debugMaximum = 2000.0.ToLong();
 		private unsafe int FromFileVersion10(byte *fptr, int length) {
 			// Backwards compatibility. The first iteration of version
 			// 9 never stored the price precision in the file.
@@ -549,9 +548,6 @@ namespace TickZoom.TickUtil
 						break;
 					case BinaryField.Price:
 						binary.Price += ReadField( &ptr) * pricePrecision;
-						if( binary.Price > debugMaximum) {
-							log.Info("Found high price: " + binary.Price);
-						}
 						break;
 					case BinaryField.Size:
 						binary.Size += (int) ReadField( &ptr);

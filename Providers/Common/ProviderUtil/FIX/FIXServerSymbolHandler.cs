@@ -71,7 +71,7 @@ namespace TickZoom.FIX
 			queueTask = Factory.Parallel.Loop("FIXServerSymbol-"+symbolString, OnException, ProcessQueue);
 			tickTimer = Factory.Parallel.CreateTimer(queueTask,PlayBackTick);
 			packetTimer = Factory.Parallel.CreateTimer(queueTask,TryEnqueuePacket);
-			queueTask.Scheduler = Scheduler.QualityOfService;
+			queueTask.Scheduler = Scheduler.RoundRobin;
 			reader.ReadQueue.Connect( queueTask);
 			queueTask.Start();
 			latency = new LatencyMetric("FIXServerSymbolHandler-"+symbolString.StripInvalidPathChars());
@@ -152,7 +152,7 @@ namespace TickZoom.FIX
 							binary.UtcTime += playbackOffset;
 						}
 						if( tickCounter > 10) {
-							intervalTime = 300;
+							intervalTime = 1000;
 						}
 						var time = new TimeStamp( binary.UtcTime);
 				   	} 
@@ -187,12 +187,12 @@ namespace TickZoom.FIX
 		private Yield ProcessTick() {
 			var result = Yield.NoWork.Repeat;
 			if( isPlayBack ) {
-				var currentTime = TimeStamp.UtcNow;
 				switch( tickStatus) {
 					case TickStatus.None:
 						var overlapp = 300L;
 						if( tickTimer.Active) tickTimer.Cancel();
-						if( nextTick.UtcTime.Internal > currentTime.Internal + overlapp &&
+                        var currentTime = TimeStamp.UtcNow;
+                        if (nextTick.UtcTime.Internal > currentTime.Internal + overlapp &&
 						   tickTimer.Start(nextTick.UtcTime)) {
 							if( trace) log.Trace("Set next timer for " + nextTick.UtcTime  + "." + nextTick.UtcTime.Microsecond + " at " + currentTime  + "." + currentTime.Microsecond);							
 							tickStatus = TickStatus.Timer;
@@ -224,9 +224,6 @@ namespace TickZoom.FIX
 		   	} else { 
 		   		fillSimulator.ProcessOrders();
 		   	}
-			var time = nextTick.UtcTime;
-			var latencyUs = TimeStamp.UtcNow.Internal - nextTick.UtcTime.Internal;
-			if( trace) log.Trace("Updating latency " + time + "." + time.Microsecond + " latency = " + latencyUs);
 			return Yield.DidWork.Invoke(ProcessOnTickCallBack);
 		}
 

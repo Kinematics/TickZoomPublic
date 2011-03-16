@@ -113,6 +113,7 @@
     <Compile Include="RealTime\TestException.cs" />
     <None Include="app.config" />
     <None Include="Lib\nunit.framework.dll" />
+    <Content Include="ProfilingSessions\Session20110313_182322.sdps" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Charting\Charting.csproj">

@@ -31,7 +31,7 @@ using System.ComponentModel;
 namespace TickZoom.Api
 {
 	public static class StaticGlobal {
-		private static long maxLatency = 0L;
+		private static long maxLatency;
 		private static long maxIncrementalLatency = 0L;
 		private static TaskLock locker = new TaskLock();
 		
