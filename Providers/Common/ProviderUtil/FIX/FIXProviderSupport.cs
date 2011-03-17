@@ -237,7 +237,7 @@ namespace TickZoom.FIX
 				case SocketState.New:
                     if( CheckFailedLoginFile() )
                     {
-                        return Yield.NoWork.Repeat;
+                        return Yield.Terminate;
                     }
 					if( receiver != null && Factory.Parallel.TickCount > nextConnectTime) {
 						Initialize();
