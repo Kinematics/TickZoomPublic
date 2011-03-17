@@ -344,38 +344,33 @@ namespace TickZoom.MBTQuotes
 	        
 	    private void LoadProperties(string configFilePath) {
 	        this.configFilePath = configFilePath;
-	        ConfigFile configFile;
 	        log.Notice("Using section " + configSection + " in file: " + configFilePath);
-			if( !File.Exists(configFilePath) ) {
-	        	configFile = new ConfigFile(configFilePath);
-	        	configFile.SetValue("EquityDemo/UseLocalTickTime","true");
-	        	configFile.SetValue("EquityDemo/ServerAddress","216.52.236.111");
-	            configFile.SetValue("EquityDemo/ServerPort","5020");
-	        	configFile.SetValue("EquityDemo/UserName","CHANGEME");
-	            configFile.SetValue("EquityDemo/Password","CHANGEME");
-	        	configFile.SetValue("ForexDemo/UseLocalTickTime","true");
-	        	configFile.SetValue("ForexDemo/ServerAddress","216.52.236.111");
-	            configFile.SetValue("ForexDemo/ServerPort","5020");
-	        	configFile.SetValue("ForexDemo/UserName","CHANGEME");
-	            configFile.SetValue("ForexDemo/Password","CHANGEME");
-	        	configFile.SetValue("EquityLive/UseLocalTickTime","true");
-	        	configFile.SetValue("EquityLive/ServerAddress","216.52.236.111");
-	            configFile.SetValue("EquityLive/ServerPort","5020");
-	        	configFile.SetValue("EquityLive/UserName","CHANGEME");
-	            configFile.SetValue("EquityLive/Password","CHANGEME");
-	        	configFile.SetValue("ForexLive/UseLocalTickTime","true");
-	        	configFile.SetValue("ForexLive/ServerAddress","216.52.236.111");
-	            configFile.SetValue("ForexLive/ServerPort","5020");
-	        	configFile.SetValue("ForexLive/UserName","CHANGEME");
-	            configFile.SetValue("ForexLive/Password","CHANGEME");
-	        	configFile.SetValue("Simulate/UseLocalTickTime","false");
-	        	configFile.SetValue("Simulate/ServerAddress","127.0.0.1");
-	            configFile.SetValue("Simulate/ServerPort","6488");
-	        	configFile.SetValue("Simulate/UserName","simulate1");
-	            configFile.SetValue("Simulate/Password","only4sim");
-	        } else {
-	        	configFile = new ConfigFile(configFilePath);
-	        }
+	        var configFile = new ConfigFile(configFilePath);
+        	configFile.AssureValue("EquityDemo/UseLocalTickTime","true");
+        	configFile.AssureValue("EquityDemo/ServerAddress","216.52.236.111");
+            configFile.AssureValue("EquityDemo/ServerPort","5020");
+        	configFile.AssureValue("EquityDemo/UserName","CHANGEME");
+            configFile.AssureValue("EquityDemo/Password","CHANGEME");
+        	configFile.AssureValue("ForexDemo/UseLocalTickTime","true");
+        	configFile.AssureValue("ForexDemo/ServerAddress","216.52.236.111");
+            configFile.AssureValue("ForexDemo/ServerPort","5020");
+        	configFile.AssureValue("ForexDemo/UserName","CHANGEME");
+            configFile.AssureValue("ForexDemo/Password","CHANGEME");
+        	configFile.AssureValue("EquityLive/UseLocalTickTime","true");
+            configFile.AssureValue("EquityLive/ServerAddress", "216.52.236.129");
+            configFile.AssureValue("EquityLive/ServerPort","5020");
+        	configFile.AssureValue("EquityLive/UserName","CHANGEME");
+            configFile.AssureValue("EquityLive/Password","CHANGEME");
+        	configFile.AssureValue("ForexLive/UseLocalTickTime","true");
+            configFile.AssureValue("ForexLive/ServerAddress", "216.52.236.129");
+            configFile.AssureValue("ForexLive/ServerPort","5020");
+        	configFile.AssureValue("ForexLive/UserName","CHANGEME");
+            configFile.AssureValue("ForexLive/Password","CHANGEME");
+        	configFile.AssureValue("Simulate/UseLocalTickTime","false");
+        	configFile.AssureValue("Simulate/ServerAddress","127.0.0.1");
+            configFile.AssureValue("Simulate/ServerPort","6488");
+        	configFile.AssureValue("Simulate/UserName","simulate1");
+            configFile.AssureValue("Simulate/Password","only4sim");
 			
 			ParseProperties(configFile);
 		}

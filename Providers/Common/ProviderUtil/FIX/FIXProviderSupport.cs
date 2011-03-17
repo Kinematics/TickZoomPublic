@@ -97,11 +97,6 @@ namespace TickZoom.FIX
             {
                 throw new ApplicationException("Sorry, AppDataFolder must be set.");
             }
-            failedFile = appDataFolder + @"/Providers/" + providerName + "/LoginFailed.txt";
-            if (File.Exists(failedFile))
-            {
-                log.Error("Please correct the username or password error described in " + failedFile + ". Then delete the file before retrying, please.");
-            }
         }
 		
 		protected void RegenerateSocket() {
@@ -134,8 +129,12 @@ namespace TickZoom.FIX
 				if( appDataFolder == null) {
 					throw new ApplicationException("Sorry, AppDataFolder must be set in the app.config file.");
 				}
-				string configFile = appDataFolder+@"/Providers/"+providerName+"/Default.config";
-				failedFile = appDataFolder+@"/Providers/"+providerName+"/LoginFailed.txt";
+                string configFile = appDataFolder + @"/Providers/" + providerName + "/Default.config";
+                failedFile = appDataFolder + @"/Providers/" + providerName + "/LoginFailed.txt";
+                if (File.Exists(failedFile))
+                {
+                    log.Error("Please correct the username or password error described in " + failedFile + ". Then delete the file before retrying, please.");
+                }
 				
 				LoadProperties(configFile);
 				
@@ -411,43 +410,38 @@ namespace TickZoom.FIX
 	        
         private void LoadProperties(string configFilePath) {
         	this.configFilePath = configFilePath;
-	        ConfigFile configFile;
 	        log.Notice("Using section " + configSection + " in file: " + configFilePath);
-			if( !File.Exists(configFilePath) ) {
-	        	configFile = new ConfigFile(configFilePath);
-	        	configFile.SetValue("EquityDemo/UseLocalFillTime","true");
-	        	configFile.SetValue("EquityDemo/ServerAddress","127.0.0.1");
-	        	configFile.SetValue("EquityDemo/ServerPort","5679");
-	        	configFile.SetValue("EquityDemo/UserName","CHANGEME");
-	        	configFile.SetValue("EquityDemo/Password","CHANGEME");
-	        	configFile.SetValue("EquityDemo/AccountNumber","CHANGEME");
-	        	configFile.SetValue("ForexDemo/UseLocalFillTime","true");
-	        	configFile.SetValue("ForexDemo/ServerAddress","127.0.0.1");
-	        	configFile.SetValue("ForexDemo/ServerPort","5679");
-	        	configFile.SetValue("ForexDemo/UserName","CHANGEME");
-	        	configFile.SetValue("ForexDemo/Password","CHANGEME");
-	        	configFile.SetValue("ForexDemo/AccountNumber","CHANGEME");
-	        	configFile.SetValue("EquityLive/UseLocalFillTime","true");
-	        	configFile.SetValue("EquityLive/ServerAddress","127.0.0.1");
-	        	configFile.SetValue("EquityLive/ServerPort","5680");
-	        	configFile.SetValue("EquityLive/UserName","CHANGEME");
-	        	configFile.SetValue("EquityLive/Password","CHANGEME");
-	        	configFile.SetValue("EquityLive/AccountNumber","CHANGEME");
-	        	configFile.SetValue("ForexLive/UseLocalFillTime","true");
-	        	configFile.SetValue("ForexLive/ServerAddress","127.0.0.1");
-	        	configFile.SetValue("ForexLive/ServerPort","5680");
-	        	configFile.SetValue("ForexLive/UserName","CHANGEME");
-	        	configFile.SetValue("ForexLive/Password","CHANGEME");
-	        	configFile.SetValue("ForexLive/AccountNumber","CHANGEME");
-	        	configFile.SetValue("Simulate/UseLocalFillTime","false");
-	        	configFile.SetValue("Simulate/ServerAddress","127.0.0.1");
-	        	configFile.SetValue("Simulate/ServerPort","6489");
-	        	configFile.SetValue("Simulate/UserName","Simulate1");
-	        	configFile.SetValue("Simulate/Password","only4sim");
-	        	configFile.SetValue("Simulate/AccountNumber","11111111");
-	        } else {
-	        	configFile = new ConfigFile(configFilePath);
-	        }
+	        var configFile = new ConfigFile(configFilePath);
+        	configFile.AssureValue("EquityDemo/UseLocalFillTime","true");
+            configFile.AssureValue("EquityDemo/ServerAddress", "127.0.0.1");
+            configFile.AssureValue("EquityDemo/ServerPort", "5679");
+        	configFile.AssureValue("EquityDemo/UserName","CHANGEME");
+        	configFile.AssureValue("EquityDemo/Password","CHANGEME");
+        	configFile.AssureValue("EquityDemo/AccountNumber","CHANGEME");
+        	configFile.AssureValue("ForexDemo/UseLocalFillTime","true");
+        	configFile.AssureValue("ForexDemo/ServerAddress","127.0.0.1");
+        	configFile.AssureValue("ForexDemo/ServerPort","5679");
+        	configFile.AssureValue("ForexDemo/UserName","CHANGEME");
+        	configFile.AssureValue("ForexDemo/Password","CHANGEME");
+        	configFile.AssureValue("ForexDemo/AccountNumber","CHANGEME");
+        	configFile.AssureValue("EquityLive/UseLocalFillTime","true");
+        	configFile.AssureValue("EquityLive/ServerAddress","127.0.0.1");
+        	configFile.AssureValue("EquityLive/ServerPort","5680");
+        	configFile.AssureValue("EquityLive/UserName","CHANGEME");
+        	configFile.AssureValue("EquityLive/Password","CHANGEME");
+        	configFile.AssureValue("EquityLive/AccountNumber","CHANGEME");
+        	configFile.AssureValue("ForexLive/UseLocalFillTime","true");
+        	configFile.AssureValue("ForexLive/ServerAddress","127.0.0.1");
+        	configFile.AssureValue("ForexLive/ServerPort","5680");
+        	configFile.AssureValue("ForexLive/UserName","CHANGEME");
+        	configFile.AssureValue("ForexLive/Password","CHANGEME");
+        	configFile.AssureValue("ForexLive/AccountNumber","CHANGEME");
+        	configFile.AssureValue("Simulate/UseLocalFillTime","false");
+        	configFile.AssureValue("Simulate/ServerAddress","127.0.0.1");
+        	configFile.AssureValue("Simulate/ServerPort","6489");
+        	configFile.AssureValue("Simulate/UserName","Simulate1");
+        	configFile.AssureValue("Simulate/Password","only4sim");
+        	configFile.AssureValue("Simulate/AccountNumber","11111111");
 			
 			ParseProperties(configFile);
 		}

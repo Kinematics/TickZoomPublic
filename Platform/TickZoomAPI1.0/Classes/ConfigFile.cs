@@ -233,6 +233,15 @@ namespace TickZoom.Api
 			}
 		}
 
+        public void AssureValue( string property, string value)
+        {
+            var test = GetValue(property);
+            if( string.IsNullOrEmpty(test))
+            {
+                SetValue(property, value);
+            }
+        }
+
 		public bool SetValue(string property, string value)
 		{
 			var strings = SplitPathProperty(ref property);		
