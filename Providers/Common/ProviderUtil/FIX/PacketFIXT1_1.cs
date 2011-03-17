@@ -33,14 +33,14 @@ using TickZoom.Api;
 
 namespace TickZoom.FIX
 {
-	public unsafe class PacketFIXT1_1 : Packet {
+	public unsafe class MessageFIXT1_1 : Message {
 		private const byte EndOfField = 1;
 		private const byte NegativeSign = (byte) '-';
 		private const byte DecimalPoint = 46;
 		private const byte EqualSign = 61;
 		private const byte ZeroChar = 48;
 		private const int maxSize = 4096;
-		private static readonly Log log = Factory.SysLog.GetLogger(typeof(PacketFIXT1_1));
+		private static readonly Log log = Factory.SysLog.GetLogger(typeof(MessageFIXT1_1));
 		private static readonly bool debug = log.IsDebugEnabled;
 		private static readonly bool trace = log.IsTraceEnabled;
 		private MemoryStream data = new MemoryStream();
@@ -65,7 +65,7 @@ namespace TickZoom.FIX
 		private bool isPossibleDuplicate = false;
 		public static bool IsQuietRecovery = false;		
 		
-		public PacketFIXT1_1() {
+		public MessageFIXT1_1() {
 			id = ++packetIdCounter;
 			dataIn = new BinaryReader(data, Encoding.ASCII);
 			dataOut = new BinaryWriter(data, Encoding.ASCII);

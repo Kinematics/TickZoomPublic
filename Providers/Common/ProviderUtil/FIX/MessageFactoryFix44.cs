@@ -29,14 +29,14 @@ using TickZoom.Api;
 
 namespace TickZoom.FIX
 {
-	public class PacketFactoryFIX4_4 : PacketFactory {
-		public Packet Create() {
-			PacketFIX4_4 packet = new PacketFIX4_4();
+	public class MessageFactoryFix44 : MessageFactory {
+		public Message Create() {
+			MessageFIX4_4 packet = new MessageFIX4_4();
 			packet.Clear();
-			return (Packet) packet;
+			return (Message) packet;
 		}
 		
-		public void Release(Packet packet) {
+		public void Release(Message message) {
 //			pool.Free((PacketDefault) packet);
 		}
 	}

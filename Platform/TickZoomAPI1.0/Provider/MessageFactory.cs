@@ -1,4 +1,4 @@
-﻿#region Copyright
+#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2009 M. Wayne Walter
@@ -29,24 +29,8 @@ using System.IO;
 
 namespace TickZoom.Api
 {
-	public interface Packet {
-		void Clear();
-		void BeforeWrite();
-		void BeforeRead();
-		void CreateHeader(int packetCounter);
-		void Verify();
-		void SetReadableBytes(int bytes);
-		bool TrySplit(MemoryStream other);
-		bool IsComplete { get; }
-		int Id { get; }
-		int Remaining {	get; }
-		bool HasAny { get; }
-		bool IsFull { get; }
-		int Position { get; set; }
-		int Length { get; }
-		long UtcTime { get; set; }
-		BinaryReader DataIn { get; }
-		BinaryWriter DataOut { get; }
-		MemoryStream Data {	get; }
+	public interface MessageFactory {
+		Message Create();
+		void Release(Message message);
 	}
 }

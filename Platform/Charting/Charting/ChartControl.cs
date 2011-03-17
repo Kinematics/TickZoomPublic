@@ -41,6 +41,7 @@ using TickZoom.Api;
 using TickZoom.GUI;
 using ZedGraph;
 using ArrowDirection = TickZoom.Api.ArrowDirection;
+using Message = System.Windows.Forms.Message;
 
 //using TickZoom.GUI;
 

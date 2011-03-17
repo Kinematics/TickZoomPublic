@@ -41,8 +41,8 @@ namespace TickZoom.FIX
 		private Socket listener;
 		private Socket localSocket;
 		private Socket remoteSocket;
-		private Packet remotePacket;
-		private Packet localPacket;
+		private Message remoteMessage;
+		private Message localMessage;
 		private YieldMethod WriteToLocalMethod;
 		private YieldMethod WriteToRemoteMethod;
 		private Task remoteTask;
@@ -78,7 +78,7 @@ namespace TickZoom.FIX
 
 		private void OnConnectLocal( Socket socket) {
 			localSocket = socket;
-			localSocket.PacketFactory = new PacketFactoryFIX4_4();
+			localSocket.MessageFactory = new MessageFactoryFix44();
 			Factory.Provider.Manager.AddReader(socket);
 			Factory.Provider.Manager.AddWriter(socket);
 			log.Info("Received local connection: " + socket);
@@ -109,7 +109,7 @@ namespace TickZoom.FIX
 		private void RequestRemoteConnect() {
 			
 			remoteSocket = Factory.Provider.Socket("FilterRemoteSocket");
-			remoteSocket.PacketFactory = new PacketFactoryFIX4_4();
+			remoteSocket.MessageFactory = new MessageFactoryFix44();
 			remoteSocket.OnConnect = OnConnect;
 			remoteSocket.OnDisconnect = OnDisconnect;
 			remoteSocket.Connect( remoteAddress,remotePort);
@@ -130,10 +130,10 @@ namespace TickZoom.FIX
 		}
 		
 		private Yield RemoteReadLoop() {
-			if( remoteSocket.TryGetPacket(out remotePacket)) {
-				if( trace) log.Trace("Remote Read: " + remotePacket);
+			if( remoteSocket.TryGetMessage(out remoteMessage)) {
+				if( trace) log.Trace("Remote Read: " + remoteMessage);
 				try {
-					if( filter != null) filter.Remote( fixContext, remotePacket);
+					if( filter != null) filter.Remote( fixContext, remoteMessage);
 					return Yield.DidWork.Invoke( WriteToLocalMethod);
 				} catch( FilterException) {
 					CloseSockets();
@@ -146,10 +146,10 @@ namespace TickZoom.FIX
 		
 		private Yield LocalReadLoop() {
 			if( remoteSocket.State == SocketState.Connected) {
-				if( localSocket.TryGetPacket(out localPacket)) {
-					if( trace) log.Trace("Local Read: " + localPacket);
+				if( localSocket.TryGetMessage(out localMessage)) {
+					if( trace) log.Trace("Local Read: " + localMessage);
 					try {
-						if( filter != null) filter.Local( fixContext, localPacket);
+						if( filter != null) filter.Local( fixContext, localMessage);
 						return Yield.DidWork.Invoke( WriteToRemoteMethod);
 					} catch( FilterException) {
 						CloseSockets();
@@ -169,8 +169,8 @@ namespace TickZoom.FIX
 		}
 	
 		private Yield WriteToLocal() {
-			if( localSocket.TrySendPacket(remotePacket)) {
-				if(trace) log.Trace("Local Write: " + remotePacket);
+			if( localSocket.TrySendMessage(remoteMessage)) {
+				if(trace) log.Trace("Local Write: " + remoteMessage);
 				return Yield.DidWork.Return;
 			} else {
 				return Yield.NoWork.Repeat;
@@ -178,8 +178,8 @@ namespace TickZoom.FIX
 		}
 	
 		private Yield WriteToRemote() {
-			if( remoteSocket.TrySendPacket(localPacket)) {
-				if(trace) log.Trace("Remote Write: " + localPacket);
+			if( remoteSocket.TrySendMessage(localMessage)) {
+				if(trace) log.Trace("Remote Write: " + localMessage);
 				return Yield.DidWork.Return;
 			} else {
 				return Yield.NoWork.Repeat;

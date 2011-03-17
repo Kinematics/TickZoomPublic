@@ -1,4 +1,4 @@
-#region Copyright
+﻿#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2009 M. Wayne Walter
@@ -33,8 +33,8 @@ using TickZoom.Api;
 
 namespace TickZoom.FIX
 {
-	public class PacketFIX4_4 : PacketFIXT1_1 {
-		private static readonly Log log = Factory.SysLog.GetLogger(typeof(PacketFIX4_4));
+	public class MessageFIX4_4 : MessageFIXT1_1 {
+		private static readonly Log log = Factory.SysLog.GetLogger(typeof(MessageFIX4_4));
 		private static readonly bool debug = log.IsDebugEnabled;
 		private static readonly bool trace = log.IsTraceEnabled;
 		int heartBeatInterval = 0;

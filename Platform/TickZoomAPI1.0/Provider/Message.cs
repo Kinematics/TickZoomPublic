@@ -25,35 +25,28 @@
 #endregion
 
 using System;
+using System.IO;
 
 namespace TickZoom.Api
 {
-	public enum SocketState {
-		New,
-		PendingConnect,
-		Connected,
-        Closing,
-		Disconnected,
-		Disposed
-	}
-	
-	[CLSCompliant(false)]
-	public interface Socket : IDisposable {
-		void SetBlocking(bool enable);
-		void Connect(string addrStr, ushort port);
-		void Bind(string addrStr, ushort port);
-		void Listen(int queue);
-		Message CreateMessage();
-		bool TrySendMessage(Message message);
-		bool TryGetMessage(out Message message);
-		MessageFactory MessageFactory { get; set;	}
-		SocketState State { get; }
-		ushort Port { get; }
-		Action<Socket> OnConnect { get; set; }
-		Action<Socket> OnDisconnect { get; set; }
-		int SendQueueCount { get; }
-		int ReceiveQueueCount { get; }
-		FastQueue<Message> ReceiveQueue { get; }
-	    bool NoDelay { get; }
+	public interface Message {
+		void Clear();
+		void BeforeWrite();
+		void BeforeRead();
+		void CreateHeader(int packetCounter);
+		void Verify();
+		void SetReadableBytes(int bytes);
+		bool TrySplit(MemoryStream other);
+		bool IsComplete { get; }
+		int Id { get; }
+		int Remaining {	get; }
+		bool HasAny { get; }
+		bool IsFull { get; }
+		int Position { get; set; }
+		int Length { get; }
+		long UtcTime { get; set; }
+		BinaryReader DataIn { get; }
+		BinaryWriter DataOut { get; }
+		MemoryStream Data {	get; }
 	}
 }

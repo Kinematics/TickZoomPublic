@@ -57,14 +57,13 @@
     <Compile Include="MBTFIX\MBTFIXSimulator.cs" />
     <Compile Include="MBTFIX\MBTProvider.cs" />
     <Compile Include="MBTFIX\MBTQuotesProvider.cs" />
-    <Compile Include="MBTFIX\PacketFactoryMBTQuotes.cs" />
+    <Compile Include="MBTFIX\MessageFactoryMbtQuotes.cs" />
     <Compile Include="MBTFIX\PacketMBTQuotes.cs" />
     <Compile Include="MBTFIX\MBTQuoteProviderSupport.cs" />
     <Compile Include="Program.cs" />
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="MBTFIX" />
     <ProjectReference Include="..\..\..\Platform\TickZoomAPI1.0\API1.0.csproj">
       <Project>{27D6C88D-52B6-432C-820B-CD38A299830C}</Project>
       <Name>API1.0</Name>

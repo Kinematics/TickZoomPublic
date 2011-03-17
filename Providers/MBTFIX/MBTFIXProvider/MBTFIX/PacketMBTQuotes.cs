@@ -32,14 +32,14 @@ using TickZoom.Api;
 
 namespace TickZoom.MBTQuotes
 {
-	public class PacketMBTQuotes : Packet {
+	public class MessageMbtQuotes : Message {
 		private const byte EndOfField = 59;
 		private const byte EndOfMessage = 10;
 		private const byte DecimalPoint = 46;
 		private const byte EqualSign = 61;
 		private const byte ZeroChar = 48;
 		private const int maxSize = 4096;
-		private static readonly Log log = Factory.SysLog.GetLogger(typeof(PacketMBTQuotes));
+		private static readonly Log log = Factory.SysLog.GetLogger(typeof(MessageMbtQuotes));
 		private static readonly bool trace = log.IsTraceEnabled;
 		private MemoryStream data = new MemoryStream();
 		private BinaryReader dataIn;
@@ -87,7 +87,7 @@ namespace TickZoom.MBTQuotes
 			get { return messageType; }
 		}
 		
-		public PacketMBTQuotes() {
+		public MessageMbtQuotes() {
 			id = ++packetIdCounter;
 			dataIn = new BinaryReader(data, Encoding.ASCII);
 			dataOut = new BinaryWriter(data, Encoding.ASCII);
@@ -324,7 +324,7 @@ namespace TickZoom.MBTQuotes
 		public override string ToString()
 		{
 			StringBuilder sb = new StringBuilder();
-			sb.AppendLine("PacketMBTQuotes: Position " + data.Position + ", length " + data.Length);
+			sb.AppendLine("MessageMbtQuotes: Position " + data.Position + ", length " + data.Length);
 			int offset = (int)data.Position;
 			while( offset < data.Length) {
 				int rowSize = (int) Math.Min(16,data.Length-offset);

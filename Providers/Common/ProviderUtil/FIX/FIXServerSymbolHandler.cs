@@ -35,7 +35,7 @@ namespace TickZoom.FIX
 		private static bool debug = log.IsDebugEnabled;
 		private FillSimulator fillSimulator;
 		private TickReader reader;
-		private Action<Packet,SymbolInfo,Tick> onTick;
+		private Action<Message,SymbolInfo,Tick> onTick;
 		private Task queueTask;
 		private TickSync tickSync;
 		private SymbolInfo symbol;
@@ -53,7 +53,7 @@ namespace TickZoom.FIX
 		
 		public FIXServerSymbolHandler( FIXSimulatorSupport fixSimulatorSupport, 
 		    bool isPlayBack, string symbolString,
-		    Action<Packet,SymbolInfo,Tick> onTick,
+		    Action<Message,SymbolInfo,Tick> onTick,
 		    Action<PhysicalFill, int,int,int> onPhysicalFill,
 		    Action<PhysicalOrder,string> onRejectOrder) {
 			this.fixSimulatorSupport = fixSimulatorSupport;
@@ -235,22 +235,22 @@ namespace TickZoom.FIX
 			return Yield.DidWork.Invoke(ProcessOnTickCallBack);
 		}
 
-		private Packet quotePacket;
+		private Message quoteMessage;
 		private Yield ProcessOnTickCallBack() {
-			if( quotePacket == null) {
-				quotePacket = fixSimulatorSupport.QuoteSocket.CreatePacket();
-			} else if( quotePacket.IsFull) {
-				if( fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket, quotePacket.UtcTime)) {
-					quotePacket = fixSimulatorSupport.QuoteSocket.CreatePacket();
+			if( quoteMessage == null) {
+				quoteMessage = fixSimulatorSupport.QuoteSocket.CreateMessage();
+			} else if( quoteMessage.IsFull) {
+				if( fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quoteMessage, quoteMessage.UtcTime)) {
+					quoteMessage = fixSimulatorSupport.QuoteSocket.CreateMessage();
 				} else {
 					return Yield.NoWork.Repeat;
 				}
 			}
-			onTick( quotePacket, symbol, nextTick);
+			onTick( quoteMessage, symbol, nextTick);
 			if( trace) log.Trace("Added tick to packet: " + nextTick.UtcTime);
 			var current = nextTick.UtcTime.Internal;
-			if( current < quotePacket.UtcTime) {
-				quotePacket.UtcTime = current;
+			if( current < quoteMessage.UtcTime) {
+				quoteMessage.UtcTime = current;
 			}
  			reader.ReadQueue.RemoveStruct();
 			tickStatus = TickStatus.Sent;
@@ -259,19 +259,19 @@ namespace TickZoom.FIX
 		}
 
 		private Yield TryEnqueuePacket() {
-			if( quotePacket.Data.GetBuffer().Length == 0) {
+			if( quoteMessage.Data.GetBuffer().Length == 0) {
 				return Yield.NoWork.Return;
 			}
             TickBinary nextBinary;
-		    while( !fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket,quotePacket.UtcTime))
+		    while( !fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quoteMessage,quoteMessage.UtcTime))
 		    {
 		        if( fixSimulatorSupport.QuotePacketQueue.IsFull)
 		        {
 		            return Yield.NoWork.Repeat;
 		        }
 		    }
-			if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quotePacket.UtcTime));
-			quotePacket = fixSimulatorSupport.QuoteSocket.CreatePacket();
+			if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.UtcTime));
+			quoteMessage = fixSimulatorSupport.QuoteSocket.CreateMessage();
 			return Yield.DidWork.Return;
 		}
 		

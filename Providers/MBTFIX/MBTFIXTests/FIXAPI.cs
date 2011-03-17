@@ -136,14 +136,14 @@ namespace Test
 			string userName = "DEMOXJSPFIX";
 			using( var filter = new FIXPretradeFilter(addrStr,port))
 			using( Socket socket = Factory.Provider.Socket("TestSocket")) {
-				socket.PacketFactory = new PacketFactoryFIX4_4();
+				socket.MessageFactory = new MessageFactoryFix44();
 				socket.SetBlocking(true);
 				socket.Connect("127.0.0.1",filter.LocalPort);
 				socket.SetBlocking(false);
 				Factory.Provider.Manager.AddReader(socket);
 				Factory.Provider.Manager.AddWriter(socket);
 		
-				Packet packet = socket.CreatePacket();
+				Message message = socket.CreateMessage();
 				string hashPassword = MBTQuotesProvider.Hash(password);
 
 				var fixFactory = new FIXFactory4_4(1,userName,destination);
@@ -156,20 +156,20 @@ namespace Test
 				mbtMsg.AddHeader("A");
 				
 				string login = mbtMsg.ToString();
-				packet.DataOut.Write(login.ToCharArray());
-				log.Info("Login message: \n" + packet );
-				while( !socket.TrySendPacket(packet)) {
+				message.DataOut.Write(login.ToCharArray());
+				log.Info("Login message: \n" + message );
+				while( !socket.TrySendMessage(message)) {
 					Factory.Parallel.Yield();
 				}
 				
 				long end = Factory.Parallel.TickCount + 5000;
-				while( !socket.TryGetPacket(out packet)) {
+				while( !socket.TryGetMessage(out message)) {
 					if( Factory.Parallel.TickCount > end) {
 						Assert.Fail("Login Timed Out.");
 					}
 					Factory.Parallel.Yield();
 				}
-				PacketFIX4_4 packetFIX = (PacketFIX4_4) packet;
+				MessageFIX4_4 packetFIX = (MessageFIX4_4) message;
 				
 //				packetFIX.ReadMessage();
 				Assert.AreEqual("FIX.4.4",packetFIX.Version);
@@ -194,7 +194,7 @@ namespace Test
 			string password = "badpassword";
 			string userName = "DEMOXJSPFIX";
 			using( Socket socket = Factory.Provider.Socket("TestSocket")) {
-				socket.PacketFactory = new PacketFactoryFIX4_4();
+				socket.MessageFactory = new MessageFactoryFix44();
 				socket.OnDisconnect = OnDisconnect;
 				socket.SetBlocking(true);
 				socket.Connect(addrStr,port);
@@ -202,7 +202,7 @@ namespace Test
 				Factory.Provider.Manager.AddReader(socket);
 				Factory.Provider.Manager.AddWriter(socket);
 		
-				Packet packet = socket.CreatePacket();
+				Message message = socket.CreateMessage();
 				string hashPassword = MBTQuotesProvider.Hash(password);
 				
 				var fixFactory = new FIXFactory4_4(1,userName,destination);
@@ -215,14 +215,14 @@ namespace Test
 				mbtMsg.AddHeader("A");
 				
 				string login = mbtMsg.ToString();
-				packet.DataOut.Write(login.ToCharArray());
-				log.Info("Login message: \n" + packet );
-				while( !socket.TrySendPacket(packet)) {
+				message.DataOut.Write(login.ToCharArray());
+				log.Info("Login message: \n" + message );
+				while( !socket.TrySendMessage(message)) {
 					Factory.Parallel.Yield();
 				}
 				
 				long end = Factory.Parallel.TickCount + 5000;
-				while( !socket.TryGetPacket(out packet)) {
+				while( !socket.TryGetMessage(out message)) {
 					if( Factory.Parallel.TickCount > end) {
 						// If it times out here. Then return with success
 						// for the test.

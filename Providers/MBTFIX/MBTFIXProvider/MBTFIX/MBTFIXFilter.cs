@@ -42,9 +42,9 @@ namespace TickZoom.MBTFIX
 		private bool isRecovered = false;
 		private string fixSender = typeof(MBTFIXFilter).Name;
 		private Dictionary<long,double> symbolPositionMap = new Dictionary<long,double>();
-		public void Local(FIXContext context, Packet localPacket)
+		public void Local(FIXContext context, Message localMessage)
 		{
-			var packetFIX = (PacketFIX4_4) localPacket;
+			var packetFIX = (MessageFIX4_4) localMessage;
 			switch( packetFIX.MessageType) {
 				case "AF":
 					isRecovered = false;
@@ -64,9 +64,9 @@ namespace TickZoom.MBTFIX
 			}
 		}
 		
-		public void Remote(FIXContext context, Packet remotePacket)
+		public void Remote(FIXContext context, Message remoteMessage)
 		{
-			var packetFIX = (PacketFIX4_4) remotePacket;
+			var packetFIX = (MessageFIX4_4) remoteMessage;
 			switch( packetFIX.MessageType) {
     // For simulating MBT Demo server failure.
 	//			case "A":
@@ -82,7 +82,7 @@ namespace TickZoom.MBTFIX
 			}
 		}
 		
-		private void AssertOrderMaximum( FIXContext context, PacketFIX4_4 packet) {
+		private void AssertOrderMaximum( FIXContext context, MessageFIX4_4 packet) {
 			if( isRecovered) {
 				var quantity = GetOrderQuantity(context, packet);
 				var symbolInfo = GetSymbolInfo(context, packet);
@@ -93,13 +93,13 @@ namespace TickZoom.MBTFIX
 					}
 					var maxOrderSize = symbolInfo.MaxOrderSize;
 					if( Math.Abs(quantity) > maxOrderSize) {
-						CloseWithError(context, packet, "Order size " + quantity + " for " + symbolInfo + " was greater than MaxOrderSize of " + maxOrderSize + " in packet sequence #" + packet.Sequence);
+						CloseWithError(context, packet, "Order size " + quantity + " for " + symbolInfo + " was greater than MaxOrderSize of " + maxOrderSize + " in Message sequence #" + packet.Sequence);
 					}
 				}
 			}
 		}
 		
-		private SymbolInfo GetSymbolInfo(FIXContext context, PacketFIX4_4 packet) {
+		private SymbolInfo GetSymbolInfo(FIXContext context, MessageFIX4_4 packet) {
 			SymbolInfo symbolInfo = null;
 			try {
 				symbolInfo = Factory.Symbol.LookupSymbol(packet.Symbol);
@@ -109,7 +109,7 @@ namespace TickZoom.MBTFIX
 			return symbolInfo;
 		}
 
-		private int GetOrderQuantity( FIXContext context, PacketFIX4_4 packet) {
+		private int GetOrderQuantity( FIXContext context, MessageFIX4_4 packet) {
 			var quantity = packet.OrderQuantity;			
 			switch(packet.Side) {
 				case "1":
@@ -131,7 +131,7 @@ namespace TickZoom.MBTFIX
 			return position;
 		}
 		
-		private void AssertPositionMaximum( FIXContext context, PacketFIX4_4 packet) {
+		private void AssertPositionMaximum( FIXContext context, MessageFIX4_4 packet) {
 			if( isRecovered) {
 				var quantity = GetOrderQuantity(context, packet);
 				var symbolInfo = GetSymbolInfo(context, packet);
@@ -141,13 +141,13 @@ namespace TickZoom.MBTFIX
 					var maxPositionSize = symbolInfo.MaxPositionSize;
 					var positionSize = Math.Abs(position);
 					if( positionSize > maxPositionSize) {
-						CloseWithError(context, packet, "Position size " + positionSize + " for " + symbolInfo + " was greater than MaxPositionSize of " + maxPositionSize + " in packet sequence #" + packet.Sequence);
+						CloseWithError(context, packet, "Position size " + positionSize + " for " + symbolInfo + " was greater than MaxPositionSize of " + maxPositionSize + " in Message sequence #" + packet.Sequence);
 					}
 				}
 			}
 		}
 		
-		private void PositionUpdate( FIXContext context, PacketFIX4_4 packet) {
+		private void PositionUpdate( FIXContext context, MessageFIX4_4 packet) {
 			if( packet.MessageType == "AO") {
 				isPositionUpdateComplete = true;
 				if(debug) log.Debug("PositionUpdate Complete.");
@@ -168,7 +168,7 @@ namespace TickZoom.MBTFIX
 			}
 		}
 		
-		private void ExecutionReport( FIXContext context, PacketFIX4_4 packetFIX) {
+		private void ExecutionReport( FIXContext context, MessageFIX4_4 packetFIX) {
 			if( packetFIX.Text == "END") {
 				isOrderUpdateComplete = true;
 				if(debug) log.Debug("ExecutionReport Complete.");
@@ -184,19 +184,19 @@ namespace TickZoom.MBTFIX
 			}
 		}
 
-		private void CloseWithError(FIXContext context, PacketFIX4_4 packetIn, string message) {
-			Packet packet = context.LocalSocket.CreatePacket();
+		private void CloseWithError(FIXContext context, MessageFIX4_4 packetIn, string textMessage) {
+			Message message = context.LocalSocket.CreateMessage();
 			var fixFactory = new FIXFactory4_4(1,fixSender,packetIn.Sender);
 			var fixMsg = (FIXMessage4_4) fixFactory.Create();
 			TimeStamp timeStamp = TimeStamp.UtcNow;
 			fixMsg.SetAccount(packetIn.Account);
-			fixMsg.SetText( message);
+            fixMsg.SetText( textMessage);
 			fixMsg.AddHeader("j");
 			string errorMessage = fixMsg.ToString();
-			packet.DataOut.Write(errorMessage.ToCharArray());
+			message.DataOut.Write(errorMessage.ToCharArray());
 			long end = Factory.Parallel.TickCount + 2000;
-			if( debug) log.Debug("Writing Error Message: " + packet);
-			while( !context.LocalSocket.TrySendPacket(packet)) {
+			if( debug) log.Debug("Writing Error Message: " + textMessage);
+			while( !context.LocalSocket.TrySendMessage(message)) {
 				if( Factory.Parallel.TickCount > end) {
 					throw new ApplicationException("Timeout while sending an order.");
 				}

@@ -204,8 +204,8 @@
     <Compile Include="Provider\LogicalFillBinary.cs" />
     <Compile Include="Provider\LogicalFillBinaryBox.cs" />
     <Compile Include="Provider\OrderAlgorithm.cs" />
-    <Compile Include="Provider\Packet.cs" />
-    <Compile Include="Provider\PacketFactory.cs" />
+    <Compile Include="Provider\Message.cs" />
+    <Compile Include="Provider\MessageFactory.cs" />
     <Compile Include="Provider\FillSimulator.cs" />
     <Compile Include="Provider\PhysicalOrder.cs" />
     <Compile Include="Provider\PhysicalOrderHandler.cs" />

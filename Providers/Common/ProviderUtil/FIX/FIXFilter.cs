@@ -30,7 +30,7 @@ using TickZoom.Api;
 namespace TickZoom.FIX
 {
 	public interface FIXFilter {
-		void Local( FIXContext context, Packet localPacket);
-		void Remote( FIXContext context, Packet remotePacket);
+		void Local( FIXContext context, Message localMessage);
+		void Remote( FIXContext context, Message remoteMessage);
 	}
 }

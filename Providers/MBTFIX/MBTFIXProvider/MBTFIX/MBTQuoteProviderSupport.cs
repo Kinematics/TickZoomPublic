@@ -87,7 +87,7 @@ namespace TickZoom.MBTQuotes
 			}
 			socket = Factory.Provider.Socket("MBTQuoteSocket");
 			socket.OnDisconnect = OnDisconnect;
-			socket.PacketFactory = new PacketFactoryMBTQuotes();
+			socket.MessageFactory = new MessageFactoryMbtQuotes();
 			socket.ReceiveQueue.Connect( socketTask);
 			if( debug) log.Debug("Created new " + socket);
 			connectionStatus = Status.New;

@@ -179,7 +179,7 @@ namespace Test
 //			string userName = "DEMOXJRX";
 //			string password = "1clock2bird";
 			using( Socket socket = Factory.Provider.Socket("TestSocket")) {
-				socket.PacketFactory = new PacketFactoryMBTQuotes();
+				socket.MessageFactory = new MessageFactoryMbtQuotes();
 				socket.SetBlocking(true);
 				socket.Connect(addrStr,port);
 				socket.SetBlocking(false);
@@ -187,17 +187,17 @@ namespace Test
 				Factory.Provider.Manager.AddWriter(socket);
 		
 				
-				Packet packet = socket.CreatePacket();
+				Message message = socket.CreateMessage();
 				string hashPassword = MBTQuotesProvider.Hash(password);
 				string login = "L|100="+userName+";133="+hashPassword+"\n";
-				packet.DataOut.Write(login.ToCharArray());
-				while( !socket.TrySendPacket(packet)) {
+				message.DataOut.Write(login.ToCharArray());
+				while( !socket.TrySendMessage(message)) {
 					Factory.Parallel.Yield();
 				}
-				while( !socket.TryGetPacket(out packet)) {
+				while( !socket.TryGetMessage(out message)) {
 					Factory.Parallel.Yield();
 				}
-				string response = new string(packet.DataIn.ReadChars(packet.Remaining));
+				string response = new string(message.DataIn.ReadChars(message.Remaining));
 				string expectedResponse = "G|100=DEMOYZPS;8055=demo01\n";
 				Assert.AreEqual(expectedResponse,response);
 			}

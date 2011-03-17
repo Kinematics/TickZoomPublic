@@ -43,7 +43,7 @@ namespace TickZoom.MBTFIX
 		private ServerState fixState = ServerState.Startup;
 		private ServerState quoteState = ServerState.Startup;
 		
-		public MBTFIXSimulator(string mode) : base( mode, 6489, 6488, new PacketFactoryFIX4_4(), new PacketFactoryMBTQuotes()) {
+		public MBTFIXSimulator(string mode) : base( mode, 6489, 6488, new MessageFactoryFix44(), new MessageFactoryMbtQuotes()) {
 		    
 		}
 		
@@ -69,9 +69,9 @@ namespace TickZoom.MBTFIX
 			base.StartQuoteSimulation();
 		}
 		
-		public override void ParseFIXMessage(Packet packet)
+		public override void ParseFIXMessage(Message message)
 		{
-			var packetFIX = (PacketFIX4_4) packet;
+			var packetFIX = (MessageFIX4_4) message;
 			switch( packetFIX.MessageType) {
 				case "A": // Login
 					FIXLogin( packetFIX);
@@ -99,9 +99,9 @@ namespace TickZoom.MBTFIX
 			}			
 		}
 		
-		public override void ParseQuotesMessage(Packet packet)
+		public override void ParseQuotesMessage(Message message)
 		{
-			var packetQuotes = (PacketMBTQuotes) packet;
+			var packetQuotes = (MessageMbtQuotes) message;
 			char firstChar = (char) packetQuotes.Data.GetBuffer()[packetQuotes.Data.Position];
 			switch( firstChar) {
 				case 'L': // Login
@@ -113,8 +113,8 @@ namespace TickZoom.MBTFIX
 			}			
 		}
 		
-		private void FIXOrderList(PacketFIX4_4 packet) {
-			var writePacket = fixSocket.CreatePacket();			
+		private void FIXOrderList(MessageFIX4_4 packet) {
+			var writePacket = fixSocket.CreateMessage();			
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetText("END");
 			mbtMsg.AddHeader("8");
@@ -124,8 +124,8 @@ namespace TickZoom.MBTFIX
             if (debug) log.Debug("Sending end of order list: " + message);
 		}
 		
-		private void FIXPositionList(PacketFIX4_4 packet) {
-			var writePacket = fixSocket.CreatePacket();			
+		private void FIXPositionList(MessageFIX4_4 packet) {
+			var writePacket = fixSocket.CreateMessage();			
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetText("DONE");
 			mbtMsg.AddHeader("AO");
@@ -135,7 +135,7 @@ namespace TickZoom.MBTFIX
 			if(debug) log.Debug("Sending end of position list: " + message);
 		}
 		
-		private void FIXChangeOrder(PacketFIX4_4 packet) {
+		private void FIXChangeOrder(MessageFIX4_4 packet) {
 			var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
 			PhysicalOrder origOrder = null;
 			if( debug) log.Debug( "FIXChangeOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId + ". Original client id: " + packet.OriginalClientOrderId);
@@ -169,7 +169,7 @@ namespace TickZoom.MBTFIX
 			ChangeOrder(order, packet.OriginalClientOrderId);
 		}
 		
-		private Yield FIXCancelOrder(PacketFIX4_4 packet) {
+		private Yield FIXCancelOrder(MessageFIX4_4 packet) {
 			var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
 			if( debug) log.Debug( "FIXCancelOrder() for " + packet.Symbol + ". Original client id: " + packet.OriginalClientOrderId);
 			PhysicalOrder order = null;
@@ -183,7 +183,7 @@ namespace TickZoom.MBTFIX
 				}
 				return Yield.DidWork.Return;
 			}
-//			log.Info( packet.Symbol + ": Canceling order for client id: " + packet.OriginalClientOrderId);
+//			log.Info( Message.Symbol + ": Canceling order for client id: " + Message.OriginalClientOrderId);
 			CancelOrder( symbol, order.BrokerOrder);
 			SendExecutionReport( order, "6", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow, packet);
 			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
@@ -192,10 +192,10 @@ namespace TickZoom.MBTFIX
 			return Yield.DidWork.Repeat;
 		}
 		
-		private Yield FIXCreateOrder(PacketFIX4_4 packet) {
+		private Yield FIXCreateOrder(MessageFIX4_4 packet) {
 			if( debug) log.Debug( "FIXCreateOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId);
 			var order = ConstructOrder( packet, packet.ClientOrderId);
-//			log.Info( packet.Symbol + ": Creating order for client id: " + packet.ClientOrderId);
+//			log.Info( Message.Symbol + ": Creating order for client id: " + Message.ClientOrderId);
 			if( string.IsNullOrEmpty(packet.ClientOrderId)) {
 				System.Diagnostics.Debugger.Break();
 			}
@@ -207,9 +207,9 @@ namespace TickZoom.MBTFIX
 			return Yield.DidWork.Repeat;
 		}
 		
-		private PhysicalOrder ConstructOrder(PacketFIX4_4 packet, string clientOrderId) {
+		private PhysicalOrder ConstructOrder(MessageFIX4_4 packet, string clientOrderId) {
 			if( string.IsNullOrEmpty(clientOrderId)) {
-				var message = "Client order id was null or empty. FIX packet is: " + packet;
+				var message = "Client order id was null or empty. FIX Message is: " + packet;
 				log.Error(message);
 				throw new ApplicationException(message);
 			}
@@ -261,12 +261,12 @@ namespace TickZoom.MBTFIX
 		
 		private string target;
 		private string sender;
-		private void FIXLogin(PacketFIX4_4 packet) {
+		private void FIXLogin(MessageFIX4_4 packet) {
 			if( fixState != ServerState.Startup) {
 				CloseWithFixError(packet, "Invalid login request. Already logged in.");
 			}
 			fixState = ServerState.LoggedIn;
-			var writePacket = fixSocket.CreatePacket();
+			var writePacket = fixSocket.CreateMessage();
 			target = packet.Target;
 			sender = packet.Sender;
 			FixFactory = new FIXFactory4_4(1,packet.Target,packet.Sender);
@@ -280,16 +280,16 @@ namespace TickZoom.MBTFIX
 			if(debug) log.Debug("Sending login response: " + login);
 		}
 		
-		private void QuotesLogin(PacketMBTQuotes packet) {
+		private void QuotesLogin(MessageMbtQuotes message) {
 			if( quoteState != ServerState.Startup) {
-				CloseWithQuotesError(packet, "Invalid login request. Already logged in.");
+				CloseWithQuotesError(message, "Invalid login request. Already logged in.");
 			}
 			quoteState = ServerState.LoggedIn;
-			var writePacket = quoteSocket.CreatePacket();
-			string message = "G|100=DEMOXJSP;8055=demo01\n";
-			if( debug) log.Debug("Login response: " + message);
-			writePacket.DataOut.Write(message.ToCharArray());
-			while( !quotePacketQueue.EnqueueStruct(ref writePacket,packet.UtcTime)) {
+			var writePacket = quoteSocket.CreateMessage();
+			string textMessage = "G|100=DEMOXJSP;8055=demo01\n";
+			if( debug) log.Debug("Login response: " + textMessage);
+			writePacket.DataOut.Write(textMessage.ToCharArray());
+			while( !quotePacketQueue.EnqueueStruct(ref writePacket,message.UtcTime)) {
 				if( quotePacketQueue.IsFull) {
 					throw new ApplicationException("Quote Queue is full.");
 				}
@@ -305,7 +305,7 @@ namespace TickZoom.MBTFIX
 		}
 
 		private void OnRejectOrder( PhysicalOrder order, string error) {
-			var writePacket = fixSocket.CreatePacket();
+			var writePacket = fixSocket.CreateMessage();
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetAccount( "33006566");
 			mbtMsg.SetClientOrderId( order.BrokerOrder.ToString());
@@ -319,7 +319,7 @@ namespace TickZoom.MBTFIX
         }	
 		
 		private void SendPositionUpdate(SymbolInfo symbol, int position) {
-			var writePacket = fixSocket.CreatePacket();
+			var writePacket = fixSocket.CreateMessage();
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetAccount( "33006566");
 			mbtMsg.SetSymbol( symbol.Symbol);
@@ -335,7 +335,7 @@ namespace TickZoom.MBTFIX
             SendPacket(writePacket);
         }	
 		
-		private void SendExecutionReport(PhysicalOrder order, string status, double price, int orderQty, int cumQty, int lastQty, int leavesQty, TimeStamp time, PacketFIX4_4 packet) {
+		private void SendExecutionReport(PhysicalOrder order, string status, double price, int orderQty, int cumQty, int lastQty, int leavesQty, TimeStamp time, MessageFIX4_4 packet) {
 			int orderType = 0;
 			switch( order.Type) {
 				case OrderType.BuyMarket:
@@ -363,7 +363,7 @@ namespace TickZoom.MBTFIX
 					orderSide = 5;
 					break;
 			}
-			var writePacket = fixSocket.CreatePacket();
+			var writePacket = fixSocket.CreateMessage();
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetAccount( "33006566");
 			mbtMsg.SetDestination("MBTX");
@@ -398,9 +398,9 @@ namespace TickZoom.MBTFIX
             SendPacket(writePacket);
 		}
 
-        private void SendPacket( Packet writePacket)
+        private void SendPacket( Message writeMessage)
         {
-            while (!fixPacketQueue.EnqueueStruct(ref writePacket, writePacket.UtcTime))
+            while (!fixPacketQueue.EnqueueStruct(ref writeMessage, writeMessage.UtcTime))
             {
                 if (fixPacketQueue.IsFull)
                 {
@@ -409,11 +409,11 @@ namespace TickZoom.MBTFIX
             }
         }
 		
-		private unsafe Yield SymbolRequest(PacketMBTQuotes packet) {
-			var symbolInfo = Factory.Symbol.LookupSymbol(packet.Symbol);
+		private unsafe Yield SymbolRequest(MessageMbtQuotes message) {
+			var symbolInfo = Factory.Symbol.LookupSymbol(message.Symbol);
 			log.Info("Received symbol request for " + symbolInfo);
 			AddSymbol(symbolInfo.Symbol, OnTick, OnPhysicalFill, OnRejectOrder);
-			switch( packet.FeedType) {
+			switch( message.FeedType) {
 				case "20000": // Level 1
 					if( symbolInfo.QuoteType != QuoteType.Level1) {
 						throw new ApplicationException("Requested data feed of Level1 but Symbol.QuoteType is " + symbolInfo.QuoteType);
@@ -437,13 +437,13 @@ namespace TickZoom.MBTFIX
 				case "20004": // Option Chains
 					break;
 				default:
-					throw new ApplicationException("Sorry, unknown data type: " + packet.FeedType);
+					throw new ApplicationException("Sorry, unknown data type: " + message.FeedType);
 			}
 			return Yield.DidWork.Repeat;
 		}
 		
         private Dictionary<long,TickIO> lastTicks = new Dictionary<long,TickIO>();
-		private void OnTick( Packet quotePacket, SymbolInfo symbol, Tick tick) {
+		private void OnTick( Message quoteMessage, SymbolInfo symbol, Tick tick) {
 			if( trace) log.Trace("Sending tick: " + tick);
 			TickIO lastTick;
 			if( !lastTicks.TryGetValue( symbol.BinaryIdentifier, out lastTick)) {
@@ -521,19 +521,19 @@ namespace TickZoom.MBTFIX
 			sb.Append('\n');
 			var message = sb.ToString();
 			if( trace) log.Trace("Tick message: " + message);
-			quotePacket.DataOut.Write(message.ToCharArray());
+			quoteMessage.DataOut.Write(message.ToCharArray());
 			lastTick.Inject(tick.Extract());
 		}
 		
-		private void CloseWithQuotesError(PacketMBTQuotes packet, string message) {
+		private void CloseWithQuotesError(MessageMbtQuotes message, string textMessage) {
 		}
 		
-		private void CloseWithFixError(PacketFIX4_4 packet, string message) {
-			var writePacket = fixSocket.CreatePacket();
+		private void CloseWithFixError(MessageFIX4_4 packet, string textMessage) {
+			var writePacket = fixSocket.CreateMessage();
 			var fixMsg = (FIXMessage4_4) FixFactory.Create();
 			TimeStamp timeStamp = TimeStamp.UtcNow;
 			fixMsg.SetAccount(packet.Account);
-			fixMsg.SetText( message);
+			fixMsg.SetText( textMessage);
 			fixMsg.AddHeader("j");
 			string errorMessage = fixMsg.ToString();
 			writePacket.DataOut.Write(errorMessage.ToCharArray());

@@ -133,8 +133,8 @@ namespace TickZoom.MBTFIX
 			SendMessage( mbtMsg);
 			
 			var end = Factory.Parallel.TickCount + 15 * 1000;
-			Packet packet;
-			while( !Socket.TryGetPacket(out packet)) {
+			Message message;
+			while( !Socket.TryGetMessage(out message)) {
 				if( IsInterrupted) return Yield.NoWork.Repeat;
 				Factory.Parallel.Yield();
 				if( Factory.Parallel.TickCount > end) {
@@ -144,8 +144,8 @@ namespace TickZoom.MBTFIX
                 }
 			}
 
-			if( debug) log.Debug("Received FIX message: " + packet);
-			if( !VerifyLogin(packet)) {
+			if( debug) log.Debug("Received FIX message: " + message);
+			if( !VerifyLogin(message)) {
 				RegenerateSocket();
 				return Yield.DidWork.Repeat;
 			}
@@ -167,7 +167,7 @@ namespace TickZoom.MBTFIX
 			isPositionUpdateComplete = false;
 			isOrderUpdateComplete = false;
 			if( !LogRecovery) {
-				PacketFIXT1_1.IsQuietRecovery = true;
+				MessageFIXT1_1.IsQuietRecovery = true;
 			}
 
 			RequestOrders();
@@ -227,31 +227,31 @@ namespace TickZoom.MBTFIX
 			SendMessage( fixMsg);
 		}
 		
-		private unsafe bool VerifyLogin(Packet packet) {
-			PacketFIX4_4 packetFIX = (PacketFIX4_4) packet;
+		private unsafe bool VerifyLogin(Message message) {
+            MessageFIX4_4 packetFIX = (MessageFIX4_4) message;
 			if( !("A" == packetFIX.MessageType &&
 				"FIX.4.4" == packetFIX.Version &&
 				"MBT" == packetFIX.Sender && 
 				UserName == packetFIX.Target && 
 				"0" == packetFIX.Encryption && 
 				30 == packetFIX.HeartBeatInterval) ) {
-				StringBuilder message = new StringBuilder();
-				message.AppendLine("Invalid login response:");
-				message.AppendLine("  message type = " + packetFIX.MessageType);
-				message.AppendLine("  version = " + packetFIX.Version);
-				message.AppendLine("  sender = " + packetFIX.Sender);
-				message.AppendLine("  target = " + packetFIX.Target);
-				message.AppendLine("  encryption = " + packetFIX.Encryption);
-				message.AppendLine("  heartbeat interval = " + packetFIX.HeartBeatInterval);
-				message.AppendLine(packetFIX.ToString());
-				log.Warn(message + " -- retrying.");
+				StringBuilder textMessage = new StringBuilder();
+				textMessage.AppendLine("Invalid login response:");
+				textMessage.AppendLine("  message type = " + packetFIX.MessageType);
+				textMessage.AppendLine("  version = " + packetFIX.Version);
+				textMessage.AppendLine("  sender = " + packetFIX.Sender);
+				textMessage.AppendLine("  target = " + packetFIX.Target);
+				textMessage.AppendLine("  encryption = " + packetFIX.Encryption);
+				textMessage.AppendLine("  heartbeat interval = " + packetFIX.HeartBeatInterval);
+				textMessage.AppendLine(packetFIX.ToString());
+				log.Warn(textMessage + " -- retrying.");
 				return false;
 			}
 			return 1 == packetFIX.Sequence;
 		}
 		
-		protected override void ReceiveMessage(Packet packet) {
-			var packetFIX = (PacketFIX4_4) packet;
+		protected override void ReceiveMessage(Message message) {
+			var packetFIX = (MessageFIX4_4) message;
 			switch( packetFIX.MessageType) {
 				case "AP":
 				case "AO":
@@ -273,15 +273,15 @@ namespace TickZoom.MBTFIX
 					BusinessReject( packetFIX);
 					break;
 				case "h":
-					log.Info("Ignoring packet: '" + packetFIX.MessageType + "'\n" + packetFIX);
+					log.Info("Ignoring Message: '" + packetFIX.MessageType + "'\n" + packetFIX);
 					break;
 				default:
-					log.Warn("Ignoring packet: '" + packetFIX.MessageType + "'\n" + packetFIX);
+					log.Warn("Ignoring Message: '" + packetFIX.MessageType + "'\n" + packetFIX);
 					break;
 			}
 		}
 		
-		private void BusinessReject(PacketFIX4_4 packetFIX) {
+		private void BusinessReject(MessageFIX4_4 packetFIX) {
 			var lower = packetFIX.Text.ToLower();
 			var text = packetFIX.Text;
 			var errorOkay = false;
@@ -294,7 +294,7 @@ namespace TickZoom.MBTFIX
 			if( errorOkay) {
 				log.Error( packetFIX.Text + " -- Sending EndBroker event.");
 				SendEndBroker();
-				log.Info( packetFIX.Text + " Sent EndBroker event due to packet:\n" + packetFIX);
+				log.Info( packetFIX.Text + " Sent EndBroker event due to Message:\n" + packetFIX);
 			} else {
 				string message = "FIX Server reported an error: " + packetFIX.Text + "\n" + packetFIX;
 				throw new ApplicationException( message);
@@ -352,10 +352,10 @@ namespace TickZoom.MBTFIX
 			}
 			log.Info("Recovered Open Orders:\n" + sb);
 			SendStartBroker();
-			PacketFIXT1_1.IsQuietRecovery = false;
+			MessageFIXT1_1.IsQuietRecovery = false;
 		}
 		
-		private void PositionUpdate( PacketFIX4_4 packetFIX) {
+		private void PositionUpdate( MessageFIX4_4 packetFIX) {
 			if( packetFIX.MessageType == "AO") {
 				isPositionUpdateComplete = true;
 				if(debug) log.Debug("PositionUpdate Complete.");
@@ -375,7 +375,7 @@ namespace TickZoom.MBTFIX
 			}
 		}
 		
-		private void ExecutionReport( PacketFIX4_4 packetFIX) {
+		private void ExecutionReport( MessageFIX4_4 packetFIX) {
 			if( packetFIX.Text == "END") {
 				isOrderUpdateComplete = true;
 				if(debug) log.Debug("ExecutionReport Complete.");
@@ -473,7 +473,7 @@ namespace TickZoom.MBTFIX
 			}
 		}
 
-		private void TryHandlePiggyBackFill(PacketFIX4_4 packetFIX) {
+		private void TryHandlePiggyBackFill(MessageFIX4_4 packetFIX) {
 			if( packetFIX.LastQuantity > 0 && IsRecovered) {
 				SendFill( packetFIX);
 			}
@@ -489,7 +489,7 @@ namespace TickZoom.MBTFIX
 			}
 		}
 		
-		private void CancelRejected( PacketFIX4_4 packetFIX) {
+		private void CancelRejected( MessageFIX4_4 packetFIX) {
 			if( debug && (LogRecovery || !IsRecovery) ) {
 				log.Debug("ExecutionReport: " + packetFIX);
 			}
@@ -545,7 +545,7 @@ namespace TickZoom.MBTFIX
 			}
 		}
 		
-		public void SendFill( PacketFIX4_4 packetFIX) {
+		public void SendFill( MessageFIX4_4 packetFIX) {
 			if( debug ) log.Debug("SendFill( " + packetFIX.ClientOrderId + ")");
 			var symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
 			var timeZone = new SymbolTimeZone(symbolInfo);
@@ -589,7 +589,7 @@ namespace TickZoom.MBTFIX
 			return result;
 		}
 		
-		public void RejectOrder( PacketFIX4_4 packetFIX) {
+		public void RejectOrder( MessageFIX4_4 packetFIX) {
 			var rejectReason = false;
 			rejectReason = packetFIX.Text.Contains("Outside trading hours") ? true : rejectReason;
 			rejectReason = packetFIX.Text.Contains("not accepted this session") ? true : rejectReason;
@@ -637,7 +637,7 @@ namespace TickZoom.MBTFIX
 			}
 		}	
 		
-		private OrderType GetOrderType(PacketFIX4_4 packetFIX) {
+		private OrderType GetOrderType(MessageFIX4_4 packetFIX) {
 			var orderType = OrderType.None;
 			switch( packetFIX.Side) {
 				case "1":
@@ -677,7 +677,7 @@ namespace TickZoom.MBTFIX
 			return orderType;
 		}
 
-		private OrderSide GetOrderSide( PacketFIX4_4 packetFIX) {
+		private OrderSide GetOrderSide( MessageFIX4_4 packetFIX) {
 			OrderSide side;
 			switch( packetFIX.Side) {
 				case "1":
@@ -695,7 +695,7 @@ namespace TickZoom.MBTFIX
 			return side;
 		}
 
-		private int GetLogicalOrderId( PacketFIX4_4 packetFIX) {
+		private int GetLogicalOrderId( MessageFIX4_4 packetFIX) {
 			string[] parts = packetFIX.ClientOrderId.Split(DOT_SEPARATOR);
 			int logicalOrderId = 0;
 			try {
@@ -705,7 +705,7 @@ namespace TickZoom.MBTFIX
 			return logicalOrderId;
 		}
 		
-		public PhysicalOrder UpdateOrder( PacketFIX4_4 packetFIX, OrderState orderState, object note) {
+		public PhysicalOrder UpdateOrder( MessageFIX4_4 packetFIX, OrderState orderState, object note) {
 			var clientOrderId = packetFIX.ClientOrderId;
 			if( !string.IsNullOrEmpty(packetFIX.OriginalClientOrderId)) {
 			   	clientOrderId = packetFIX.OriginalClientOrderId;
@@ -716,7 +716,7 @@ namespace TickZoom.MBTFIX
 			return UpdateOrReplaceOrder( packetFIX, clientOrderId, clientOrderId, orderState, note);
 		}
 		
-		public PhysicalOrder ReplaceOrder( PacketFIX4_4 packetFIX, OrderState orderState, object note) {
+		public PhysicalOrder ReplaceOrder( MessageFIX4_4 packetFIX, OrderState orderState, object note) {
 			if( debug && (LogRecovery || !IsRecovery) ) {
 				log.Debug("ReplaceOrder( " + packetFIX.OriginalClientOrderId + ", state = " + orderState + " => " + packetFIX.ClientOrderId + ")");
 			}
@@ -727,7 +727,7 @@ namespace TickZoom.MBTFIX
 			return order;
 		}
 		
-		public PhysicalOrder UpdateOrReplaceOrder( PacketFIX4_4 packetFIX, string clientOrderId, string newClientOrderId, OrderState orderState, object note) {
+		public PhysicalOrder UpdateOrReplaceOrder( MessageFIX4_4 packetFIX, string clientOrderId, string newClientOrderId, OrderState orderState, object note) {
 			SymbolInfo symbolInfo;
 			try {
 				symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
@@ -776,7 +776,7 @@ namespace TickZoom.MBTFIX
 			return order;
 		}
 
-		private void TestMethod(PacketFIX4_4 packetFIX) {
+		private void TestMethod(MessageFIX4_4 packetFIX) {
 			string account = packetFIX.Account;
 			string destination = packetFIX.Destination;
 			int orderQuantity = packetFIX.OrderQuantity;

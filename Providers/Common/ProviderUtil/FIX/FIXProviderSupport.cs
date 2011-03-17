@@ -115,7 +115,7 @@ namespace TickZoom.FIX
 			socket = Factory.Provider.Socket("MBTFIXSocket");
 			socket.ReceiveQueue.Connect( socketTask);
 			socket.OnDisconnect = OnDisconnect;
-			socket.PacketFactory = new PacketFactoryFIX4_4();
+			socket.MessageFactory = new MessageFactoryFix44();
 			if( debug) log.Debug("Created new " + socket);
 			connectionStatus = Status.New;
 			if( trace) {
@@ -283,14 +283,14 @@ namespace TickZoom.FIX
 								IncreaseRetryTimeout();
 								return Yield.DidWork.Repeat;
 							}
-							Packet packet;
-							if( Socket.TryGetPacket(out packet)) {
+							Message message;
+							if( Socket.TryGetMessage(out message)) {
 								lastMessage = TimeStamp.UtcNow;
 								if( debug && (LogRecovery || !IsRecovery)) {
-									log.Debug( "Received FIX Message: " + packet);
+									log.Debug( "Received FIX Message: " + message);
 								}
-								if( !CheckForResend(packet)) {
-									ReceiveMessage(packet);
+								if( !CheckForResend(message)) {
+									ReceiveMessage(message);
 								}
 								IncreaseRetryTimeout();
 								return Yield.DidWork.Repeat;
@@ -325,9 +325,9 @@ namespace TickZoom.FIX
 							return Yield.NoWork.Repeat;
 					}
 				default:
-					string message = "Unknown socket state: " + socket.State;
-					log.Error( message);
-					throw new ApplicationException(message);
+					string textMessage = "Unknown socket state: " + socket.State;
+					log.Error( textMessage);
+					throw new ApplicationException(textMessage);
 			}
 		}
 
@@ -338,17 +338,17 @@ namespace TickZoom.FIX
 
 	    private TimeStamp lastMessage;
 		
-		private bool CheckForResend(Packet packet) {
-			var packetFIX = (PacketFIXT1_1) packet;
+		private bool CheckForResend(Message message) {
+			var messageFIX = (MessageFIXT1_1) message;
 			var result = false;
-			if( packetFIX.MessageType == "2") {
-				int end = packetFIX.EndSeqNum == 0 ? fixFactory.LastSequence : packetFIX.EndSeqNum;
-				if( debug) log.Debug( "Found resend request for " + packetFIX.BegSeqNum + " to " + end + ": " + packetFIX);
-				for( int i = packetFIX.BegSeqNum; i <= end; i++) {
+			if( messageFIX.MessageType == "2") {
+				int end = messageFIX.EndSeqNum == 0 ? fixFactory.LastSequence : messageFIX.EndSeqNum;
+				if( debug) log.Debug( "Found resend request for " + messageFIX.BegSeqNum + " to " + end + ": " + messageFIX);
+				for( int i = messageFIX.BegSeqNum; i <= end; i++) {
 					if( debug) log.Debug("Resending message " + i + "...");
-					var message = fixFactory.GetHistory(i);
-					message.SetDuplicate(true);
-			    	SendMessageInternal( message );
+					var textMessage = fixFactory.GetHistory(i);
+					textMessage.SetDuplicate(true);
+			    	SendMessageInternal( textMessage );
 				}
 				result = true;
 			}
@@ -362,7 +362,7 @@ namespace TickZoom.FIX
 		
 		protected abstract void OnStartRecovery();
 		
-		protected abstract void ReceiveMessage(Packet packet);
+		protected abstract void ReceiveMessage(Message message);
 		
 		private long retryTimeout;
 		
@@ -596,10 +596,10 @@ namespace TickZoom.FIX
 				string view = fixString.Replace(FIXTBuffer.EndFieldStr,"  ");
 				log.Debug("Send FIX message: \n" + view);
 			}
-			var packet = Socket.CreatePacket();
+			var packet = Socket.CreateMessage();
 			packet.DataOut.Write(fixString.ToCharArray());
 			var end = Factory.Parallel.TickCount + (long)heartbeatDelay * 1000L;
-			while( !Socket.TrySendPacket(packet)) {
+			while( !Socket.TrySendMessage(packet)) {
 				if( IsInterrupted) return;
 				if( Factory.Parallel.TickCount > end) {
 					throw new ApplicationException("Timeout while sending heartbeat.");

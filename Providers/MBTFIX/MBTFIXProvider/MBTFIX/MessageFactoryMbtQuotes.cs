@@ -25,12 +25,20 @@
 #endregion
 
 using System;
-using System.IO;
+using TickZoom.Api;
 
-namespace TickZoom.Api
+namespace TickZoom.MBTQuotes
 {
-	public interface PacketFactory {
-		Packet Create();
-		void Release(Packet packet);
+	public class MessageFactoryMbtQuotes : MessageFactory {
+//		private Pool<PacketDefault> pool = new Pool<PacketDefault>();
+		public Message Create() {
+			MessageMbtQuotes message = new MessageMbtQuotes();
+			message.Clear();
+			return (Message) message;
+		}
+		
+		public void Release(Message message) {
+//			pool.Free((PacketDefault) Message);
+		}
 	}
 }

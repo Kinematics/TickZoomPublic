@@ -74,27 +74,27 @@ namespace TickZoom.MBTQuotes
         
 		public override Yield OnLogin()
 		{
-			Socket.PacketFactory = new PacketFactoryMBTQuotes();
+			Socket.MessageFactory = new MessageFactoryMbtQuotes();
 			
-			Packet packet = Socket.CreatePacket();
+			Message message = Socket.CreateMessage();
 			string hashPassword = Hash(Password);
 			string login = "L|100="+UserName+";133="+hashPassword+"\n";
 			if( trace) log.Trace( "Sending: " + login);
-			packet.DataOut.Write(login.ToCharArray());
-			while( !Socket.TrySendPacket(packet)) {
+			message.DataOut.Write(login.ToCharArray());
+			while( !Socket.TrySendMessage(message)) {
 				if( IsInterrupted) return Yield.NoWork.Repeat;
 				Factory.Parallel.Yield();
 			}
-			while( !Socket.TryGetPacket(out packet)) {
+			while( !Socket.TryGetMessage(out message)) {
 				if( IsInterrupted) return Yield.NoWork.Repeat;
 				Factory.Parallel.Yield();
 			}
-			packet.BeforeRead();
-			char firstChar = (char) packet.Data.GetBuffer()[packet.Data.Position];
+			message.BeforeRead();
+			char firstChar = (char) message.Data.GetBuffer()[message.Data.Position];
 			if( firstChar != 'G') {
-				throw new ApplicationException("Invalid quotes login response: \n" + new string(packet.DataIn.ReadChars(packet.Remaining)));
+				throw new ApplicationException("Invalid quotes login response: \n" + new string(message.DataIn.ReadChars(message.Remaining)));
 			}
-			if( trace) log.Trace( "Response: " + new string(packet.DataIn.ReadChars(packet.Remaining)));
+			if( trace) log.Trace( "Response: " + new string(message.DataIn.ReadChars(message.Remaining)));
 			StartRecovery();
 			return Yield.DidWork.Repeat;
         }
@@ -107,9 +107,9 @@ namespace TickZoom.MBTQuotes
 		
 		protected override Yield ReceiveMessage()
 		{
-			Packet rawPacket;
-			if(Socket.TryGetPacket(out rawPacket)) {
-				var packet = (PacketMBTQuotes) rawPacket;
+			Message rawMessage;
+			if(Socket.TryGetMessage(out rawMessage)) {
+				var packet = (MessageMbtQuotes) rawMessage;
 				packet.BeforeRead();
 				if( trace) log.Trace("Received tick: " + new string(packet.DataIn.ReadChars(packet.Remaining)));
 				switch( packet.MessageType) {
@@ -117,10 +117,10 @@ namespace TickZoom.MBTQuotes
 						Level1Update( packet);
 						break;
 					case '2':
-						log.Error( "Message type '2' unknown packet is: " + packet);
+						log.Error( "Message type '2' unknown Message is: " + packet);
 						break;
 					case '3':
-						TimeAndSalesUpdate( (PacketMBTQuotes) packet);
+						TimeAndSalesUpdate( (MessageMbtQuotes) packet);
 						break;
 					default:
 						throw new ApplicationException("MBTQuotes message type '" + packet.MessageType + "' was unknown: \n" + new string(packet.DataIn.ReadChars(packet.Remaining)));
@@ -135,27 +135,27 @@ namespace TickZoom.MBTQuotes
 			}
 		}
 		
-		private unsafe void Level1Update( PacketMBTQuotes packet) {
-			SymbolInfo symbolInfo = Factory.Symbol.LookupSymbol(packet.Symbol);
+		private unsafe void Level1Update( MessageMbtQuotes message) {
+			SymbolInfo symbolInfo = Factory.Symbol.LookupSymbol(message.Symbol);
 			var handler = symbolHandlers[symbolInfo.BinaryIdentifier];
-			if( packet.Bid != 0) {
-				handler.Bid = packet.Bid;
+			if( message.Bid != 0) {
+				handler.Bid = message.Bid;
 			}
-			if( packet.Ask != 0) {
-				handler.Ask = packet.Ask;
+			if( message.Ask != 0) {
+				handler.Ask = message.Ask;
 			}
-			if( packet.AskSize != 0) {
-				handler.AskSize = packet.AskSize;
+			if( message.AskSize != 0) {
+				handler.AskSize = message.AskSize;
 			}
-			if( packet.BidSize != 0) {
-				handler.BidSize = packet.BidSize;
+			if( message.BidSize != 0) {
+				handler.BidSize = message.BidSize;
 			}
-            UpdateTime(handler,packet);
+            UpdateTime(handler,message);
             handler.SendQuote();
             return;
 		}
 
-        private void UpdateTime( SymbolHandler handler, PacketMBTQuotes packet)
+        private void UpdateTime( SymbolHandler handler, MessageMbtQuotes message)
         {
             TimeStamp currentTime;
             if (UseLocalTickTime)
@@ -164,7 +164,7 @@ namespace TickZoom.MBTQuotes
             }
             else
             {
-                currentTime = new TimeStamp(packet.GetTickUtcTime());
+                currentTime = new TimeStamp(message.GetTickUtcTime());
             }
             if (currentTime <= handler.Time)
             {
@@ -173,30 +173,30 @@ namespace TickZoom.MBTQuotes
             handler.Time = currentTime;
         }
 		
-		private unsafe void TimeAndSalesUpdate( PacketMBTQuotes packet) {
-			var symbol = packet.Symbol;
+		private unsafe void TimeAndSalesUpdate( MessageMbtQuotes message) {
+			var symbol = message.Symbol;
 			var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
 			var handler = symbolHandlers[symbolInfo.BinaryIdentifier];
-			handler.Last = packet.Last;
+			handler.Last = message.Last;
 			if( trace) {
-				log.Trace( "Got last trade price: " + handler.Last);// + "\n" + packet);
+				log.Trace( "Got last trade price: " + handler.Last);// + "\n" + Message);
 			}
-			handler.LastSize = packet.LastSize;
-			int condition = packet.Condition;
+			handler.LastSize = message.LastSize;
+			int condition = message.Condition;
 			if( condition != 0 &&
 			    condition != 53 &&
 			    condition != 45) {
 				log.Info( "Trade quote received with non-zero condition: " + condition);
 			}
-			int status = packet.Status;
+			int status = message.Status;
 			if( status != 0) {
 				log.Info( "Trade quote received with non-zero status: " + status);
 			}
-			int type = packet.Type;
+			int type = message.Type;
 			if( type != 0) {
 				log.Info( "Trade quote received with non-zero type: " + type);
 			}
-            UpdateTime(handler, packet);
+            UpdateTime(handler, message);
             handler.SendTimeAndSales();
             return;
 		}
@@ -265,22 +265,22 @@ namespace TickZoom.MBTQuotes
 			}
 
 			if( tradeType != null) {
-				Packet packet = Socket.CreatePacket();
-				string message = "S|1003="+symbol.Symbol+";2000="+tradeType+"\n";
-				if( debug) log.Debug("Symbol request: " + message);
-				packet.DataOut.Write(message.ToCharArray());
-				while( !Socket.TrySendPacket(packet)) {
+				Message message = Socket.CreateMessage();
+				string textMessage = "S|1003="+symbol.Symbol+";2000="+tradeType+"\n";
+				if( debug) log.Debug("Symbol request: " + textMessage);
+				message.DataOut.Write(textMessage.ToCharArray());
+				while( !Socket.TrySendMessage(message)) {
 					if( IsInterrupted) return;
 					Factory.Parallel.Yield();
 				}
 			}
 			
 			if( quoteType != null) {
-				Packet packet = Socket.CreatePacket();
-				string message = "S|1003="+symbol.Symbol+";2000="+quoteType+"\n";
-				if( debug) log.Debug("Symbol request: " + message);
-				packet.DataOut.Write(message.ToCharArray());
-				while( !Socket.TrySendPacket(packet)) {
+				Message message = Socket.CreateMessage();
+				string textMessage = "S|1003="+symbol.Symbol+";2000="+quoteType+"\n";
+				if( debug) log.Debug("Symbol request: " + textMessage);
+				message.DataOut.Write(textMessage.ToCharArray());
+				while( !Socket.TrySendMessage(message)) {
 					if( IsInterrupted) return;
 					Factory.Parallel.Yield();
 				}

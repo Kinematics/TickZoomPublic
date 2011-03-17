@@ -47,30 +47,30 @@ namespace TickZoom.FIX
 		private ushort fixPort = 0;
 		private Socket fixListener;
 		protected Socket fixSocket;
-		private Packet fixReadPacket;
-		private Packet fixWritePacket;
+		private Message _fixReadMessage;
+		private Message _fixWriteMessage;
 		private Task task;
 		private bool isFIXSimulationStarted = false;
-		private PacketFactory fixPacketFactory;
+		private MessageFactory _fixMessageFactory;
 
 		// Quote fields.
 		private ushort quotesPort = 0;
 		private Socket quoteListener;
 		protected Socket quoteSocket;
-		private Packet quoteReadPacket;
-		private Packet quoteWritePacket;
+		private Message _quoteReadMessage;
+		private Message _quoteWriteMessage;
 		private bool isQuoteSimulationStarted = false;
-		private PacketFactory quotePacketFactory;
-		protected FastQueue<Packet> fixPacketQueue = Factory.TickUtil.FastQueue<Packet>("SimulatorFIX");
-		protected FastQueue<Packet> quotePacketQueue = Factory.TickUtil.FastQueue<Packet>("SimulatorQuote");
+		private MessageFactory _quoteMessageFactory;
+		protected FastQueue<Message> fixPacketQueue = Factory.TickUtil.FastQueue<Message>("SimulatorFIX");
+		protected FastQueue<Message> quotePacketQueue = Factory.TickUtil.FastQueue<Message>("SimulatorQuote");
 		private Dictionary<long, FIXServerSymbolHandler> symbolHandlers = new Dictionary<long, FIXServerSymbolHandler>();
 		private bool isPlayBack = false;
 
-		public FIXSimulatorSupport(string mode, ushort fixPort, ushort quotesPort, PacketFactory fixPacketFactory, PacketFactory quotePacketFactory)
+		public FIXSimulatorSupport(string mode, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
 		{
 			isPlayBack = !string.IsNullOrEmpty(mode) && mode == "PlayBack";
-			this.fixPacketFactory = fixPacketFactory;
-			this.quotePacketFactory = quotePacketFactory;
+			this._fixMessageFactory = _fixMessageFactory;
+			this._quoteMessageFactory = _quoteMessageFactory;
 			ListenToFIX(fixPort);
 			ListenToQuotes(quotesPort);
 			MainLoopMethod = MainLoop;
@@ -105,7 +105,7 @@ namespace TickZoom.FIX
 		protected virtual void OnConnectFIX(Socket socket)
 		{
 			fixSocket = socket;
-			fixSocket.PacketFactory = fixPacketFactory;
+			fixSocket.MessageFactory = _fixMessageFactory;
 			Factory.Provider.Manager.AddReader(socket);
 			Factory.Provider.Manager.AddWriter(socket);
 			log.Info("Received FIX connection: " + socket);
@@ -117,7 +117,7 @@ namespace TickZoom.FIX
 		protected virtual void OnConnectQuotes(Socket socket)
 		{
 			quoteSocket = socket;
-			quoteSocket.PacketFactory = quotePacketFactory;
+			quoteSocket.MessageFactory = _quoteMessageFactory;
 			Factory.Provider.Manager.AddReader(socket);
 			Factory.Provider.Manager.AddWriter(socket);
 			log.Info("Received quotes connection: " + socket);
@@ -259,11 +259,11 @@ namespace TickZoom.FIX
 		}
 
 		private bool ProcessFIXPackets() {
-			if( fixWritePacket == null && fixPacketQueue.Count == 0) {
+			if( _fixWriteMessage == null && fixPacketQueue.Count == 0) {
 				return false;
 			}
 			if( trace) log.Trace("ProcessFIXPackets( " + fixPacketQueue.Count + " packets in queue.)");
-			if( fixPacketQueue.DequeueStruct(ref fixWritePacket)) {
+			if( fixPacketQueue.DequeueStruct(ref _fixWriteMessage)) {
 				fixPacketQueue.RemoveStruct();
 				return true;
 			} else {
@@ -271,19 +271,19 @@ namespace TickZoom.FIX
 			}
 		}
 		private bool ProcessQuotePackets() {
-			if( quoteWritePacket == null && quotePacketQueue.Count == 0) {
+			if( _quoteWriteMessage == null && quotePacketQueue.Count == 0) {
 				return false;
 			}
 			if( trace) log.Trace("ProcessQuotePackets( " + quotePacketQueue.Count + " packets in queue.)");
-			if( quotePacketQueue.DequeueStruct(ref quoteWritePacket)) {
+			if( quotePacketQueue.DequeueStruct(ref _quoteWriteMessage)) {
 				QuotePacketQueue.RemoveStruct();
 				return true;
 			} else {
 				return false;
 			}
 		}
-		private bool Resend(PacketFIXT1_1 packetFIX) {
-			var writePacket = fixSocket.CreatePacket();			
+		private bool Resend(MessageFIXT1_1 messageFix) {
+			var writePacket = fixSocket.CreateMessage();			
 			var mbtMsg = fixFactory.Create();
 			mbtMsg.AddHeader("2");
 			mbtMsg.SetBeginSeqNum(sequenceCounter);
@@ -299,20 +299,20 @@ namespace TickZoom.FIX
 		private bool FIXReadLoop()
 		{
 			if (isFIXSimulationStarted) {
-				if (fixSocket.TryGetPacket(out fixReadPacket)) {
-					var packetFIX = (PacketFIXT1_1) fixReadPacket;
+				if (fixSocket.TryGetMessage(out _fixReadMessage)) {
+					var packetFIX = (MessageFIXT1_1) _fixReadMessage;
 					if( fixFactory != null && random.Next(10) == 1) {
 						// Ignore this message. Pretend we never received it.
 						// This will test the message recovery.
 						if( debug) log.Debug("Ignoring fix message sequence " + packetFIX.Sequence);
 						return Resend(packetFIX);
 					}
-					if (trace) log.Trace("Local Read: " + fixReadPacket);
+					if (trace) log.Trace("Local Read: " + _fixReadMessage);
 					if( packetFIX.Sequence != sequenceCounter) {
 						return Resend(packetFIX);
 					} else {
 						sequenceCounter++;
-						ParseFIXMessage(fixReadPacket);
+						ParseFIXMessage(_fixReadMessage);
 						return true;
 					}
 				}
@@ -339,7 +339,7 @@ namespace TickZoom.FIX
 			return realTimeOffset;
 		}
 
-		public void AddSymbol(string symbol, Action<Packet, SymbolInfo, Tick> onTick, Action<PhysicalFill,int,int,int> onPhysicalFill, Action<PhysicalOrder,string> onOrderReject)
+		public void AddSymbol(string symbol, Action<Message, SymbolInfo, Tick> onTick, Action<PhysicalFill,int,int,int> onPhysicalFill, Action<PhysicalOrder,string> onOrderReject)
 		{
 			var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
 			if (!symbolHandlers.ContainsKey(symbolInfo.BinaryIdentifier)) {
@@ -380,31 +380,31 @@ namespace TickZoom.FIX
 		private bool QuotesReadLoop()
 		{
 			if (isQuoteSimulationStarted) {
-				if (quoteSocket.TryGetPacket(out quoteReadPacket)) {
-					if (trace)	log.Trace("Local Read: " + quoteReadPacket);
-					ParseQuotesMessage(quoteReadPacket);
+				if (quoteSocket.TryGetMessage(out _quoteReadMessage)) {
+					if (trace)	log.Trace("Local Read: " + _quoteReadMessage);
+					ParseQuotesMessage(_quoteReadMessage);
 					return true;
 				}
 			}
 			return false;
 		}
 
-		public virtual void ParseFIXMessage(Packet packet)
+		public virtual void ParseFIXMessage(Message message)
 		{
-			if (debug) log.Debug("Received FIX message: " + packet);
+			if (debug) log.Debug("Received FIX message: " + message);
 		}
 
-		public virtual void ParseQuotesMessage(Packet packet)
+		public virtual void ParseQuotesMessage(Message message)
 		{
-			if (debug) log.Debug("Received Quotes message: " + packet);
+			if (debug) log.Debug("Received Quotes message: " + message);
 		}
 
 		public bool WriteToFIX()
 		{
-			if (!isFIXSimulationStarted || fixWritePacket == null) return true;
-			if( fixSocket.TrySendPacket(fixWritePacket)) {
-				if (trace) log.Trace("Local Write: " + fixWritePacket);
-				fixWritePacket = null;
+			if (!isFIXSimulationStarted || _fixWriteMessage == null) return true;
+			if( fixSocket.TrySendMessage(_fixWriteMessage)) {
+				if (trace) log.Trace("Local Write: " + _fixWriteMessage);
+				_fixWriteMessage = null;
 				return true;
 			} else {
 				return false;
@@ -413,10 +413,10 @@ namespace TickZoom.FIX
 
 		public bool WriteToQuotes()
 		{
-			if (!isQuoteSimulationStarted || quoteWritePacket == null) return true;
-			if( quoteSocket.TrySendPacket(quoteWritePacket)) {
-				if (trace) log.Trace("Local Write: " + quoteWritePacket);
-				quoteWritePacket = null;
+			if (!isQuoteSimulationStarted || _quoteWriteMessage == null) return true;
+			if( quoteSocket.TrySendMessage(_quoteWriteMessage)) {
+				if (trace) log.Trace("Local Write: " + _quoteWriteMessage);
+				_quoteWriteMessage = null;
 				return true;
 			} else {
 				return false;
@@ -444,7 +444,7 @@ namespace TickZoom.FIX
 		
 		protected virtual Yield OnHeartbeat() {
 			if( fixSocket != null && FixFactory != null) {
-				var writePacket = fixSocket.CreatePacket();
+				var writePacket = fixSocket.CreateMessage();
 				var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 				mbtMsg.AddHeader("1");
 				string message = mbtMsg.ToString();
@@ -538,7 +538,7 @@ namespace TickZoom.FIX
 			get { return quoteSocket; }
 		}
 		
-		public FastQueue<Packet> QuotePacketQueue {
+		public FastQueue<Message> QuotePacketQueue {
 			get { return quotePacketQueue; }
 		}
 	}
