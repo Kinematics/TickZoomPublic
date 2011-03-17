@@ -25,6 +25,7 @@
 #endregion
 
 using System;
+using System.Text;
 using TickZoom.Api;
 
 namespace TickZoom.Common
@@ -93,6 +94,7 @@ namespace TickZoom.Common
 						box.TickBinary = tickIO.Extract();
 						quotesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
 						receiver.OnEvent(symbol,(int)EventType.Tick,box);
+                        if( trace) Diagnose.SymbolHandlerTicks.Add(box.TickBinary);
 						if( trace) log.Trace("Sent quote for " + symbol + ": " + tickIO);
 					}
 				}
@@ -168,13 +170,9 @@ namespace TickZoom.Common
 					log.Warn("Found trade tick with zero price: " + tickIO);
 				}		
 				salesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
-//				var delta = box.TickBinary.UtcTime - lastTime;
-//				if( delta > 500) {
-//					log.Warn("SymbolHandler found " + delta + " microseconds difference between: \n" + new TimeStamp(box.TickBinary.UtcTime) + "\n" + new TimeStamp(lastTime));
-//				}
-//				lastTime = box.TickBinary.UtcTime;
 				receiver.OnEvent(symbol,(int)EventType.Tick,box);
-				if( trace) log.Trace("Sent trade tick for " + symbol + ": " + tickIO);
+                if (trace) Diagnose.SymbolHandlerTicks.Add(box.TickBinary);
+                if (trace) log.Trace("Sent trade tick for " + symbol + ": " + tickIO);
 			}
 		}
 		private long lastTime;

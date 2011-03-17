@@ -46,7 +46,6 @@ namespace TickZoom.FIX
 		private FIXSimulatorSupport fixSimulatorSupport;
 		private LatencyMetric latency;
 		private TrueTimer tickTimer;
-		private TrueTimer packetTimer;
 		private long intervalTime = 1000000;
 		private long prevTickTime;
 		private bool isVolumeTest = false;
@@ -70,7 +69,6 @@ namespace TickZoom.FIX
 			tickSync.ForceClear();
 			queueTask = Factory.Parallel.Loop("FIXServerSymbol-"+symbolString, OnException, ProcessQueue);
 			tickTimer = Factory.Parallel.CreateTimer(queueTask,PlayBackTick);
-			packetTimer = Factory.Parallel.CreateTimer(queueTask,TryEnqueuePacket);
 			queueTask.Scheduler = Scheduler.RoundRobin;
 			reader.ReadQueue.Connect( queueTask);
 			queueTask.Start();
@@ -150,6 +148,7 @@ namespace TickZoom.FIX
 			try { 
 				if( reader.ReadQueue.TryDequeue( ref binary))
 				{
+				    if( trace) Diagnose.SimulatorTicks.Add(binary);
 					tickStatus = TickStatus.None;
 					tickCounter++;
 				   	if( isPlayBack) {
@@ -255,35 +254,13 @@ namespace TickZoom.FIX
 			}
  			reader.ReadQueue.RemoveStruct();
 			tickStatus = TickStatus.Sent;
-            if( isPlayBack && reader.ReadQueue.Count > 0)
-            {
-                var result = Yield.DidWork.Invoke(ProcessQueue);
-                var item = default(QueueItem);
-                reader.ReadQueue.PeekStruct(ref item);
-                if (item.EventType == (int)EventType.Tick)
-                {
-                    var nextTime = GetNextUtcTime(item.Tick.UtcTime);
-                    var currentTime = TimeStamp.UtcNow.Internal;
-                    if (nextTime > currentTime)
-                    {
-                        if( trace) log.Trace("Sending tick because next " + new TimeStamp(nextTime).TimeOfDay + " greater than current " + new TimeStamp(currentTime).TimeOfDay);
-                        return Yield.DidWork.Invoke(TryEnqueuePacket);
-                    } else
-                    {
-                        if (trace) log.Trace("Buffering tick because next " + new TimeStamp(nextTime).TimeOfDay + " less than current " + new TimeStamp(currentTime).TimeOfDay);
-                    }
-                }
-                return result;
-            }
-            else
-            {
-                return Yield.DidWork.Invoke(TryEnqueuePacket);
-            }
+
+            return Yield.DidWork.Invoke(TryEnqueuePacket);
 		}
 
 		private Yield TryEnqueuePacket() {
 			if( quotePacket.Data.GetBuffer().Length == 0) {
-				return Yield.NoWork.Repeat;
+				return Yield.NoWork.Return;
 			}
             TickBinary nextBinary;
 		    while( !fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quotePacket,quotePacket.UtcTime))

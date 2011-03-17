@@ -28,17 +28,54 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Text;
 using System.Threading;
 
 namespace TickZoom.Api
 {
 	public static class Diagnose
 	{
-		public static void Assert( bool condition, Func<object> logMessage) {
+        private static Log log = Factory.Log.GetLogger("TickZoom.Api.Diagnose");
+        public static void Assert(bool condition, Func<object> logMessage)
+        {
 			if( !condition) {
 				var message = logMessage();
 				throw new InvalidOperationException("Debug assertion failed: " + message);
 			}
 		}
+
+        private static DataSeries<TickBinary> symbolHandlerTicks = Factory.Engine.Series<TickBinary>();
+        private static DataSeries<TickBinary> simulatorTicks = Factory.Engine.Series<TickBinary>();
+        private static DataSeries<TickBinary> quoteProviderTicks = Factory.Engine.Series<TickBinary>();
+
+        public static void LogTicks(DataSeries<TickBinary> list, int quantity, string label)
+        {
+            if (list.Count > 0)
+            {
+                var sb = new StringBuilder();
+                var tickIO = Factory.TickUtil.TickIO();
+                for (int i = 0; i < list.Count && i < quantity; i++)
+                {
+                    tickIO.Inject(list[i]);
+                    sb.AppendLine(tickIO.ToString() + " " + tickIO.Time.Microsecond.ToString("d3"));
+                }
+                log.Info("Last Ticks " + label + ":\n" + sb.ToString());
+            }
+        }
+
+	    public static DataSeries<TickBinary> SymbolHandlerTicks
+	    {
+	        get { return symbolHandlerTicks; }
+	    }
+
+	    public static DataSeries<TickBinary> SimulatorTicks
+	    {
+	        get { return simulatorTicks; }
+	    }
+
+	    public static DataSeries<TickBinary> QuoteProviderTicks
+	    {
+	        get { return quoteProviderTicks; }
+	    }
 	}
 }

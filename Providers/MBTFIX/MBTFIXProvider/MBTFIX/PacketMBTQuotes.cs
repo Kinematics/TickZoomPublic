@@ -54,7 +54,8 @@ namespace TickZoom.MBTQuotes
 		private int bidSize;
         private StringBuilder time = new StringBuilder();
         private StringBuilder date = new StringBuilder();
-		private long utcTime = long.MaxValue;
+        private long tickUtcTime = long.MaxValue;
+        private long utcTime = long.MaxValue;
 		private double last;
 		
 		public double Last {
@@ -105,6 +106,8 @@ namespace TickZoom.MBTQuotes
 		public void Clear() {
 			data.Position = 0;
 			data.SetLength(0);
+		    date.Length = 0;
+		    time.Length = 0;
 		}
 		
 		public void BeforeWrite() {
@@ -341,21 +344,21 @@ namespace TickZoom.MBTQuotes
 		public int MaxSize {
 			get { return maxSize; }
 		}
-		
-		public long UtcTime {
-			get
-			{
-                if( utcTime == long.MinValue)
-                {
-                    if (date.Length != 0 && time.Length != 0)
-                    {
-                        var strings = date.ToString().Split(new char[] { '/' });
-                        var tempDate = strings[2] + "/" + strings[0] + "/" + strings[1];
-                        utcTime = new TimeStamp(tempDate + " " + time).Internal;
-                    }
-                }
-			    return utcTime;
-			}
+
+        public long GetTickUtcTime()
+        {
+            if (date.Length != 0 && time.Length != 0)
+            {
+                var strings = date.ToString().Split(new char[] { '/' });
+                var tempDate = strings[2] + "/" + strings[0] + "/" + strings[1];
+                tickUtcTime = new TimeStamp(tempDate + " " + time).Internal;
+            }
+            return tickUtcTime;
+        }
+
+        public long UtcTime
+        {
+            get { return utcTime; }
 			set { utcTime = value; }
 		}
 				

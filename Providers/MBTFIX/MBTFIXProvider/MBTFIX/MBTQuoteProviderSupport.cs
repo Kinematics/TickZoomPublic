@@ -258,6 +258,7 @@ namespace TickZoom.MBTQuotes
 						default:
 							return Yield.NoWork.Repeat;
 					}
+                case SocketState.Closing:
 				case SocketState.Disconnected:
 					switch( connectionStatus) {
 						case Status.Disconnected:

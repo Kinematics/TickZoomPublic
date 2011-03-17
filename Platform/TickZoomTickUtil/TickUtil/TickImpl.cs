@@ -313,7 +313,6 @@ namespace TickZoom.TickUtil
 			pricePrecision = temp.ToLong();
 		}
 
-		private static readonly long debugDiffMax = 500.0.ToLong();
 		private unsafe void ToWriterVersion10(MemoryStream writer) {
 			dataVersion = 10;
 			writer.SetLength( writer.Position+minTickSize);
@@ -441,7 +440,7 @@ namespace TickZoom.TickUtil
 				byte *ptr = fptr;
 				ptr++; // Save space for size header.
 				*(ptr) = dataVersion; ptr++;
-				*(long*)(ptr) = binary.UtcTime; ptr+=sizeof(long);
+				*(long*)(ptr) = binary.UtcTime/1000; ptr+=sizeof(long);
 				*(ptr) = binary.ContentMask; ptr++;
 				if( IsQuote) {
 					*(long*)(ptr) = binary.Bid; ptr += sizeof(long);

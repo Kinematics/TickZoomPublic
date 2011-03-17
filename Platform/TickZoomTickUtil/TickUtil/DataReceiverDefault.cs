@@ -60,43 +60,39 @@ namespace TickZoom.TickUtil
 		
 		public bool OnEvent(SymbolInfo symbol, int eventType, object eventDetail) {
 			bool result = false;
-			try {
-				switch( (EventType) eventType) {
-					case EventType.Tick:
-						TickBinaryBox binary = (TickBinaryBox) eventDetail;
-						result = readQueue.TryEnqueue(ref binary.TickBinary);
-						if( result) {
-							tickPool.Free(binary);
-						}
-						break;
-					case EventType.EndHistorical:
-						result = readQueue.TryEnqueue(EventType.EndHistorical, symbol);
-						break;
-					case EventType.StartRealTime:
-						result = readQueue.TryEnqueue(EventType.StartRealTime, symbol);
-						break;
-					case EventType.EndRealTime:
-						result = readQueue.TryEnqueue(EventType.EndRealTime, symbol);
-						break;
-					case EventType.Error:
-			    		result = readQueue.TryEnqueue(EventType.Error, symbol);
-			    		break;
-					case EventType.Terminate:
-			    		result = readQueue.TryEnqueue(EventType.Terminate, symbol);
-			    		break;
-					case EventType.LogicalFill:
-					case EventType.StartHistorical:
-					case EventType.Initialize:
-					case EventType.Open:
-					case EventType.Close:
-					case EventType.PositionChange:
-					default:
-			    		// Skip these event types.
-			    		result = true;
-						break;
-				}
-			} catch( QueueException) {
-				log.Warn("Already terminated.");
+			switch( (EventType) eventType) {
+				case EventType.Tick:
+					TickBinaryBox binary = (TickBinaryBox) eventDetail;
+					result = readQueue.TryEnqueue(ref binary.TickBinary);
+					if( result) {
+						tickPool.Free(binary);
+					}
+					break;
+				case EventType.EndHistorical:
+					result = readQueue.TryEnqueue(EventType.EndHistorical, symbol);
+					break;
+				case EventType.StartRealTime:
+					result = readQueue.TryEnqueue(EventType.StartRealTime, symbol);
+					break;
+				case EventType.EndRealTime:
+					result = readQueue.TryEnqueue(EventType.EndRealTime, symbol);
+					break;
+				case EventType.Error:
+		    		result = readQueue.TryEnqueue(EventType.Error, symbol);
+		    		break;
+				case EventType.Terminate:
+		    		result = readQueue.TryEnqueue(EventType.Terminate, symbol);
+		    		break;
+				case EventType.LogicalFill:
+				case EventType.StartHistorical:
+				case EventType.Initialize:
+				case EventType.Open:
+				case EventType.Close:
+				case EventType.PositionChange:
+				default:
+		    		// Skip these event types.
+		    		result = true;
+					break;
 			}
 			return result;
 		}

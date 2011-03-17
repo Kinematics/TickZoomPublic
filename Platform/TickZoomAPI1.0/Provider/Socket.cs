@@ -32,6 +32,7 @@ namespace TickZoom.Api
 		New,
 		PendingConnect,
 		Connected,
+        Closing,
 		Disconnected,
 		Disposed
 	}
@@ -53,5 +54,6 @@ namespace TickZoom.Api
 		int SendQueueCount { get; }
 		int ReceiveQueueCount { get; }
 		FastQueue<Packet> ReceiveQueue { get; }
+	    bool NoDelay { get; }
 	}
 }

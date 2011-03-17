@@ -40,7 +40,6 @@ namespace TickZoom.MBTQuotes
 		private bool debug = log.IsDebugEnabled;
 		private bool trace = log.IsTraceEnabled;
         private Dictionary<long,SymbolHandler> symbolHandlers = new Dictionary<long,SymbolHandler>();	
-		private TimeStamp prevTime;
 		private YieldMethod ReceiveMessageMethod;
 		
 		public MBTQuotesProvider(string name)
@@ -151,19 +150,28 @@ namespace TickZoom.MBTQuotes
 			if( packet.BidSize != 0) {
 				handler.BidSize = packet.BidSize;
 			}
-			if( UseLocalTickTime) {
-				var currentTime = TimeStamp.UtcNow;
-				if( currentTime == prevTime) {
-					currentTime.Internal = prevTime.Internal + 1;
-				}
-				prevTime = currentTime;
-				handler.Time = currentTime;
-			} else {
-				handler.Time = new TimeStamp(packet.UtcTime);
-			}
-			handler.SendQuote();
-			return;
+            UpdateTime(handler,packet);
+            handler.SendQuote();
+            return;
 		}
+
+        private void UpdateTime( SymbolHandler handler, PacketMBTQuotes packet)
+        {
+            TimeStamp currentTime;
+            if (UseLocalTickTime)
+            {
+                currentTime = TimeStamp.UtcNow;
+            }
+            else
+            {
+                currentTime = new TimeStamp(packet.GetTickUtcTime());
+            }
+            if (currentTime <= handler.Time)
+            {
+                currentTime.Internal = handler.Time.Internal + 1;
+            }
+            handler.Time = currentTime;
+        }
 		
 		private unsafe void TimeAndSalesUpdate( PacketMBTQuotes packet) {
 			var symbol = packet.Symbol;
@@ -188,21 +196,9 @@ namespace TickZoom.MBTQuotes
 			if( type != 0) {
 				log.Info( "Trade quote received with non-zero type: " + type);
 			}
-			if( UseLocalTickTime) {
-				var currentTime = TimeStamp.UtcNow;
-				if( currentTime <= prevTime) {
-					currentTime.Internal = prevTime.Internal + 1;
-				}
-				prevTime = currentTime;
-				handler.Time = currentTime;
-			} else {
-				handler.Time = new TimeStamp(packet.UtcTime);
-			}
-			if( handler.Last == 0D) {
-				log.Warn("About to call SendTimeAndSales with Last price = zero.");
-			}
-			handler.SendTimeAndSales();
-			return;
+            UpdateTime(handler, packet);
+            handler.SendTimeAndSales();
+            return;
 		}
 		
 		private void OnException( Exception ex) {
