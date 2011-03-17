@@ -367,9 +367,9 @@ namespace TickZoom.FIX
 		
 		private void OnException( Exception ex) {
 			// Attempt to propagate the exception.
-			log.Error("Exception occurred", ex);
-			SendError( ex.Message + "\n" + ex.StackTrace);
-			Dispose();
+			log.Error("Exception occurred: ", ex);
+			SendError( ex.Message);
+            Dispose();
 		}
 		
         public void Start(Receiver receiver)
@@ -542,12 +542,14 @@ namespace TickZoom.FIX
 	            	if( socketTask != null) {
 		            	socketTask.Stop();
 	            	}
-	            	if( socket != null) {
-		            	socket.Dispose();
-	            	}
-	            	if( fixFilterController != null) {
-	            		fixFilterController.Dispose();
-	            	}
+                    if (socket != null)
+                    {
+                        socket.Dispose();
+                    }
+                    if (fixFilterController != null)
+                    {
+                        fixFilterController.Dispose();
+                    }
 	            	nextConnectTime = Factory.Parallel.TickCount + 10000;
 	            }
     		}

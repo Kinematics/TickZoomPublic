@@ -227,27 +227,35 @@ namespace TickZoom.MBTFIX
 			SendMessage( fixMsg);
 		}
 		
-		private unsafe bool VerifyLogin(Message message) {
-            MessageFIX4_4 packetFIX = (MessageFIX4_4) message;
-			if( !("A" == packetFIX.MessageType &&
-				"FIX.4.4" == packetFIX.Version &&
-				"MBT" == packetFIX.Sender && 
-				UserName == packetFIX.Target && 
-				"0" == packetFIX.Encryption && 
-				30 == packetFIX.HeartBeatInterval) ) {
-				StringBuilder textMessage = new StringBuilder();
-				textMessage.AppendLine("Invalid login response:");
-				textMessage.AppendLine("  message type = " + packetFIX.MessageType);
-				textMessage.AppendLine("  version = " + packetFIX.Version);
-				textMessage.AppendLine("  sender = " + packetFIX.Sender);
-				textMessage.AppendLine("  target = " + packetFIX.Target);
-				textMessage.AppendLine("  encryption = " + packetFIX.Encryption);
-				textMessage.AppendLine("  heartbeat interval = " + packetFIX.HeartBeatInterval);
-				textMessage.AppendLine(packetFIX.ToString());
-				log.Warn(textMessage + " -- retrying.");
-				return false;
-			}
-			return 1 == packetFIX.Sequence;
+		private unsafe bool VerifyLogin(Message message)
+		{
+		    var result = false;
+		    MessageFIX4_4 packetFIX = (MessageFIX4_4) message;
+		    if ("A" == packetFIX.MessageType &&
+		        "FIX.4.4" == packetFIX.Version &&
+		        "MBT" == packetFIX.Sender &&
+		        UserName == packetFIX.Target &&
+		        "0" == packetFIX.Encryption &&
+		        30 == packetFIX.HeartBeatInterval)
+		    {
+                return 1 == packetFIX.Sequence;
+            }
+		    if ("1" == packetFIX.MessageType)
+		    {
+		        return true;
+		    }
+		    StringBuilder textMessage = new StringBuilder();
+		    textMessage.AppendLine("Invalid login response:");
+		    textMessage.AppendLine("  message type = " + packetFIX.MessageType);
+		    textMessage.AppendLine("  version = " + packetFIX.Version);
+		    textMessage.AppendLine("  sender = " + packetFIX.Sender);
+		    textMessage.AppendLine("  target = " + packetFIX.Target);
+		    textMessage.AppendLine("  encryption = " + packetFIX.Encryption);
+            textMessage.AppendLine("  sequence = " + packetFIX.Sequence);
+            textMessage.AppendLine("  heartbeat interval = " + packetFIX.HeartBeatInterval);
+		    textMessage.AppendLine(packetFIX.ToString());
+		    log.Warn(textMessage + " -- retrying.");
+		    return false;
 		}
 		
 		protected override void ReceiveMessage(Message message) {
@@ -797,13 +805,6 @@ namespace TickZoom.MBTFIX
 			string internalOrderId = packetFIX.InternalOrderId;
 			string transactionTime = packetFIX.TransactionTime;
 			int leavesQuantity = packetFIX.LeavesQuantity;
-		}
-		
-		private void OnException( Exception ex) {
-			// Attempt to propagate the exception.
-			log.Error("Exception occurred", ex);
-			SendError( ex.Message + "\n" + ex.StackTrace);
-			Dispose();
 		}
 		
 		private PhysicalOrder GetPhysicalOrder( string clientOrderId) {
