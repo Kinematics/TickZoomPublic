@@ -113,6 +113,7 @@
     <Compile Include="TradingFramework\StrategyTickTest.cs" />
     <Compile Include="TradingFramework\StrategyTest.cs" />
     <Compile Include="TradingFramework\TradeStatsTest.cs" />
+    <Compile Include="Utilities\ActiveListTest.cs" />
     <Compile Include="Utilities\ISINTest.cs" />
     <Compile Include="Utilities\SymbolTest.cs" />
     <Compile Include="Utilities\tzdataTest.cs" />
@@ -165,8 +166,6 @@
       <WrapperTool>tlbimp</WrapperTool>
       <Isolated>False</Isolated>
     </COMReference>
-    <Folder Include="Lib" />
-    <Folder Include="Provider" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Framework.2.0">

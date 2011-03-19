@@ -88,7 +88,11 @@ namespace Test
 
 			startTime = Factory.TickCount;
 			for( int j=0; j< iterations; j++) {
-				foreach( var item in linked) {
+			    var next = linked.First;
+			    for (var current = next; current != null; current = next)
+			    {
+			        next = current.Next;
+			        var item = current.Value;
 					item.Number += 2;
 				}
 			}

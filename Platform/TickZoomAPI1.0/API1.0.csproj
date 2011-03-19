@@ -84,6 +84,7 @@
     <Compile Include="Classes\Settings.cs" />
     <Compile Include="Misc\Attributes\SkipDynamicLoadAttribute.cs" />
     <Compile Include="Misc\Collections\ActiveList.cs" />
+    <Compile Include="Misc\Collections\ActiveListNode.cs" />
     <Compile Include="Misc\Enums\ArrowDirection.cs" />
     <Compile Include="Misc\Enums\BarUnit.cs" />
     <Compile Include="Misc\Enums\EventType.cs" />

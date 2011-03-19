@@ -35,16 +35,16 @@ namespace TickZoom.TickUtil
 {
 	public class NodePool<T>
 	{
-		private Stack<LinkedListNode<T>> _nodes = new Stack<LinkedListNode<T>>();
-        private SimpleLock _sync = new SimpleLock();
+		private Stack<ActiveListNode<T>> _nodes = new Stack<ActiveListNode<T>>();
+		private SimpleLock _sync = new SimpleLock();
 		private int count = 0;
 	
-		public LinkedListNode<T> Create(T item)
+		public ActiveListNode<T> Create(T item)
 		{
 			using (_sync.Using()) {
 				if (_nodes.Count == 0) {
 					Interlocked.Increment(ref count);
-					return new LinkedListNode<T>(item);
+					return new ActiveListNode<T>(item);
 				} else {
 					var node = _nodes.Pop();
 					node.Value = item;
@@ -53,7 +53,7 @@ namespace TickZoom.TickUtil
 			}
 		}
 	
-		public void Free(LinkedListNode<T> node)
+		public void Free(ActiveListNode<T> node)
 		{
 			using(_sync.Using()) {
 //                Debug.Assert(!_nodes.Contains(node));

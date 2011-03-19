@@ -70,7 +70,11 @@ namespace TickZoom.Common
 		}
 		
 		private bool TryMatchId( LogicalOrder logical, out PhysicalOrder physicalOrder) {
-			foreach( var physical in originalPhysicals) {
+		    var next = originalPhysicals.First;
+		    for (var current = next; current != null; current = next)
+		    {
+		        next = current.Next;
+		        var physical = current.Value;
 				if( logical.Id == physical.LogicalOrderId) {
 					physicalOrder = physical;
 					return true;
@@ -82,7 +86,11 @@ namespace TickZoom.Common
 		
 		private bool TryMatchTypeOnly( LogicalOrder logical, out PhysicalOrder physicalOrder) {
 			double difference = logical.Position - Math.Abs(actualPosition);
-			foreach( var physical in originalPhysicals) {
+		    var next = originalPhysicals.First;
+		    for (var current = next; current != null; current = next)
+		    {
+		        next = current.Next;
+		        var physical = current.Value;
 				if( logical.Type == physical.Type) {
 					if( logical.TradeDirection == TradeDirection.Entry) {
 						if( difference != 0) {
@@ -585,7 +593,11 @@ namespace TickZoom.Common
 		
 		private bool CheckForPending() {
 			var result = false;
-			foreach( var order in originalPhysicals) {
+		    var next = originalPhysicals.First;
+		    for (var current = next; current != null; current = next)
+		    {
+		        next = current.Next;
+		        var order = current.Value;
 				if( order.OrderState == OrderState.Pending ||
 				    order.Type == OrderType.BuyMarket ||
 				    order.Type == OrderType.SellMarket) {
@@ -597,7 +609,11 @@ namespace TickZoom.Common
 		}
 		
 		private LogicalOrder FindLogicalOrder(int orderId) {
-			foreach( var order in originalLogicals) {
+		    var next = originalLogicals.First;
+		    for (var current = next; current != null; current = next)
+		    {
+		        next = current.Next;
+		        var order = current.Value;
 				if( order.Id == orderId) {
 					return order;
 				}
@@ -750,7 +766,11 @@ namespace TickZoom.Common
 					throw new ApplicationException("Unknown trade direction: " + filledOrder.TradeDirection);
 			}
 			if( clean) {
-				foreach( var order in logicalOrders) {
+			    var next = logicalOrders.First;
+			    for (var current = next; current != null; current = next)
+			    {
+			        next = current.Next;
+			        var order = current.Value;
 					if( order.StrategyId == filledOrder.StrategyId) {
 						switch( order.TradeDirection) {
 							case TradeDirection.Entry:
@@ -790,7 +810,11 @@ namespace TickZoom.Common
 		}
 
 		private bool CheckForFilledOrders(Iterable<LogicalOrder> orders) {
-			foreach( var logical in orders) {
+		    var next = orders.First;
+		    for (var current = next; current != null; current = next)
+		    {
+		        next = current.Next;
+		        var logical = current.Value;
 				var binaryTime = 0L;
 				if( filledOrders.TryGetValue( logical.SerialNumber, out binaryTime)) {
 					if( debug) log.Debug("Found already filled order: " + logical);

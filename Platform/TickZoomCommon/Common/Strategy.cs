@@ -179,7 +179,11 @@ namespace TickZoom.Common
 			if( trace) {
 				StringBuilder sb = new StringBuilder();
 				sb.AppendLine("Active Orders:");
-				foreach( var item in activeOrders) {
+			    var next = activeOrders.First;
+			    for (var current = next; current != null; current = next)
+			    {
+			        next = current.Next;
+			        var item = current.Value;
 					sb.Append("        ");
 					sb.AppendLine( item.ToString());
 				}

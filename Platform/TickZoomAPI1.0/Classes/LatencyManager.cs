@@ -50,7 +50,7 @@ namespace TickZoom.Api
 		private static readonly bool debug = log.IsDebugEnabled;
 		private static int count;
 		private object listMapLocker = new object();
-		private Dictionary<long,LinkedList<LatencyMetric>> listMap = new Dictionary<long,LinkedList<LatencyMetric>>();
+		private Dictionary<long,ActiveList<LatencyMetric>> listMap = new Dictionary<long,ActiveList<LatencyMetric>>();
 		private static LatencyManager instance;
 		private DataSeries<LatencyLogEntry> latencyLog = Factory.Engine.Series<LatencyLogEntry>();
 		private long latencyLogStartTime = TimeStamp.UtcNow.Internal;
@@ -157,10 +157,10 @@ namespace TickZoom.Api
 		}
 		
 		private void Register( LatencyMetric metric, out LatencyMetric previous) {
-			LinkedList<LatencyMetric> list;
+			ActiveList<LatencyMetric> list;
 			lock( listMapLocker) {
 				if( !listMap.TryGetValue(metric.Symbol, out list)) {
-					list = new LinkedList<LatencyMetric>();
+					list = new ActiveList<LatencyMetric>();
 					listMap[metric.Symbol] = list;
 				}
 				previous = list.Count > 0 ? list.Last.Value : null;
@@ -204,7 +204,11 @@ namespace TickZoom.Api
 		        	var symbol = kvp.Key;
 		        	var list = kvp.Value;
 		        	var previous = list.First.Value;
-		        	foreach( var metric in list) {
+		    	    var next = list.First;
+		    	    for (var current = next; current != null; current = next)
+		    	    {
+		    	        next = current.Next;
+		    	        var metric = current.Value;
 		        		sb.Append( metric.GetStats(previous));
 		        		sb.AppendLine();
 		        		previous = metric;	

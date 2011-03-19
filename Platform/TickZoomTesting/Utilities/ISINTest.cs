@@ -33,7 +33,7 @@ using TickZoom.Api;
 
 namespace TickZoom.Utilities
 {
-	[TestFixture]
+    [TestFixture]
 	public class ISINTest
 	{
 		Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);

@@ -25,6 +25,7 @@
 #endregion
 
 using System;
+using System.Text;
 using TickZoom.Api;
 
 namespace TickZoom.FIX
@@ -147,7 +148,7 @@ namespace TickZoom.FIX
         }
 
 		private Yield DequeueTick() {
-			var result = Yield.NoWork.Repeat;
+            var result = Yield.NoWork.Repeat;
 			var binary = new TickBinary();
 			
 			try { 
@@ -198,7 +199,7 @@ namespace TickZoom.FIX
 
 		private volatile TickStatus tickStatus = TickStatus.None;
 		private Yield ProcessTick() {
-			var result = Yield.NoWork.Repeat;
+            var result = Yield.NoWork.Repeat;
 			if( isPlayBack ) {
 				switch( tickStatus) {
 					case TickStatus.None:
@@ -211,9 +212,9 @@ namespace TickZoom.FIX
 							tickStatus = TickStatus.Timer;
 						} else {
 							if( trace) log.Trace("Current time " + currentTime + " was greater than tick time " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
-							result = Yield.DidWork.Invoke(SendPlayBackTick);
+                                result = Yield.DidWork.Invoke(SendPlayBackTick);
 						}		
-						break;
+				        break;
 					case TickStatus.Sent:
 						result = Yield.DidWork.Invoke(ProcessQueue);
 						break;
@@ -244,28 +245,16 @@ namespace TickZoom.FIX
 		private Yield ProcessOnTickCallBack() {
 			if( quoteMessage == null) {
 				quoteMessage = fixSimulatorSupport.QuoteSocket.CreateMessage();
-			} else if( quoteMessage.IsFull) {
-				if( fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quoteMessage, quoteMessage.UtcTime)) {
-					quoteMessage = fixSimulatorSupport.QuoteSocket.CreateMessage();
-				} else {
-					return Yield.NoWork.Repeat;
-				}
 			}
 			onTick( quoteMessage, symbol, nextTick);
 			if( trace) log.Trace("Added tick to packet: " + nextTick.UtcTime);
-			var current = nextTick.UtcTime.Internal;
-			if( current < quoteMessage.UtcTime) {
-				quoteMessage.UtcTime = current;
-			}
- 			reader.ReadQueue.RemoveStruct();
-			tickStatus = TickStatus.Sent;
-
+			quoteMessage.UtcTime = nextTick.UtcTime.Internal;
             return Yield.DidWork.Invoke(TryEnqueuePacket);
 		}
 
 		private Yield TryEnqueuePacket() {
 			if( quoteMessage.Data.GetBuffer().Length == 0) {
-				return Yield.NoWork.Return;
+                throw new InvalidOperationException("Quote essage created was emptry.");
 			}
             TickBinary nextBinary;
 		    while( !fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quoteMessage,quoteMessage.UtcTime))
@@ -277,7 +266,9 @@ namespace TickZoom.FIX
 		    }
 			if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.UtcTime));
 			quoteMessage = fixSimulatorSupport.QuoteSocket.CreateMessage();
-			return Yield.DidWork.Return;
+            reader.ReadQueue.RemoveStruct();
+            tickStatus = TickStatus.Sent;
+            return Yield.DidWork.Return;
 		}
 		
 		private Yield PlayBackTick() {

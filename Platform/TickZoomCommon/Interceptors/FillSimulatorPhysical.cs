@@ -137,7 +137,7 @@ namespace TickZoom.Interceptors
 		    PhysicalOrder physicalOrder;
             if( TryGetOrderById(oldOrderId, out physicalOrder))
 		    {
-                var node = (LinkedListNode<PhysicalOrder>)physicalOrder.Reference;
+                var node = (ActiveListNode<PhysicalOrder>)physicalOrder.Reference;
 		        if (node.List != null)
 		        {
 		            node.List.Remove(node);
@@ -271,7 +271,7 @@ namespace TickZoom.Interceptors
 		
 		private void Adjust(ActiveList<PhysicalOrder> list, PhysicalOrder order) {
 			AssureNode(order);
-			var node = (LinkedListNode<PhysicalOrder>) order.Reference;
+			var node = (ActiveListNode<PhysicalOrder>) order.Reference;
 			if( node.List == null ) {
 				list.AddLast(node);
 			} else if( !node.List.Equals(list)) {
@@ -282,7 +282,7 @@ namespace TickZoom.Interceptors
 		
 		private void SortAdjust(ActiveList<PhysicalOrder> list, PhysicalOrder order, Func<PhysicalOrder,PhysicalOrder,double> compare) {
 			AssureNode(order);
-			var orderNode = (LinkedListNode<PhysicalOrder>) order.Reference;
+			var orderNode = (ActiveListNode<PhysicalOrder>) order.Reference;
 			if( orderNode.List == null || !orderNode.List.Equals(list)) {
 				if( orderNode.List != null) {
 					orderNode.List.Remove(orderNode);
@@ -330,7 +330,7 @@ namespace TickZoom.Interceptors
 			lock( orderMapLocker) {
 				orderMap.Remove((string)order.BrokerOrder);
 			}
-			var node = (LinkedListNode<PhysicalOrder>) order.Reference;
+			var node = (ActiveListNode<PhysicalOrder>) order.Reference;
 			if( node.List != null) {
 				node.List.Remove(node);
 			}
