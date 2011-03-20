@@ -153,11 +153,14 @@ namespace TickZoom.TickUtil
         public bool EnqueueStruct(ref T tick, long utcTime) {
         	return TryEnqueueStruct(ref tick, utcTime);
         }
-        
-	    public void Connect(Task task) {
+
+	    private int connectionId;
+	    public void Connect(Task task)
+	    {
+	        this.connectionId = connectionId;
 			if( this.task != task) {
 				this.task = task;
-				task.Connect( this);
+				task.Connect( this, out connectionId);
 			}
 	    }
 	    
@@ -198,7 +201,7 @@ namespace TickZoom.TickUtil
 	            } else if( temp == 0) {
 	            	this.earliestUtcTime = utcTime;
 	            	if( task != null) {
-	            		task.UpdateUtcTime(this,utcTime);
+	            		task.UpdateUtcTime(connectionId,utcTime);
 	            	}
 	            }
 	            var node = NodePool.Create(new FastQueueEntry<T>(tick,utcTime));
@@ -215,14 +218,20 @@ namespace TickZoom.TickUtil
             while( !SpinLockNB());
 	    	var tempCount = Interlocked.Decrement(ref count);
 	    	var tempQueueCount = queue.Count;
-	    	SpinUnLock();
+            if( tempCount == 0) earliestUtcTime = long.MaxValue;
 	    	if( tempCount < tempQueueCount) {
 	    		throw new ApplicationException("Attempt to reduce FastQueue count less than internal queue: count " + tempCount + ", queue.Count " + tempQueueCount);
 	    	}
-	    	if( task != null) {
-	    		task.DecreaseActivityX();
+	    	if( task != null)
+	    	{
+                if (tempCount == 0)
+                {
+                    task.UpdateUtcTime(connectionId, earliestUtcTime);
+                }
+                task.DecreaseActivityX();
 	    	}
-	    }
+            SpinUnLock();
+        }
 	    
 	    public bool DequeueStruct(ref T tick) {
 	    	return TryDequeueStruct(ref tick);
@@ -309,7 +318,7 @@ namespace TickZoom.TickUtil
                 earliestUtcTime = queue.Count == 0 ? long.MaxValue : queue.Last.Value.utcTime;
                 if( queue.Count == 0) {
 		            if( task != null) {
-			            task.UpdateUtcTime(this,earliestUtcTime);
+			            task.UpdateUtcTime(connectionId,earliestUtcTime);
 	    	        }
                 }
 	    	} finally {
@@ -380,7 +389,7 @@ namespace TickZoom.TickUtil
 	    
 	    public int Count {
 	    	get { if(!isDisposed) {
-	    			return queue.Count;
+	    			return count;
 	    		} else {
 	    			return 0;
 	    		}

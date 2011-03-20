@@ -32,11 +32,16 @@ using System.Diagnostics;
 
 namespace TickZoom.TickUtil
 {
-	public class PoolDefault<T> : Pool<T> where T : new()
+    public class PoolDefault<T> : Pool<T> where T : new()
 	{
 		private Stack<T> _items = new Stack<T>();
         private SimpleLock _sync = new SimpleLock();
 		private int count = 0;
+        private ActiveList<T> _freed = new ActiveList<T>();
+
+        public PoolDefault()
+	    {
+    	}
 
 		public T Create()
 		{
@@ -53,8 +58,12 @@ namespace TickZoom.TickUtil
 		public void Free(T item)
 		{
 			using (_sync.Using()) {
-//              Debug.Assert(!_items.Contains(item));
-				_items.Push(item);
+                _freed.AddFirst(item);
+                if (_freed.Count > 10)
+                {
+                    var freed = _freed.RemoveLast().Value;
+                    _items.Push(freed);
+                }
 			}
 		}
 
