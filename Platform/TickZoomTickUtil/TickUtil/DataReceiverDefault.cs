@@ -34,7 +34,7 @@ namespace TickZoom.TickUtil
 	public class DataReceiverDefault : Receiver {
 	   	static readonly Log log = Factory.SysLog.GetLogger(typeof(DataReceiverDefault));
 	   	readonly bool debug = log.IsDebugEnabled;
-		TickQueue readQueue = Factory.TickUtil.TickQueue(typeof(DataReceiverDefault));
+	    private TickQueue readQueue = new TickQueueImpl("DataReceiverDefault",100000);
         Provider sender;
         Pool<TickBinaryBox> tickPool = Factory.TickUtil.TickPool();
 	    private static readonly bool captureEvents = Factory.Provider.EventLog.CheckEnabled(log);
@@ -62,11 +62,16 @@ namespace TickZoom.TickUtil
 			bool result = false;
 			switch( (EventType) eventType) {
 				case EventType.Tick:
-					TickBinaryBox binary = (TickBinaryBox) eventDetail;
-					result = readQueue.TryEnqueue(ref binary.TickBinary);
-					if( result) {
-						tickPool.Free(binary);
-					}
+					var binary = (TickBinaryBox) eventDetail;
+			        do
+			        {
+			            if (readQueue.TryEnqueue(ref binary.TickBinary))
+			            {
+			                result = true;
+			                tickPool.Free(binary);
+			                break;
+			            }
+			        } while (!readQueue.IsFull);
 					break;
 				case EventType.EndHistorical:
 					result = readQueue.TryEnqueue(EventType.EndHistorical, symbol);

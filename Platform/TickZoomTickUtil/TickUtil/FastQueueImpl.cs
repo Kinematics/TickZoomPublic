@@ -93,7 +93,7 @@ namespace TickZoom.TickUtil
 		int backupLevel = 20;
 		long earliestUtcTime = long.MaxValue;
 		private Task task;
-		private int count;
+		private volatile int count;
 		
 		public long EarliestUtcTime {
 			get { return earliestUtcTime; }

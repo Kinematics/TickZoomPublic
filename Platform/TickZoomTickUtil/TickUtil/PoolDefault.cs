@@ -39,10 +39,6 @@ namespace TickZoom.TickUtil
 		private int count = 0;
         private ActiveList<T> _freed = new ActiveList<T>();
 
-        public PoolDefault()
-	    {
-    	}
-
 		public T Create()
 		{
 			using (_sync.Using()) {
@@ -61,8 +57,7 @@ namespace TickZoom.TickUtil
                 _freed.AddFirst(item);
                 if (_freed.Count > 10)
                 {
-                    var freed = _freed.RemoveLast().Value;
-                    _items.Push(freed);
+                    _items.Push(_freed.RemoveLast().Value);
                 }
 			}
 		}

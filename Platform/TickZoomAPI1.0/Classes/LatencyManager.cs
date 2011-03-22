@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Threading;
 
@@ -42,6 +43,8 @@ namespace TickZoom.Api
 	    public int Sends;
 	    public int RoundRobin;
 	    public int Earliest;
+	    public int Analyze;
+	    public int Simulator;
 	}
 	public class LatencyManager : IDisposable
 	{
@@ -52,16 +55,30 @@ namespace TickZoom.Api
 		private object listMapLocker = new object();
 		private Dictionary<long,ActiveList<LatencyMetric>> listMap = new Dictionary<long,ActiveList<LatencyMetric>>();
 		private static LatencyManager instance;
-		private DataSeries<LatencyLogEntry> latencyLog = Factory.Engine.Series<LatencyLogEntry>();
+	    private LatencyLogEntry[] latencyLog;
+        //private DataSeries<LatencyLogEntry> latencyLog = Factory.Engine.Series<LatencyLogEntry>();
 		private long latencyLogStartTime = TimeStamp.UtcNow.Internal;
 		private TaskLock latencyLogLocker = new TaskLock();
-		
+
+        private void AddLatency( ref LatencyLogEntry entry)
+        {
+            var index = Interlocked.Increment(ref latencyLogIndex);
+            latencyLog[index-1] = entry;
+        }
+
 		public static LatencyManager GetInstance() {
 			if( instance == null) {
 				instance = new LatencyManager();
 			}
 			return instance;
 		}
+
+	    private static long simulatorCount = 0;
+
+        public static void IncrementSymbolHandler()
+        {
+            Interlocked.Increment(ref simulatorCount);
+        }
 		
 		public static LatencyManager Register(LatencyMetric metric, out int id, out int count, out LatencyMetric previous) {
 			GetInstance().Register(metric, out previous);
@@ -70,46 +87,57 @@ namespace TickZoom.Api
 			return instance;
 		}
 
-	    private long lastSelectCount;
-	    private long lastRoundRobinCount;
-	    private long lastEarliestCount;
-	    private long lastReceiveCount;
-	    private long lastTryReadCount;
-	    private long lastSendCount;
-	    private int previousId = 0;
-	    private int idCounter = 0;
+        private long lastSelectCount;
+        private long lastRoundRobinCount;
+        private long lastEarliestCount;
+        private long lastReceiveCount;
+        private long lastTryReadCount;
+        private long lastSendCount;
+        private volatile bool alreadyShowedLog = false;
+        private volatile int logCount = 0;
+	    private volatile int tickCount = 0;
+	    private int lastId = 0;
 		public void Log( int id, long utcTickTime)
 		{
-		    var showLog = false;
-            if (id == previousId)
+            if( latencyLog == null)
             {
-                idCounter++;
+                latencyLog = new LatencyLogEntry[2000000];
             }
-            else
+            if( id < lastId)
             {
-                if (previousId == 0 && idCounter >= 10)
-                {
-                    showLog = true;
-                }
-                idCounter = 0;
+                Interlocked.Increment(ref tickCount);
             }
+            lastId = id;
+            var currentTime = TimeStamp.UtcNow.Internal;
+		    var latency = currentTime - utcTickTime;
+            if( latency < 1000)
+            {
+                alreadyShowedLog = false;
+            }
+		    var showLog = tickCount > 100 && latency > 2000;
             var selectCount = Factory.Provider.Manager.SelectCount;
 		    var roundRobinCounter = Factory.Parallel.RoundRobinCounter;
 		    var earliestCounter = Factory.Parallel.EarliestCounter;
-		    var sendCounter = Factory.Provider.Manager.SendCounter;
+            var sendCounter = Factory.Provider.Manager.SendCounter;
 		    var receiveCounter = Factory.Provider.Manager.ReceiveCounter;
 		    var tryReadCounter = Interlocked.Read(ref TryReadCounter);
-		    var entry = new LatencyLogEntry {
-                Count = latencyLog.BarCount,
+            var analyze = (int) Factory.Parallel.AnalyzePoint;
+		    var simulator = simulatorCount;
+		    var entry = new LatencyLogEntry
+            {
+                Count = tickCount,
                 Id = id,
                 TickTime = utcTickTime,
-                UtcTime = TimeStamp.UtcNow.Internal,
-                Selects = (int)(selectCount - lastSelectCount),
+                UtcTime = currentTime,
+                Selects = (int) (selectCount - lastSelectCount),
                 TryReceive = (int) (tryReadCounter - lastTryReadCount),
                 Receives = (int) (receiveCounter - lastReceiveCount),
                 Sends = (int) (sendCounter - lastSendCount),
                 RoundRobin = (int) (roundRobinCounter - lastRoundRobinCount),
                 Earliest = (int) (earliestCounter - lastEarliestCount),
+                // - lastEarliestCount),
+                Analyze = analyze,
+                Simulator = (int) (simulator - lastSimulatorCount),
 			};
 		    lastSelectCount = selectCount;
 		    lastTryReadCount = tryReadCounter;
@@ -117,39 +145,60 @@ namespace TickZoom.Api
 		    lastSendCount = sendCounter;
 		    lastRoundRobinCount = roundRobinCounter;
 		    lastEarliestCount = earliestCounter;
+		    lastSimulatorCount = simulator;
 			latencyLogLocker.Lock();
-			latencyLog.Add(entry);
+			AddLatency(ref entry);
             latencyLogLocker.Unlock();
-		    previousId = id;
-            //if (latencyLog.BarCount == 500)
-            ////if (false && showLog)
-            //{
-            //    log.Info(LatencyManager.GetInstance().GetStats() + "\n" + Factory.Parallel.GetStats());
-            //    log.Info("Latency log:\n" + LatencyManager.GetInstance().WriteLog(600));
-            //    System.Diagnostics.Debugger.Break();
-            //}
+            if (showLog && !alreadyShowedLog)
+            {
+                alreadyShowedLog = true;
+                try { throw new ExceededLatencyException(); }
+                catch { }
+                log.Info("Latency exceed limit at " + latency + "ms.");
+                log.Info("Latency log:\n" + LatencyManager.GetInstance().WriteLog(1000));
+                log.Info(LatencyManager.GetInstance().GetStats() + "\n" + Factory.Parallel.GetStats());
+                System.Diagnostics.Debugger.Break();
+                logCount++;
+            }
         }
+
+	    private int x = 0;
+
+        public class ExceededLatencyException : Exception { }
 		
 		public int LogCount {
 			get {
-				return latencyLog.Count;
+				return latencyLog.Length;
 			}
 		}
-		
-		public string WriteLog(int entries) {
+
+        public string WriteLog()
+        {
+            return WriteLog(0);
+        }
+
+	    public string WriteLog(int entries) {
 			using( latencyLogLocker.Using()) {
 				var sb = new StringBuilder();
-				if( latencyLog.Count > 0) {
-					var begin = Math.Max(0,Math.Min(entries,latencyLog.Count)-1);
-					var startTime = latencyLog[begin].UtcTime;
-					for( int i=begin; i>=0; i--) {
+				if( LogCount > 0)
+				{
+				    var begin = latencyLogIndex - entries;
+                    begin = begin > 0 ? begin : 0;
+					var startTime = latencyLog[0].UtcTime;
+					for( int i=begin; i<latencyLogIndex; i++) {
 						var entry = latencyLog[i];
+                        if (entry.Id == 16) sb.AppendLine();
 					    var latency = entry.UtcTime - entry.TickTime;
-					    var tickTime = new TimeStamp(entry.TickTime).TimeOfDay;
-					    var tickTimeStr = tickTime + "." + tickTime.Microseconds;
-					    var time = new TimeStamp(entry.UtcTime).TimeOfDay;
-					    var timeStr = time + "." + time.Microseconds;
-						sb.AppendLine( entry.Count + ": " + entry.Id + " => " + tickTimeStr + " at " + timeStr + " latency " + latency + "us, selects " + entry.Selects + ", send " + entry.Sends + ", receive " + entry.Receives + ", (try " + entry.TryReceive + "), roundR " + entry.RoundRobin + ", earliest " + entry.Earliest);
+                        var tickTime = new TimeStamp(entry.TickTime).TimeOfDay;
+                        var tickTimeStr = tickTime + "." + tickTime.Microseconds;
+                        var time = new TimeStamp(entry.UtcTime).TimeOfDay;
+                        var timeStr = time + "." + time.Microseconds;
+                        sb.AppendLine(entry.Count + ": " + entry.Id + " => " + tickTimeStr + " at " + timeStr + " latency " + latency + "us, selects " + entry.Selects + ", send " + entry.Sends + ", receive " + entry.Receives + ", (try " + entry.TryReceive + "), roundR " + entry.RoundRobin + ", earliest " + entry.Earliest + ", analyze " + entry.Analyze + ", simulator " + entry.Simulator);
+                        if (i % 2000 == 0)
+                        {
+                            log.Info("Up to " + i + "\n" + sb);
+                            sb.Length = 0;
+                        }
 					}
 				}
 				return sb.ToString();
@@ -175,9 +224,17 @@ namespace TickZoom.Api
 		public int Count {
 			get { return count; }
 		}
-		
-	 	private volatile bool isDisposed = false;
+
+	    public int TickCount
+	    {
+	        get { return tickCount; }
+	    }
+
+	    private volatile bool isDisposed = false;
 	 	private object disposeLocker = new object();
+	    private int latencyLogIndex = 0;
+	    private decimal lastSimulatorCount;
+
 	    public void Dispose() 
 	    {
 	        Dispose(true);
