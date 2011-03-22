@@ -121,7 +121,9 @@ namespace TickZoom.FIX
 		}
 		
 		private Yield ProcessQueue() {
-			if( SyncTicks.Enabled) {
+            LatencyManager.IncrementSymbolHandler();
+            if (SyncTicks.Enabled)
+            {
 				if( !tickSync.TryLock()) {
 					TryCompleteTick();
 					return Yield.NoWork.Repeat;
@@ -148,14 +150,36 @@ namespace TickZoom.FIX
             }
         }
 
+        public class ReadQueueEmptyException : Exception {}
+
+	    private bool alreadyEmpty = false;
+	    private Integers queueCounts = Factory.Engine.Integers();
 		private Yield DequeueTick() {
+            LatencyManager.IncrementSymbolHandler();
             var result = Yield.NoWork.Repeat;
 			var binary = new TickBinary();
 			
-			try { 
+			try {
+                if( !alreadyEmpty && reader.ReadQueue.Count == 0)
+                {
+                    alreadyEmpty = true;
+                    try
+                    {
+                        throw new ReadQueueEmptyException();
+                    } catch {}
+                    var sb = new StringBuilder();
+                    for( var i=0; i<queueCounts.Count; i++)
+                    {
+                        sb.AppendLine(queueCounts[i].ToString());
+                    }
+                    log.Warn("Simulator found empty read queue at tick " + tickCounter + ", initial count " + initialCount + ". Recent counts:");
+                    if( debug) log.Debug("Recent counts:\n"+sb);
+                }
+                queueCounts.Add(reader.ReadQueue.Count);
 				if( reader.ReadQueue.TryDequeue( ref binary))
 				{
 				    if( Diagnose.TraceTicks) Diagnose.AddTick(diagnoseMetric, ref binary);
+                    alreadyEmpty = false;
 					tickStatus = TickStatus.None;
 					tickCounter++;
 				   	if( isPlayBack) {
@@ -199,6 +223,7 @@ namespace TickZoom.FIX
 
 		private volatile TickStatus tickStatus = TickStatus.None;
 		private Yield ProcessTick() {
+            LatencyManager.IncrementSymbolHandler();
             var result = Yield.NoWork.Repeat;
 			if( isPlayBack ) {
 				switch( tickStatus) {
@@ -239,7 +264,8 @@ namespace TickZoom.FIX
 		}
 		
 		private Yield SendPlayBackTick() {
-			latency.TryUpdate( nextTick.lSymbol, nextTick.UtcTime.Internal);
+            LatencyManager.IncrementSymbolHandler();
+            latency.TryUpdate(nextTick.lSymbol, nextTick.UtcTime.Internal);
 		   	if( isFirstTick) {
 			   	fillSimulator.StartTick( nextTick);
 		   		isFirstTick = false;
@@ -251,7 +277,9 @@ namespace TickZoom.FIX
 
 		private Message quoteMessage;
 		private Yield ProcessOnTickCallBack() {
-			if( quoteMessage == null) {
+            LatencyManager.IncrementSymbolHandler();
+            if (quoteMessage == null)
+            {
 				quoteMessage = fixSimulatorSupport.QuoteSocket.CreateMessage();
 			}
 			onTick( quoteMessage, symbol, nextTick);
@@ -261,8 +289,10 @@ namespace TickZoom.FIX
 		}
 
 		private Yield TryEnqueuePacket() {
-			if( quoteMessage.Data.GetBuffer().Length == 0) {
-                throw new InvalidOperationException("Quote essage created was emptry.");
+            LatencyManager.IncrementSymbolHandler();
+            if (quoteMessage.Data.GetBuffer().Length == 0)
+            {
+				return Yield.NoWork.Return;
 			}
             TickBinary nextBinary;
 		    while( !fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quoteMessage,quoteMessage.SendUtcTime))
