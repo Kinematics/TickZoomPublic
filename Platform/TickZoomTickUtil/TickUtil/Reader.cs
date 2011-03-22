@@ -176,7 +176,7 @@ namespace TickZoom.TickUtil
 			try {
 				while (stream.Position < stream.Length && !CancelPending) {
 					long lastPosition = stream.Position;
-					if (!TryReadTick(stream.Length)) {
+					if (!TryReadTick()) {
 						break;
 					}
 					count ++;
@@ -275,7 +275,8 @@ namespace TickZoom.TickUtil
 						}
 						stream = new MemoryStream(filebytes);
 					} else {
-						stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                        var fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+					    stream = new BufferedStream(fileStream, 15*1024);
 					}
 
 					dataIn = new BinaryReader(stream, Encoding.Unicode);
@@ -321,34 +322,49 @@ namespace TickZoom.TickUtil
 			get { return dataVersion; }
 		}
 
-		private bool TryReadTick(long length)
+		private bool TryReadTick()
 		{
-			tickIO.SetSymbol(lSymbol);
-			byte size = dataIn.ReadByte();
-			// Check for old style prior to version 8 where
-			// single byte version # was first.
-			if (dataVersion < 8 && size < 8) {
-				tickIO.FromReader((byte)size, dataIn);
-			} else {
-				// Subtract the size byte.
-				if (dataIn.BaseStream.Position + size - 1 > length) {
-					return false;
-				}
-				int count = 1;
-				memory.SetLength(size);
-				memory.GetBuffer()[0] = size;
-				while (count < size) {
-					count += dataIn.Read(buffer, count, size - count);
-				}
-				memory.Position = 0;
-				tickIO.FromReader(memory);
-				if (dataVersion == 0) {
-					dataVersion = tickIO.DataVersion;
-				}
-			}
-			var utcTime = new TimeStamp(tickIO.Extract().UtcTime);
-			tickIO.SetTime(utcTime);
-			return true;
+            try
+            {
+                tickIO.SetSymbol(lSymbol);
+                byte size = dataIn.ReadByte();
+                // Check for old style prior to version 8 where
+                // single byte version # was first.
+                if (dataVersion < 8 && size < 8)
+                {
+                    tickIO.FromReader((byte) size, dataIn);
+                }
+                else
+                {
+                    // Subtract the size byte.
+                    //if (dataIn.BaseStream.Position + size - 1 > length) {
+                    //    return false;
+                    //}
+                    int count = 1;
+                    memory.SetLength(size);
+                    memory.GetBuffer()[0] = size;
+                    while (count < size)
+                    {
+                        var bytesRead = dataIn.Read(buffer, count, size - count);
+                        if( bytesRead == 0)
+                        {
+                            return false;
+                        }
+                        count += bytesRead;
+                    }
+                    memory.Position = 0;
+                    tickIO.FromReader(memory);
+                    if (dataVersion == 0)
+                    {
+                        dataVersion = tickIO.DataVersion;
+                    }
+                }
+                var utcTime = new TimeStamp(tickIO.lUtcTime);
+                tickIO.SetTime(utcTime);
+                return true;
+            } catch( EndOfStreamException) {
+                return false;
+            }
 		}
 		
 		private YieldMethod TickEventMethod;
@@ -362,7 +378,7 @@ namespace TickZoom.TickUtil
 					return Yield.Terminate;
 				long position = dataIn.BaseStream.Position;
 				try {
-					if (position < dataIn.BaseStream.Length && !CancelPending && TryReadTick(dataIn.BaseStream.Length)) {
+					if (!CancelPending && TryReadTick()) {
 
 						if (dataVersion == 0) {
 							dataVersion = tickIO.DataVersion;

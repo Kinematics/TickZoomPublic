@@ -36,7 +36,7 @@ namespace TickZoom.TickUtil
 	public class NodePool<T>
 	{
 		private Stack<LinkedListNode<T>> _nodes = new Stack<LinkedListNode<T>>();
-        private TaskLock _sync = new TaskLock();
+        private SimpleLock _sync = new SimpleLock();
 		private int count = 0;
 	
 		public LinkedListNode<T> Create(T item)

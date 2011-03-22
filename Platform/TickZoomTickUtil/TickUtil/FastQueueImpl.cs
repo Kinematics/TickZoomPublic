@@ -71,10 +71,10 @@ namespace TickZoom.TickUtil
 		int dequeueSleepCounter = 0;
 		long enqueueConflicts = 0;
 		long dequeueConflicts = 0;
-		TaskLock spinLock = new TaskLock();
+        SimpleLock spinLock = new SimpleLock();
 	    readonly int spinCycles = 1000;
 	    int timeout = 30000; // milliseconds
-        private static TaskLock nodePoolLocker = new TaskLock();
+        private static SimpleLock nodePoolLocker = new SimpleLock();
         private static NodePool<FastQueueEntry<T>> nodePool;
 	    private static Pool<Queue<FastQueueEntry<T>>> queuePool;
         private ActiveList<FastQueueEntry<T>> queue;

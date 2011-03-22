@@ -1174,5 +1174,10 @@ namespace TickZoom.TickUtil
 			get { return false; }
 			set { }
 		}
+
+	    public long lUtcTime
+	    {
+	        get { return binary.UtcTime; }
+	    }
 	}
 }

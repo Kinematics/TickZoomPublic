@@ -35,7 +35,7 @@ namespace TickZoom.TickUtil
 	public class PoolDefault<T> : Pool<T> where T : new()
 	{
 		private Stack<T> _items = new Stack<T>();
-        private TaskLock _sync = new TaskLock();
+        private SimpleLock _sync = new SimpleLock();
 		private int count = 0;
 
 		public T Create()
