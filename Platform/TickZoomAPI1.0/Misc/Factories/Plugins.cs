@@ -31,11 +31,11 @@ using System.Reflection;
 
 namespace TickZoom.Api
 {
-	/// <summary>
-	/// Description of ModelLoaderManager.
-	/// </summary>
-	public class Plugins
-	{
+    /// <summary>
+    /// Description of ModelLoaderManager.
+    /// </summary>
+    public class Plugins
+    {
         private List<Type> modelLoaders;
         private List<Type> models;
         private List<Type> serializers;
@@ -44,16 +44,18 @@ namespace TickZoom.Api
         private readonly bool debug = log.IsDebugEnabled;
         private static Plugins plugins;
         private static object pluginsLocker = new object();
-		
-		public string PluginFolder;
-		
-		/// <summary>
-		/// Loads all plugins each time you get an instance
-		/// so that plugins can be installed without restarting
-		/// TickZoom.
-		/// </summary>
-		public static Plugins Instance {
-			get {
+
+        public string PluginFolder;
+
+        /// <summary>
+        /// Loads all plugins each time you get an instance
+        /// so that plugins can be installed without restarting
+        /// TickZoom.
+        /// </summary>
+        public static Plugins Instance
+        {
+            get
+            {
                 if (plugins == null)
                 {
                     lock (pluginsLocker)
@@ -64,113 +66,186 @@ namespace TickZoom.Api
                         }
                     }
                 }
-				return plugins;
-			}
-		}
-		
-		private Plugins()
-		{
-			string appData = Factory.Settings["AppDataFolder"];
-			if( appData == null) {
-				throw new ApplicationException("AppDataFolder was not set in app.config.");
-			}
-			PluginFolder = appData + @"\Plugins";
-			Directory.CreateDirectory( PluginFolder);
-			LoadAssemblies( PluginFolder);
-		}
-		
-		public ModelLoaderInterface GetLoader( string name) {
-			var count = 0;
-			ModelLoaderInterface result = null;
-			for( int i=0; i<modelLoaders.Count; i++) {
-				Type type = modelLoaders[i];
-				var loader = (ModelLoaderInterface)Activator.CreateInstance(type);
-				if( loader.Name.Equals(name)) {
-					count++;
-					result = loader;
-				}
-			}
-			if( count == 1) {
-				return result;
-			} else if( count > 0) {
-				throw new ApplicationException("More than one ModelLoader '"+name+"' was found.");
-			} else {
-				throw new ApplicationException("ModelLoader '"+name+"' not found.");
-			}
-		}
-		
-		public Serializer GetSerializer( int eventType) {
-			for( int i=0; i<serializers.Count; i++) {
-				Type type = serializers[i];
-				Serializer serializer = null;
-				try { 
-					serializer = (Serializer)Activator.CreateInstance(type);
-					if( serializer.EventType == eventType) {
-						return serializer;
-					}
-				} catch( Exception ex) {
-					log.Warn("stale serializer found. Coninuing. Error message: " + ex.Message);
-				}
-			}
-			throw new ApplicationException("Serializer for " + (EventType) eventType + " not found.");
-		}
-		
-		public ModelInterface GetModel( string name) {
-			for( int i=0; i<models.Count; i++) {
-				if( models[i].Name.Equals(name)) {
-					return (ModelInterface)Activator.CreateInstance(models[i]);
-				}
-			}
-			throw new Exception("Model '"+name+"' not found.");
-		}
-		
-		private void LoadAssemblies(String path)
-		{
-			string currentDirectory = System.Environment.CurrentDirectory;
-			errorCount = 0;
-			modelLoaders = new List<Type>();
-			models = new List<Type>();
-			serializers = new List<Type>();
-			
-			// This loads plugins from the plugin folder
-			List<string> files = new List<string>();
-			files.AddRange( Directory.GetFiles(path, "*plugin*.dll", SearchOption.AllDirectories));
-//			files.AddRange( Directory.GetFiles(path, "*plugin*.dll", SearchOption.AllDirectories));
-			// This loads plugins from the installation folder
-			// so all the common models and modelloaders get loaded.
-			files.AddRange( Directory.GetFiles(currentDirectory, "*plugin*.dll", SearchOption.AllDirectories));
-			files.AddRange( Directory.GetFiles(currentDirectory, "*common*.dll", SearchOption.AllDirectories));
-			files.AddRange( Directory.GetFiles(currentDirectory, "*test*.dll", SearchOption.AllDirectories));
-			files.AddRange( Directory.GetFiles(currentDirectory, "*test*.exe", SearchOption.AllDirectories));
-			
-			
-			foreach (String filename in files)
-			{
-                var nameListMap = new Dictionary<string,List<Type>>();
-                nameListMap.Add("ModelLoaderInterface",modelLoaders);
-                nameListMap.Add("ModelInterface",models);
-                nameListMap.Add("Serializer",serializers);
-				LoadImplementations(filename,nameListMap);
-			}
-			if( modelLoaders.Count == 0) {
-				log.Warn("Zero ModelLoader plugins found in " + PluginFolder + " or " + currentDirectory);
-			}
-			if( serializers.Count == 0) {
-				log.Warn("Zero Serializer plugins found in " + PluginFolder + " or " + currentDirectory);
-			}
-		}
+                return plugins;
+            }
+        }
 
-		// Exit and Enter Common aren't directly accessible.
-		// They provide support for custom strategies.
+        private Plugins()
+        {
+            errorCount = 0;
+            modelLoaders = new List<Type>();
+            models = new List<Type>();
+            serializers = new List<Type>();
+        }
 
-		void LoadImplementations(String filename, Dictionary<string,List<Type>> nameListMap)
-		{
-			if( debug) log.Debug("Loading " + filename);
-			var t2 = typeof(object);
-			try {
-				var assembly = Assembly.LoadFrom(filename);
-				foreach (var t in assembly.GetTypes()) {
-					t2 = t;
+        private void Initialize()
+        {
+            string appData = Factory.Settings["AppDataFolder"];
+            if (appData == null)
+            {
+                throw new ApplicationException("AppDataFolder was not set in app.config.");
+            }
+            PluginFolder = appData + @"\Plugins";
+            Directory.CreateDirectory(PluginFolder);
+            LoadAssemblies(PluginFolder);
+        }
+
+        public ModelLoaderInterface GetLoader(string name)
+        {
+            var loader = SearchLoaders(name);
+            if( loader == null)
+            {
+                Initialize();
+                loader = SearchLoaders(name);
+            }
+            if( loader == null)
+            {
+                throw new ApplicationException("ModelLoader '" + name + "' not found.");
+            } else
+            {
+                return loader;
+            }
+        }
+
+        private ModelLoaderInterface SearchLoaders(string name)
+        {
+            var count = 0;
+            ModelLoaderInterface result = null;
+            for (int i = 0; i < modelLoaders.Count; i++)
+            {
+                Type type = modelLoaders[i];
+                var loader = (ModelLoaderInterface) Activator.CreateInstance(type);
+                if (loader.Name.Equals(name))
+                {
+                    count++;
+                    result = loader;
+                }
+            }
+            if (count == 1)
+            {
+                return result;
+            }
+            else if (count > 0)
+            {
+                throw new ApplicationException("More than one ModelLoader '" + name + "' was found.");
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public class SerializerNotFoundException : Exception
+        {
+            public SerializerNotFoundException(string message)
+                : base(message)
+            {
+            }
+        }
+
+        public Serializer GetSerializer(int eventType)
+        {
+            var serializer = SearchSerializers(eventType);
+            if (serializer == null)
+            {
+                Initialize();
+                serializer = SearchSerializers(eventType);
+            }
+            if (serializer == null)
+            {
+                throw new SerializerNotFoundException("Serializer for " + (EventType)eventType + " not found.");
+            }
+            else
+            {
+                return serializer;
+            }
+        }
+
+        private Serializer SearchSerializers(int eventType)
+        {
+            Serializer serializer = null;
+            for (int i = 0; i < serializers.Count; i++)
+            {
+                Type type = serializers[i];
+                try
+                {
+                    serializer = (Serializer)Activator.CreateInstance(type);
+                    if (serializer.EventType == eventType)
+                    {
+                        return serializer;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log.Warn("Stale serializer found. Coninuing. Error message: " + ex.Message);
+                }
+            }
+            return serializer;
+        }
+
+        public ModelInterface GetModel(string name)
+        {
+            for (int i = 0; i < models.Count; i++)
+            {
+                if (models[i].Name.Equals(name))
+                {
+                    return (ModelInterface)Activator.CreateInstance(models[i]);
+                }
+            }
+            throw new Exception("Model '" + name + "' not found.");
+        }
+
+        private void LoadAssemblies(String path)
+        {
+            string currentDirectory = System.Environment.CurrentDirectory;
+            errorCount = 0;
+            modelLoaders = new List<Type>();
+            models = new List<Type>();
+            serializers = new List<Type>();
+
+            // This loads plugins from the plugin folder
+            List<string> files = new List<string>();
+            files.AddRange(Directory.GetFiles(path, "*plugin*.dll", SearchOption.AllDirectories));
+            //			files.AddRange( Directory.GetFiles(path, "*plugin*.dll", SearchOption.AllDirectories));
+            // This loads plugins from the installation folder
+            // so all the common models and modelloaders get loaded.
+            files.AddRange(Directory.GetFiles(currentDirectory, "*plugin*.dll", SearchOption.AllDirectories));
+            files.AddRange(Directory.GetFiles(currentDirectory, "*common*.dll", SearchOption.AllDirectories));
+            files.AddRange(Directory.GetFiles(currentDirectory, "*test*.dll", SearchOption.AllDirectories));
+            files.AddRange(Directory.GetFiles(currentDirectory, "*test*.exe", SearchOption.AllDirectories));
+
+
+            foreach (String filename in files)
+            {
+                var nameListMap = new Dictionary<string, List<Type>>();
+                nameListMap.Add("ModelLoaderInterface", modelLoaders);
+                nameListMap.Add("ModelInterface", models);
+                nameListMap.Add("Serializer", serializers);
+                LoadImplementations(filename, nameListMap);
+            }
+            if (modelLoaders.Count == 0)
+            {
+                log.Warn("Zero ModelLoader plugins found in " + PluginFolder + " or " + currentDirectory);
+            }
+            if (serializers.Count == 0)
+            {
+                log.Warn("Zero Serializer plugins found in " + PluginFolder + " or " + currentDirectory);
+            }
+        }
+
+        // Exit and Enter Common aren't directly accessible.
+        // They provide support for custom strategies.
+
+        void LoadImplementations(String filename, Dictionary<string, List<Type>> nameListMap)
+        {
+            if (debug) log.Debug("Loading " + filename);
+            var t2 = typeof(object);
+            try
+            {
+                var assembly = Assembly.LoadFrom(filename);
+                foreach (var t in assembly.GetTypes())
+                {
+                    t2 = t;
                     foreach (var kvp in nameListMap)
                     {
                         var typeName = kvp.Key;
@@ -191,33 +266,42 @@ namespace TickZoom.Api
                             }
                         }
                     }
-				}
-			} catch (ReflectionTypeLoadException ex) {
-				log.Warn("Plugin load failed for '" + t2.Name + "' in '" + filename + "' with loader exceptions:");
-				for (int i = 0; i < ex.LoaderExceptions.Length; i++) {
-					Exception lex = ex.LoaderExceptions[i];
-					log.Warn(lex.ToString());
-				}
-			} catch (Exception err) {
-				log.Warn("Plugin load failed for '" + t2.Name + "' in '" + filename + "': " + err.ToString());
-			}
-		}
-		
-		public int ErrorCount {
-			get { return errorCount; }
-		}
-		
-		public List<ModelLoaderInterface> GetLoaders() {
-			List<ModelLoaderInterface> loaders = new List<ModelLoaderInterface>();
-			for( int i=0; i<modelLoaders.Count; i++) {
-				loaders.Add((ModelLoaderInterface)Activator.CreateInstance(modelLoaders[i]));
-			}
-			return loaders;
-		}
-		
-		public List<Type> Models {
-			get { return models; }
-		}
-		
-	}
+                }
+            }
+            catch (ReflectionTypeLoadException ex)
+            {
+                log.Warn("Plugin load failed for '" + t2.Name + "' in '" + filename + "' with loader exceptions:");
+                for (int i = 0; i < ex.LoaderExceptions.Length; i++)
+                {
+                    Exception lex = ex.LoaderExceptions[i];
+                    log.Warn(lex.ToString());
+                }
+            }
+            catch (Exception err)
+            {
+                log.Warn("Plugin load failed for '" + t2.Name + "' in '" + filename + "': " + err.ToString());
+            }
+        }
+
+        public int ErrorCount
+        {
+            get { return errorCount; }
+        }
+
+        public List<ModelLoaderInterface> GetLoaders()
+        {
+            List<ModelLoaderInterface> loaders = new List<ModelLoaderInterface>();
+            for (int i = 0; i < modelLoaders.Count; i++)
+            {
+                loaders.Add((ModelLoaderInterface)Activator.CreateInstance(modelLoaders[i]));
+            }
+            return loaders;
+        }
+
+        public List<Type> Models
+        {
+            get { return models; }
+        }
+
+    }
 }
