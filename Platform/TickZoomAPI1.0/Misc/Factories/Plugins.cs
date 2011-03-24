@@ -290,6 +290,10 @@ namespace TickZoom.Api
 
         public List<ModelLoaderInterface> GetLoaders()
         {
+            if (modelLoaders.Count == 0)
+            {
+                Initialize();
+            }
             List<ModelLoaderInterface> loaders = new List<ModelLoaderInterface>();
             for (int i = 0; i < modelLoaders.Count; i++)
             {
