@@ -74,9 +74,10 @@ namespace TickZoom.TickUtil
         SimpleLock spinLock = new SimpleLock();
 	    readonly int spinCycles = 1000;
 	    int timeout = 30000; // milliseconds
-        private static SimpleLock nodePoolLocker = new SimpleLock();
-        private static NodePool<FastQueueEntry<T>> nodePool;
-	    private static Pool<Queue<FastQueueEntry<T>>> queuePool;
+        private SimpleLock nodePoolLocker = new SimpleLock();
+        private NodePool<FastQueueEntry<T>> nodePool;
+        private static SimpleLock queuePoolLocker = new SimpleLock();
+        private static Pool<Queue<FastQueueEntry<T>>> queuePool;
         private ActiveList<FastQueueEntry<T>> queue;
 	    volatile bool terminate = false;
 	    int processorCount = Environment.ProcessorCount;
@@ -488,7 +489,7 @@ namespace TickZoom.TickUtil
 			return sb.ToString();
 		}
 	    
-		public static NodePool<FastQueueEntry<T>> NodePool {
+		public NodePool<FastQueueEntry<T>> NodePool {
 	    	get {
                 if( nodePool == null) {
 					using(nodePoolLocker.Using()) {
@@ -504,7 +505,7 @@ namespace TickZoom.TickUtil
 		public static Pool<Queue<FastQueueEntry<T>>> QueuePool {
 	    	get {
                 if( queuePool == null) {
-                    using (nodePoolLocker.Using())
+                    using (queuePoolLocker.Using())
                     {
                         if (queuePool == null)
                         {
