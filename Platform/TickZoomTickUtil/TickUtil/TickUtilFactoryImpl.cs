@@ -73,14 +73,14 @@ namespace TickZoom.TickUtil
 		}
 		
 		public Pool<T> Pool<T>() where T : new() {
-			return new PoolDefault<T>();
+            return new PoolDefault<T>();
 		}
 		
 		public Pool<TickBinaryBox> TickPool() {
 			if( tickPool == null) {
 				lock( locker) {
 					if( tickPool == null) {
-						tickPool = new PoolDefault<TickBinaryBox>();
+						tickPool = new PoolTicks();
 					}
 				}
 			}

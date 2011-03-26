@@ -40,7 +40,7 @@ namespace TickZoom.Api
 		}
 	    
 		public bool TryLock() {
-	    	return isLocked == 0 && Interlocked.CompareExchange(ref isLocked,1,0) == 0;
+	    	return Interlocked.CompareExchange(ref isLocked,1,0) == 0;
 	    }
 	    
 		public void Lock() {

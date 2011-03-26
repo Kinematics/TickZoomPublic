@@ -62,6 +62,7 @@ namespace TickZoom.TickUtil
 		Progress progress = new Progress();
 		private Pool<TickBinaryBox> tickBoxPool;
 		private TickBinaryBox box;
+	    private int diagnoseMetric;
 
 		public Reader()
 		{
@@ -193,20 +194,27 @@ namespace TickZoom.TickUtil
 			return lastTickIO;
 		}
 
+        private SimpleLock startLocker = new SimpleLock();
 		public void Start(Receiver receiver)
 		{
-			if( !isTaskPrepared) {
-				throw new ApplicationException("Read must be Initialized before Start() can be called and after GetLastTick() the reader must be disposed.");
-			}
-			if( !isStarted) {
-				this.receiver = receiver;
-				if (debug)
-					log.Debug("Start called.");
-				start = Factory.TickCount;
-				fileReaderTask = Factory.Parallel.IOLoop(this, OnException, FileReader);
-				fileReaderTask.Start();
-				isStarted = true;
-			} 
+            using (startLocker.Using())
+            {
+                if (!isTaskPrepared)
+                {
+    				throw new ApplicationException("Read must be Initialized before Start() can be called and after GetLastTick() the reader must be disposed.");
+	    		}
+                if (!isStarted)
+                {
+                    this.receiver = receiver;
+                    if (debug)
+                        log.Debug("Start called.");
+                    start = Factory.TickCount;
+                    diagnoseMetric = Diagnose.RegisterMetric("Reader-" + symbol);
+                    fileReaderTask = Factory.Parallel.IOLoop(this, OnException, FileReader);
+                    fileReaderTask.Start();
+                    isStarted = true;
+                }
+            }
 		}
 
 		private void OnException(Exception ex)
@@ -427,7 +435,9 @@ namespace TickZoom.TickUtil
 							}
 							
 							box = tickBoxPool.Create();
+						    var tickId = box.TickBinary.Id;
 							box.TickBinary = tick;
+						    box.TickBinary.Id = tickId;
 
 							return Yield.DidWork.Invoke(TickEventMethod);
 						}
@@ -453,7 +463,9 @@ namespace TickZoom.TickUtil
 					LogInfo("Starting loading for " + symbol + " from " + tickIO.ToPosition());
 				}
 				box = tickBoxPool.Create();
+			    var tickId = box.TickBinary.Id;
 				box.TickBinary = tick;
+			    box.TickBinary.Id = tickId;
 
 				return Yield.DidWork.Invoke(TickEventMethod);
 			}
@@ -472,6 +484,8 @@ namespace TickZoom.TickUtil
                 }
                 else
                 {
+                    if (Diagnose.TraceTicks) Diagnose.AddTick(diagnoseMetric, ref box.TickBinary);
+                    box = null;
                     return Yield.DidWork.Return;
                 }
             } catch( QueueException)

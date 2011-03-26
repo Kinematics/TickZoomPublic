@@ -126,7 +126,9 @@ namespace TickZoom.Starters
 				Factory.Parallel.Yield();
 			}
 			var binaryBox = tickPool.Create();
+		    var tickId = binaryBox.TickBinary.Id;
 			binaryBox.TickBinary = tickIO.Extract();
+		    binaryBox.TickBinary.Id = tickId;
 			while( !receiver.OnEvent(symbol,(int)EventType.Tick, binaryBox)) {
 				Factory.Parallel.Yield();
 			}
@@ -135,8 +137,11 @@ namespace TickZoom.Starters
 			tickIO.SetTime( new TimeStamp(2000,1,2));
 			tickIO.SetQuote(101D, 101D);
 			binaryBox = tickPool.Create();
-			binaryBox.TickBinary = tickIO.Extract();
-			while( !receiver.OnEvent(symbol,(int)EventType.Tick, binaryBox)) {
+            tickId = binaryBox.TickBinary.Id;
+            binaryBox.TickBinary = tickIO.Extract();
+            binaryBox.TickBinary.Id = tickId;
+            while (!receiver.OnEvent(symbol, (int)EventType.Tick, binaryBox))
+            {
 				Factory.Parallel.Yield();
 			}
 			while( !receiver.OnEvent(symbol,(int)EventType.EndHistorical,symbol)) {

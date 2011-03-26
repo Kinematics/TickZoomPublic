@@ -47,6 +47,9 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <FileAlignment>4096</FileAlignment>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+  </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.Targets" />
   <Import Project="..\..\TickZoom.CSharp.Targets" />
   <ItemGroup>
@@ -61,6 +64,7 @@
     <Compile Include="TickUtil\DataReceiverDefault.cs" />
     <Compile Include="TickUtil\FastQueueImpl.cs" />
     <Compile Include="TickUtil\NodePool.cs" />
+    <Compile Include="TickUtil\PoolTicks.cs" />
     <Compile Include="TickUtil\Reader.cs" />
     <Compile Include="TickUtil\TickMemoryStream.cs" />
     <Compile Include="TickUtil\PoolDefault.cs" />
@@ -87,6 +91,5 @@
       <Project>{27D6C88D-52B6-432C-820B-CD38A299830C}</Project>
       <Name>API1.0</Name>
     </ProjectReference>
-    <Folder Include="TickUtil" />
   </ItemGroup>
 </Project>

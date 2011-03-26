@@ -36,7 +36,18 @@ namespace TickZoom.Api
 	public static class Diagnose
 	{
         private static Log log = Factory.Log.GetLogger("TickZoom.Api.Diagnose");
-        public static void Assert(bool condition, Func<object> logMessage)
+        private static Dictionary<long, long> symbols;
+	    public static readonly bool TraceTicks = false;
+        private static DiagnoseTicksMetric[] metrics = new DiagnoseTicksMetric[8];
+	    private static DataSeries<DiagnoseTickEntry> tickLog = Factory.Engine.Series<DiagnoseTickEntry>();
+
+        public struct DiagnoseTickEntry
+        {
+            public int MetricId;
+            public TickBinary TickBinary;
+        }
+
+	    public static void Assert(bool condition, Func<object> logMessage)
         {
 			if( !condition) {
 				var message = logMessage();
@@ -44,38 +55,88 @@ namespace TickZoom.Api
 			}
 		}
 
-        private static DataSeries<TickBinary> symbolHandlerTicks = Factory.Engine.Series<TickBinary>();
-        private static DataSeries<TickBinary> simulatorTicks = Factory.Engine.Series<TickBinary>();
-        private static DataSeries<TickBinary> quoteProviderTicks = Factory.Engine.Series<TickBinary>();
+	    private static int nextMetricId = 0;
 
-        public static void LogTicks(DataSeries<TickBinary> list, int quantity, string label)
+        public static void LogTicks(int quantity)
         {
-            if (list.Count > 0)
+            if (tickLog.Count > 0)
             {
                 var sb = new StringBuilder();
                 var tickIO = Factory.TickUtil.TickIO();
-                for (int i = 0; i < list.Count && i < quantity; i++)
+                for (var i = 0; i < tickLog.Count && i < quantity; i++)
                 {
-                    tickIO.Inject(list[i]);
-                    sb.AppendLine(tickIO.ToString() + " " + tickIO.Time.Microsecond.ToString("d3"));
+                    var entry = tickLog[i];
+                    var metric = metrics[entry.MetricId - 1];
+                    var label = metric.Name;
+                    var tick = entry.TickBinary;
+                    tickIO.Inject(tick);
+                    sb.AppendLine(label + ": " + tick.Id + " " + tickIO.ToString() + " " + tickIO.Time.Microsecond.ToString("d3") + " " + Factory.Symbol.LookupSymbol(tick.Symbol));
                 }
-                log.Info("Last Ticks " + label + ":\n" + sb.ToString());
+                if( sb.Length > 0)
+                {
+                    log.Info("Last ticks:\n" + sb.ToString());
+                }
             }
         }
 
-	    public static DataSeries<TickBinary> SymbolHandlerTicks
-	    {
-	        get { return symbolHandlerTicks; }
-	    }
+        public class DiagnoseTicksMetric
+        {
+            public int Id;
+            public string Name;
+            public bool Enabled;
+        }
 
-	    public static DataSeries<TickBinary> SimulatorTicks
-	    {
-	        get { return simulatorTicks; }
-	    }
+        public static int RegisterMetric(string metricName)
+        {
+            for( int i=0; i< nextMetricId; i++)
+            {
+                if (metricName == metrics[i].Name)
+                {
+                    return i + 1; // ids are 1 based.
+                }
+            }
+            // not found
+            var metricId = Interlocked.Increment(ref nextMetricId);
+            if( metricId > metrics.Length)
+            {
+                Array.Resize(ref metrics, metrics.Length * 2);
+            }
+            var metric = metrics[metricId - 1] = new DiagnoseTicksMetric
+            {
+                Id = metricId,
+                Name = metricName,
+                Enabled = true,
+            };
+            if( metric.Name.Contains("PoolTicks"))
+            {
+                metric.Enabled = true;
+            }
+            return metricId;
+        }
 
-	    public static DataSeries<TickBinary> QuoteProviderTicks
-	    {
-	        get { return quoteProviderTicks; }
-	    }
+        //public static void LogTicks(long symbol, int quantity)
+        //{
+        //    symbols = new Dictionary<long, long>();
+        //    LogTicks(symbol, quantity);
+        //    foreach( var kvp in symbols)
+        //    {
+        //        var otherSymbol = kvp.Value;
+        //        if( otherSymbol == symbol) continue;
+        //        for( var i=0; i<nextMetricId; i++)
+        //        {
+        //            var metric = metrics[i];
+        //            LogTicks(otherSymbol, metric, quantity);
+        //        }
+        //    }
+        //}
+
+        public static void AddTick(int metricId, ref TickBinary binary)
+        {
+            var metric = metrics[metricId - 1];
+            if( metric.Enabled)
+            {
+                tickLog.Add(new DiagnoseTickEntry { MetricId = metricId, TickBinary = binary});
+            }
+        }
 	}
 }

@@ -50,6 +50,7 @@ namespace TickZoom.FIX
 		private long prevTickTime;
 		private bool isVolumeTest = false;
 		private long tickCounter = 0;
+	    private int diagnoseMetric;
 		
 		public FIXServerSymbolHandler( FIXSimulatorSupport fixSimulatorSupport, 
 		    bool isPlayBack, string symbolString,
@@ -74,7 +75,11 @@ namespace TickZoom.FIX
 			queueTask.Start();
 			latency = new LatencyMetric("FIXServerSymbolHandler-"+symbolString.StripInvalidPathChars());
 			reader.ReadQueue.StartEnqueue();
+		    initialCount = reader.ReadQueue.Count;
+		    diagnoseMetric = Diagnose.RegisterMetric("Simulator");
 		}
+
+	    private int initialCount;
 		
 		private void HasItem( object source) {
 			queueTask.IncreaseActivity();
@@ -148,7 +153,7 @@ namespace TickZoom.FIX
 			try { 
 				if( reader.ReadQueue.TryDequeue( ref binary))
 				{
-				    if( trace) Diagnose.SimulatorTicks.Add(binary);
+				    if( Diagnose.TraceTicks) Diagnose.AddTick(diagnoseMetric, ref binary);
 					tickStatus = TickStatus.None;
 					tickCounter++;
 				   	if( isPlayBack) {

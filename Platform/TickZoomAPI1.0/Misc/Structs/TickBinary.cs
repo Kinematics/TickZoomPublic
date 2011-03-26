@@ -40,6 +40,7 @@ namespace TickZoom.Api
 		
 		public long Symbol;
 		public byte ContentMask;
+	    public long Id;
 		public long UtcTime;
 		public long Bid;
 		public long Ask;

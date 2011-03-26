@@ -52,6 +52,7 @@ namespace TickZoom.Common
         private bool isRunning = false;
         private Pool<TickBinaryBox> tickPool = Factory.TickUtil.TickPool();
         private TimeStamp time;
+	    private int diagnoseMetric = Diagnose.RegisterMetric("Symbol Handler");
         
 		public void Start()
 		{
@@ -91,10 +92,15 @@ namespace TickZoom.Common
 						tickIO.SetTime(Time);
 						tickIO.SetQuote(Bid,Ask,(short)BidSize,(short)AskSize);
 						var box = tickPool.Create();
+					    var tickId = box.TickBinary.Id;
 						box.TickBinary = tickIO.Extract();
+					    box.TickBinary.Id = tickId;
 						quotesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
-						receiver.OnEvent(symbol,(int)EventType.Tick,box);
-                        if( trace) Diagnose.SymbolHandlerTicks.Add(box.TickBinary);
+						while( !receiver.OnEvent(symbol,(int)EventType.Tick,box))
+						{
+						    Factory.Parallel.Yield();
+						}
+                        if( Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
 						if( trace) log.Trace("Sent quote for " + symbol + ": " + tickIO);
 					}
 				}
@@ -165,13 +171,18 @@ namespace TickZoom.Common
 					tickIO.SetQuote(Bid,Ask,(short)BidSize,(short)AskSize);
 				}
 				var box = tickPool.Create();
+			    var tickId = box.TickBinary.Id;
 				box.TickBinary = tickIO.Extract();
+			    box.TickBinary.Id = tickId;
 				if( tickIO.IsTrade && tickIO.Price == 0D) {
 					log.Warn("Found trade tick with zero price: " + tickIO);
 				}		
 				salesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
-				receiver.OnEvent(symbol,(int)EventType.Tick,box);
-                if (trace) Diagnose.SymbolHandlerTicks.Add(box.TickBinary);
+				while( !receiver.OnEvent(symbol,(int)EventType.Tick,box))
+				{
+				    Factory.Parallel.Yield();
+				}
+                if (Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
                 if (trace) log.Trace("Sent trade tick for " + symbol + ": " + tickIO);
 			}
 		}

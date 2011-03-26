@@ -187,13 +187,16 @@ namespace TickZoom.Utilities
             export.DataFolder = @"Test\DataCache";
             export.AssemblyName = "tzdata";
             export.Run(args);
+            var actual = sb.ToString();
+            actual = actual.Replace("\r\n", "\n");
 
             var expectedOutput = @"2010-02-16 16:49:28.769 1063,10, 0/0 0,0,0,0,0|0,0,0,0,0
 2010-02-16 16:49:28.791 1062.75,1, 0/0 0,0,0,0,0|0,0,0,0,0
 2010-02-16 16:49:28.792 1062.75,1, 0/0 0,0,0,0,0|0,0,0,0,0
 2010-02-16 16:49:28.793 1062.75,2, 0/0 0,0,0,0,0|0,0,0,0,0
 ";
-            Assert.AreEqual(expectedOutput,sb.ToString());
+            expectedOutput = expectedOutput.Replace("\r\n", "\n");
+            Assert.AreEqual(expectedOutput,actual);
         }
 
         [Test]
