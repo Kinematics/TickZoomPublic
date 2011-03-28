@@ -123,7 +123,6 @@ namespace TickZoom.MBTQuotes
         	// Initiate socket connection.
         	while( true) {
         		try { 
-					Factory.Provider.Manager.AddWriter(socket);
 					socket.Connect(addrStr,port);
 					if( debug) log.Debug("Requested Connect for " + socket);
 					return;
@@ -233,7 +232,6 @@ namespace TickZoom.MBTQuotes
 						case Status.Connected:
 							connectionStatus = Status.PendingLogin;
 							if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
-							Factory.Provider.Manager.AddReader(socket);
 							IncreaseRetryTimeout();
 							Yield result = OnLogin();
 							return result;

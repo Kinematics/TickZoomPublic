@@ -140,8 +140,6 @@ namespace Test
 				socket.SetBlocking(true);
 				socket.Connect("127.0.0.1",filter.LocalPort);
 				socket.SetBlocking(false);
-				Factory.Provider.Manager.AddReader(socket);
-				Factory.Provider.Manager.AddWriter(socket);
 		
 				Message message = socket.CreateMessage();
 				string hashPassword = MBTQuotesProvider.Hash(password);
@@ -199,8 +197,6 @@ namespace Test
 				socket.SetBlocking(true);
 				socket.Connect(addrStr,port);
 				socket.SetBlocking(false);
-				Factory.Provider.Manager.AddReader(socket);
-				Factory.Provider.Manager.AddWriter(socket);
 		
 				Message message = socket.CreateMessage();
 				string hashPassword = MBTQuotesProvider.Hash(password);

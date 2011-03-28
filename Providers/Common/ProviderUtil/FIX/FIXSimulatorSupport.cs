@@ -84,7 +84,6 @@ namespace TickZoom.FIX
 			fixListener.Listen( 5);
 			fixListener.OnConnect = OnConnectFIX;
 			fixListener.OnDisconnect = OnDisconnectFIX;
-			Factory.Provider.Manager.AddReader( fixListener);
 			fixPort = fixListener.Port;
 			log.Info("Listening to " + localAddress + " on port " + fixPort);
 		}
@@ -97,7 +96,6 @@ namespace TickZoom.FIX
 			quoteListener.Listen( 5);
 			quoteListener.OnConnect = OnConnectQuotes;
 			quoteListener.OnDisconnect = OnDisconnectQuotes;
-			Factory.Provider.Manager.AddReader(quoteListener);
 			quotesPort = quoteListener.Port;
 			log.Info("Listening to " + localAddress + " on port " + quotesPort);
 		}
@@ -106,8 +104,6 @@ namespace TickZoom.FIX
 		{
 			fixSocket = socket;
 			fixSocket.MessageFactory = _fixMessageFactory;
-			Factory.Provider.Manager.AddReader(socket);
-			Factory.Provider.Manager.AddWriter(socket);
 			log.Info("Received FIX connection: " + socket);
 			StartFIXSimulation();
 			TryInitializeTask();
@@ -118,8 +114,6 @@ namespace TickZoom.FIX
 		{
 			quoteSocket = socket;
 			quoteSocket.MessageFactory = _quoteMessageFactory;
-			Factory.Provider.Manager.AddReader(socket);
-			Factory.Provider.Manager.AddWriter(socket);
 			log.Info("Received quotes connection: " + socket);
 			StartQuoteSimulation();
 			TryInitializeTask();

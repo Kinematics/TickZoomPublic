@@ -63,7 +63,6 @@ namespace TickZoom.FIX
 			listener.Listen(5);
 			listener.OnConnect = OnConnect;
 			listener.OnDisconnect = OnDisconnect;
-			Factory.Provider.Manager.AddReader(listener);
 			localPort = listener.Port;
 			log.Info("Listening to " + localAddress + " on port " + localPort);
 		}
@@ -79,8 +78,6 @@ namespace TickZoom.FIX
 		private void OnConnectLocal( Socket socket) {
 			localSocket = socket;
 			localSocket.MessageFactory = new MessageFactoryFix44();
-			Factory.Provider.Manager.AddReader(socket);
-			Factory.Provider.Manager.AddWriter(socket);
 			log.Info("Received local connection: " + socket);
 			RequestRemoteConnect();
 			localTask = Factory.Parallel.Loop( "FilterLocalRead", OnException, LocalReadLoop);
@@ -113,15 +110,12 @@ namespace TickZoom.FIX
 			remoteSocket.OnConnect = OnConnect;
 			remoteSocket.OnDisconnect = OnDisconnect;
 			remoteSocket.Connect( remoteAddress,remotePort);
-			Factory.Provider.Manager.AddWriter(remoteSocket);
-			
 			remoteConnectTimeout = Factory.TickCount + 2000;
 		}
 		
 		private long remoteConnectTimeout;
 		
 		private void OnConnectRemote() {
-			Factory.Provider.Manager.AddReader(remoteSocket);
 			remoteTask = Factory.Parallel.Loop( "FilterRemoteRead", OnException, RemoteReadLoop);
 			remoteTask.Start();
 			fixContext = new FIXContextDefault( localSocket, remoteSocket);

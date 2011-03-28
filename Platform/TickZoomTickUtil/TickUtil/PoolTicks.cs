@@ -8,7 +8,7 @@ namespace TickZoom.TickUtil
     public class PoolTicks : Pool<TickBinaryBox>
     {
         private Stack<TickBinaryBox> _items = new Stack<TickBinaryBox>();
-        private TaskLock _sync = new TaskLock();
+        private SimpleLock _sync = new SimpleLock();
         private int count = 0;
         private ActiveList<TickBinaryBox> _freed = new ActiveList<TickBinaryBox>();
         private int enqueDiagnoseMetric;

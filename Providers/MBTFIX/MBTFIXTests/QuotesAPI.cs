@@ -187,9 +187,6 @@ namespace Test
 				socket.SetBlocking(true);
 				socket.Connect(addrStr,port);
 				socket.SetBlocking(false);
-				Factory.Provider.Manager.AddReader(socket);
-				Factory.Provider.Manager.AddWriter(socket);
-		
 				
 				Message message = socket.CreateMessage();
 				string hashPassword = MBTQuotesProvider.Hash(password);

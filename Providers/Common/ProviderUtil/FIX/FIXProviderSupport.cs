@@ -149,7 +149,6 @@ namespace TickZoom.FIX
         			fixFilterController.Filter = fixFilter;
 					socket.Connect("127.0.0.1",fixFilterController.LocalPort);
 //					socket.Connect("127.0.0.1",port);
-					Factory.Provider.Manager.AddWriter(socket);
 					if( debug) log.Debug("Requested Connect for " + socket);
 					return;
         		} catch( SocketErrorException ex) {
@@ -265,7 +264,6 @@ namespace TickZoom.FIX
 						case Status.Connected:
 							connectionStatus = Status.PendingLogin;
 							if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
-							Factory.Provider.Manager.AddReader(socket);
 							IncreaseRetryTimeout();
 							var result = OnLogin();
 							return result;
