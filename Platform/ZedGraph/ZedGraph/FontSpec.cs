@@ -40,6 +40,10 @@ namespace ZedGraph
 	public class FontSpec : ICloneable, ISerializable
 	{
 	#region Fields
+
+	    private float height;
+	    private float width;
+	    private float lastScaleFactor;
 		/// <summary>
 		/// Private field that stores the color of the font characters for this
 		/// <see cref="FontSpec"/>.  Use the public property <see cref="FontColor"/>
@@ -245,6 +249,7 @@ namespace ZedGraph
 	#endregion
 
 	#region Properties
+
 		/// <summary>
 		/// The color of the font characters for this <see cref="FontSpec"/>.
 		/// Note that the border and background
@@ -682,13 +687,12 @@ namespace ZedGraph
 		private void Remake( float scaleFactor, float size, ref float scaledSize, ref Font font )
 		{
 			float newSize = size * scaleFactor;
-
 			float oldSize = ( font == null ) ? 0.0f : font.Size;
 
 			// Regenerate the font only if the size has changed significantly
 			if ( font == null ||
 					Math.Abs( newSize - oldSize ) > 0.1 ||
-					font.Name != this.Family ||
+                    font.Name.Equals(this.Family,StringComparison.Ordinal) ||
 					font.Bold != _isBold ||
 					font.Italic != _isItalic ||
 					font.Underline != _isUnderline )
@@ -701,7 +705,11 @@ namespace ZedGraph
 				scaledSize = size * (float)scaleFactor;
 				font = new Font( _family, scaledSize, style, GraphicsUnit.World );
 			}
-		}
+
+            height = _font.Height;
+            if (_isDropShadow)
+                height += (float)(Math.Sin(_dropShadowAngle) * _dropShadowOffset * height);
+        }
 
 		/// <summary>
 		/// Get the <see cref="Font"/> class for the current scaled font.
@@ -999,12 +1007,14 @@ namespace ZedGraph
 		/// <returns>The scaled font height, in pixels</returns>
 		public float GetHeight( float scaleFactor )
 		{
-			Remake( scaleFactor, this.Size, ref _scaledSize, ref _font );
-			float height = _font.Height;
-			if ( _isDropShadow )
-				height += (float)( Math.Sin( _dropShadowAngle ) * _dropShadowOffset * _font.Height );
+            if( scaleFactor != lastScaleFactor)
+            {
+                Remake(scaleFactor, this.Size, ref _scaledSize, ref _font);
+                lastScaleFactor = scaleFactor;
+            }
 			return height;
 		}
+
 		/// <summary>
 		/// Get the average character width of the scaled font.  The average width is
 		/// based on the character 'x'
@@ -1022,8 +1032,13 @@ namespace ZedGraph
 		/// <returns>The scaled font width, in pixels</returns>
 		public float GetWidth( Graphics g, float scaleFactor )
 		{
-			Remake( scaleFactor, this.Size, ref _scaledSize, ref _font );
-			return g.MeasureString( "x", _font ).Width;
+            if( scaleFactor != lastScaleFactor)
+            {
+                Remake(scaleFactor, this.Size, ref _scaledSize, ref _font);
+                width = g.MeasureString("x", _font).Width;
+                lastScaleFactor = scaleFactor;
+            }
+            return width;
 		}
 
 		/// <summary>
@@ -1070,7 +1085,11 @@ namespace ZedGraph
 		/// a <see cref="SizeF"/> struct</returns>
 		public SizeF MeasureString( Graphics g, string text, float scaleFactor )
 		{
-			Remake( scaleFactor, this.Size, ref _scaledSize, ref _font );
+            if( scaleFactor != lastScaleFactor)
+            {
+                Remake(scaleFactor, this.Size, ref _scaledSize, ref _font);
+                lastScaleFactor = scaleFactor;
+            }
 			SizeF size = g.MeasureString( text, _font );
 			if ( _isDropShadow )
 			{

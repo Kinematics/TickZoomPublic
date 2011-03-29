@@ -168,7 +168,7 @@ namespace TickZoom.Api
 		
 		public int LogCount {
 			get {
-				return latencyLog.Length;
+				return latencyLog == null ? 0 : latencyLog.Length;
 			}
 		}
 
