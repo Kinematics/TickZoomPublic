@@ -30,9 +30,6 @@ using System.Threading;
 namespace TickZoom.Api
 {
 	public class SimpleLock : IDisposable {
-		private static Log log = Factory.SysLog.GetLogger(typeof(SimpleLock));
-		private string lastLock = "";
-		private bool debug = log.IsDebugEnabled;
 	    private int isLocked = 0;
 	    
 		public bool IsLocked {
@@ -61,9 +58,5 @@ namespace TickZoom.Api
 			Unlock();
 		}
 		
-		public string LastLock {
-			get { return lastLock; }
-		}
-	    
 	}
 }

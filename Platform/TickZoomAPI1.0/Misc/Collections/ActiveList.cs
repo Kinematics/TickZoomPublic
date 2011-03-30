@@ -52,6 +52,7 @@ namespace TickZoom.Api
 	/// </summary>
 	public class ActiveList<T> : Iterable<T> {
         internal ActiveListNode<T> head;
+        internal ActiveListNode<T> tail;
         internal int count;
         private SimpleLock locker = new SimpleLock();
         private static int nextListId = 0;
@@ -167,7 +168,11 @@ namespace TickZoom.Api
                 }
                 node = node.Next;
             } while (node != null);
-            this.InterlockedInsertNodeBefore(this.head, newNode);
+            this.InterlockedInsertNodeAfter(this.tail, newNode);
+            if( node == this.tail)
+            {
+                Interlocked.Exchange(ref this.tail, newNode);
+            }
             locker.Unlock();
             return newNode;
         }
@@ -224,7 +229,8 @@ namespace TickZoom.Api
                 locker.Unlock();
                 return newNode;
             }
-            this.InterlockedInsertNodeBefore(this.head, newNode);
+            this.InterlockedInsertNodeAfter(this.tail, newNode);
+            Interlocked.Exchange(ref this.tail, newNode);
             locker.Unlock();
             return newNode;
         }
@@ -243,7 +249,8 @@ namespace TickZoom.Api
                     }
                     else
                     {
-                        this.InterlockedInsertNodeBefore(this.head, newNode);
+                        this.InterlockedInsertNodeAfter(this.tail, newNode);
+                        Interlocked.Exchange(ref this.tail, newNode);
                     }
                 }
             }
@@ -260,7 +267,8 @@ namespace TickZoom.Api
             }
             else
             {
-                this.InterlockedInsertNodeBefore(this.head, node);
+                this.InterlockedInsertNodeAfter(this.tail, node);
+                Interlocked.Exchange(ref this.tail, node);
             }
             locker.Unlock();
         }
@@ -313,33 +321,33 @@ namespace TickZoom.Api
 
         public ActiveListNode<T> Find(T value)
         {
-            var head = this.head;
+            var node = this.head;
             EqualityComparer<T> comparer = EqualityComparer<T>.Default;
-            if (head != null)
+            if (node != null)
             {
                 if (value != null)
                 {
                     do
                     {
-                        if (comparer.Equals(head.item, value))
+                        if (comparer.Equals(node.item, value))
                         {
-                            return head;
+                            return node;
                         }
-                        head = head.next;
+                        node = node.next;
                     }
-                    while (head != this.head);
+                    while (node != null);
                 }
                 else
                 {
                     do
                     {
-                        if (head.item == null)
+                        if (node.item == null)
                         {
-                            return head;
+                            return node;
                         }
-                        head = head.next;
+                        node = node.next;
                     }
-                    while (head != this.head);
+                    while (node != null);
                 }
             }
             return null;
@@ -349,17 +357,34 @@ namespace TickZoom.Api
         {
             Interlocked.Exchange(ref newNode.next, node);
             Interlocked.Exchange(ref newNode.prev, node.prev);
-            Interlocked.Exchange(ref node.prev.next, newNode);
+            if( node.prev != null)
+            {
+                Interlocked.Exchange(ref node.prev.next, newNode);
+            }
             Interlocked.Exchange(ref node.prev, newNode);
+            Interlocked.Exchange(ref newNode.list, (ActiveList<T>)this);
+            Interlocked.Increment(ref this.count);
+        }
+
+        private void InterlockedInsertNodeAfter(ActiveListNode<T> node, ActiveListNode<T> newNode)
+        {
+            Interlocked.Exchange(ref newNode.prev, node);
+            Interlocked.Exchange(ref newNode.next, node.next);
+            if( node.next != null)
+            {
+                Interlocked.Exchange(ref node.next.prev, newNode);
+            }
+            Interlocked.Exchange(ref node.next, newNode);
             Interlocked.Exchange(ref newNode.list, (ActiveList<T>)this);
             Interlocked.Increment(ref this.count);
         }
 
         private void InterlockedInsertNodeToEmptyList(ActiveListNode<T> newNode)
         {
-            Interlocked.Exchange(ref newNode.next, newNode);
-            Interlocked.Exchange(ref newNode.prev, newNode);
+            Interlocked.Exchange(ref newNode.next, null);
+            Interlocked.Exchange(ref newNode.prev, null);
             Interlocked.Exchange(ref this.head, newNode);
+            Interlocked.Exchange(ref this.tail, newNode);
             Interlocked.Exchange(ref newNode.list, (ActiveList<T>)this);
             Interlocked.Increment(ref this.count);
         }
@@ -373,12 +398,22 @@ namespace TickZoom.Api
             }
             else
             {
-                Interlocked.Exchange(ref node.next.prev, node.prev);
-                Interlocked.Exchange(ref node.prev.next, node.next);
+                if( node.next != null)
+                {
+                    Interlocked.Exchange(ref node.next.prev, node.prev);
+                }
+                if( node.prev != null)
+                {
+                    Interlocked.Exchange(ref node.prev.next, node.next);
+                }
                 node.Invalidate();
                 if (this.head == node)
                 {
                     Interlocked.Exchange(ref this.head, node.next);
+                }
+                if (this.tail == node)
+                {
+                    Interlocked.Exchange(ref this.tail, node.prev);
                 }
             }
             Interlocked.Decrement(ref this.count);
@@ -441,7 +476,7 @@ namespace TickZoom.Api
                 locker.Unlock();
                 throw new InvalidOperationException("empty list");
             }
-            var last = this.head.prev;
+            var last = this.tail;
             this.InterlockedRemoveNode(last);
             locker.Unlock();
             return last;
@@ -519,33 +554,17 @@ namespace TickZoom.Api
         // Properties
         public int Count
         {
-            get
-            {
-                return this.count;
-            }
+            get { return this.count; }
         }
 
         public ActiveListNode<T> First
         {
-            get
-            {
-                return this.head;
-            }
+            get { return this.head; }
         }
 
         public ActiveListNode<T> Last
         {
-            get
-            {
-                ActiveListNode<T> result = null;
-                locker.Lock();
-                if (this.head != null)
-                {
-                    result = this.head.prev;
-                }
-                locker.Unlock();
-                return result;
-            }
+            get { return this.tail; }
         }
     }
 }

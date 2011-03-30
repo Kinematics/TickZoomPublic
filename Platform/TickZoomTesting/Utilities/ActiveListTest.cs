@@ -33,10 +33,10 @@ namespace TickZoom.Utilities
         }
 
         [Test]
-        public void TestAdding()
+        public void TestAddFirst()
         {
             AddToList();
-            Assert.AreEqual(1,list.Count);
+            Assert.AreEqual(1, list.Count);
             AddToList();
             Assert.AreEqual(2, list.Count);
             AddToList();
@@ -45,6 +45,56 @@ namespace TickZoom.Utilities
             Assert.AreEqual(4, list.Count);
             AddToList();
             Assert.AreEqual(5, list.Count);
+        }
+
+        [Test]
+        public void TestAddLast()
+        {
+            list.AddLast(3);
+            Assert.AreEqual(1, list.Count);
+            list.AddLast(2);
+            Assert.AreEqual(2, list.Count);
+            list.AddLast(5);
+            Assert.AreEqual(3, list.Count);
+            list.AddLast(4);
+            Assert.AreEqual(4, list.Count);
+            list.AddLast(1);
+            Assert.AreEqual(5, list.Count);
+            var node = list.First;
+            Assert.AreEqual(3, node.Value);
+            node = node.Next;
+            Assert.AreEqual(2, node.Value);
+            node = node.Next;
+            Assert.AreEqual(5, node.Value);
+            node = node.Next;
+            Assert.AreEqual(4, node.Value);
+            node = node.Next;
+            Assert.AreEqual(1, node.Value);
+        }
+
+        [Test]
+        public void TestSortFirst()
+        {
+            list.SortFirst(3, (x, y) => x - y);
+            Assert.AreEqual(1,list.Count);
+            list.SortFirst(2, (x, y) => x - y);
+            Assert.AreEqual(2, list.Count);
+            list.SortFirst(5, (x, y) => x - y);
+            Assert.AreEqual(3, list.Count);
+            list.SortFirst(4, (x, y) => x - y);
+            Assert.AreEqual(4, list.Count);
+            list.SortFirst(1, (x, y) => x - y);
+            Assert.AreEqual(5, list.Count);
+            var node = list.First;
+            Assert.AreEqual(1,node.Value);
+            node = node.Next;
+            Assert.AreEqual(2, node.Value);
+            node = node.Next;
+            Assert.AreEqual(3, node.Value);
+            node = node.Next;
+            Assert.AreEqual(4, node.Value);
+            node = node.Next;
+            Assert.AreEqual(5, node.Value);
         }
 
         [Test]
@@ -95,6 +145,52 @@ namespace TickZoom.Utilities
                 }
             }
             Assert.AreEqual(10, item, "found item");
+        }
+
+        [Test]
+        public void TestRemove()
+        {
+            for (var i = 0; i < 10; i++)
+            {
+                list.AddLast(i);
+            }
+            Assert.AreEqual(0, list.First.Value);
+            Assert.AreEqual(9, list.Last.Value);
+            list.RemoveFirst();
+            Assert.AreEqual(1, list.First.Value);
+            Assert.AreEqual(9, list.Last.Value);
+            list.RemoveLast();
+            Assert.AreEqual(1, list.First.Value);
+            Assert.AreEqual(8, list.Last.Value);
+            list.Remove(4);
+            list.Remove(7);
+            list.Remove(8);
+            list.Remove(1);
+            var node = list.First;
+            Assert.AreEqual(2, node.Value);
+            node = node.Next;
+            Assert.AreEqual(3, node.Value);
+            node = node.Next;
+            Assert.AreEqual(5, node.Value);
+            node = node.Next;
+            Assert.AreEqual(6, node.Value);
+            node = node.Next;
+            Assert.AreEqual(null, node);
+        }
+
+        [Test]
+        public void TestFind()
+        {
+            for (var i = 0; i < 10; i++)
+            {
+                list.AddLast(i);
+            }
+            var node = list.Find(5);
+            Assert.AreEqual(5, node.Value);
+            node = list.Find(20);
+            Assert.AreEqual(null, node);
+            node = list.Find(-5);
+            Assert.AreEqual(null, node);
         }
 
         [Test]
@@ -189,16 +285,19 @@ namespace TickZoom.Utilities
             addThread.Start();
             var readThread = new Thread(ReadFromListLoop);
             readThread.Start();
+            var readThread2 = new Thread(ReadFromListLoop);
+            readThread2.Start();
             Thread.Sleep(5000);
             stopThread = true;
             addThread.Join();
             readThread.Join();
+            readThread2.Join();
             if (threadException != null)
             {
                 throw new Exception("Thread failed: ", threadException);
             }
             Assert.Less(readFailureCounter,5,"read failure");
-            Assert.Greater(readCounter,4000, "read counter");
+            Assert.Greater(readCounter,1000000, "read counter");
             Assert.Greater(addCounter,4000, "add counter");
             Console.Out.WriteLine("readFailure " + readFailureCounter);
             Console.Out.WriteLine("readCounter " + readCounter);
@@ -253,7 +352,7 @@ namespace TickZoom.Utilities
             {
                 while (!stopThread)
                 {
-                    ReadFromList();
+                    ReadFromList2();
                 }
             }
             catch (Exception ex)
@@ -297,6 +396,22 @@ namespace TickZoom.Utilities
                     {
                         Interlocked.Increment(ref readFailureCounter);
                     }
+                }
+            }
+        }
+
+        public void ReadFromList2()
+        {
+            if (list.Count == 0)
+            {
+                return;
+            }
+            else
+            {
+                var total = 0L;
+                for (var node = list.First; node != null; node = node.Next)
+                {
+                    Interlocked.Increment(ref readCounter);
                 }
             }
         }
