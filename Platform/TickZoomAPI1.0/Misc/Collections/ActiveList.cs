@@ -144,7 +144,12 @@ namespace TickZoom.Api
 
         public ActiveListNode<T> SortFirst(T value, Func<T, T, int> comparator)
         {
-            var newNode = new ActiveListNode<T>((ActiveList<T>)this, value);
+            var newNode = new ActiveListNode<T>((ActiveList<T>) this, value);
+            return SortFirst(newNode, comparator);
+        }
+
+	    public ActiveListNode<T> SortFirst(ActiveListNode<T> newNode, Func<T, T, int> comparator)
+        {
             locker.Lock();
             if (this.head == null)
             {
@@ -156,7 +161,7 @@ namespace TickZoom.Api
             var node = this.head;
             do
             {
-                if (comparator(node.Value, value) > 0)
+                if (comparator(node.Value, newNode.Value) > 0)
                 {
                     this.InterlockedInsertNodeBefore(node, newNode);
                     if (node == this.head)
@@ -169,10 +174,7 @@ namespace TickZoom.Api
                 node = node.Next;
             } while (node != null);
             this.InterlockedInsertNodeAfter(this.tail, newNode);
-            if( node == this.tail)
-            {
-                Interlocked.Exchange(ref this.tail, newNode);
-            }
+            Interlocked.Exchange(ref this.tail, newNode);
             locker.Unlock();
             return newNode;
         }
@@ -214,7 +216,8 @@ namespace TickZoom.Api
                 }
                 node = node.Next;
             } while (node != null);
-            this.InterlockedInsertNodeBefore(this.head, newNode);
+            this.InterlockedInsertNodeAfter(this.tail, newNode);
+            Interlocked.Exchange(ref this.tail, newNode);
             locker.Unlock();
             return;
         }
@@ -391,30 +394,22 @@ namespace TickZoom.Api
 
         internal void InterlockedRemoveNode(ActiveListNode<T> node)
         {
-            if (node.next == node)
+            if( node.next != null)
             {
-                node.Invalidate();
-                Interlocked.Exchange(ref this.head, null);
+                Interlocked.Exchange(ref node.next.prev, node.prev);
             }
-            else
+            if( node.prev != null)
             {
-                if( node.next != null)
-                {
-                    Interlocked.Exchange(ref node.next.prev, node.prev);
-                }
-                if( node.prev != null)
-                {
-                    Interlocked.Exchange(ref node.prev.next, node.next);
-                }
-                node.Invalidate();
-                if (this.head == node)
-                {
-                    Interlocked.Exchange(ref this.head, node.next);
-                }
-                if (this.tail == node)
-                {
-                    Interlocked.Exchange(ref this.tail, node.prev);
-                }
+                Interlocked.Exchange(ref node.prev.next, node.next);
+            }
+            node.Invalidate();
+            if (this.head == node)
+            {
+                Interlocked.Exchange(ref this.head, node.next);
+            }
+            if (this.tail == node)
+            {
+                Interlocked.Exchange(ref this.tail, node.prev);
             }
             Interlocked.Decrement(ref this.count);
         }

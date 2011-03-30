@@ -148,5 +148,6 @@ namespace TickZoom.Api
 	    long RoundRobinCounter { get; }
         long EarliestCounter { get; }
         long AnalyzePoint { get; }
+        long TimerCount { get; }
     }
 }
