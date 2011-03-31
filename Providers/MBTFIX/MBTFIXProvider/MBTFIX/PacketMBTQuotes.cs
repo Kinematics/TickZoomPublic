@@ -129,7 +129,7 @@ namespace TickZoom.MBTQuotes
         }
 		
         public bool HasAny {
-            get { return Length - 0 > 0; }
+            get { return Length > 0; }
         }
 		
         public unsafe void CreateHeader(int counter) {
