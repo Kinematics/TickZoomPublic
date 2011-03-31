@@ -198,14 +198,16 @@ namespace TickZoom.TickUtil
 	            var temp = queue.Count;
 	            if( temp>=maxSize) {
 	            	return false;
-	            } else if( temp == 0) {
+	            }
+                var node = NodePool.Create(new FastQueueEntry<T>(tick, utcTime));
+                queue.AddFirst(node);
+                if (temp == 0)
+                {
 	            	this.earliestUtcTime = utcTime;
 	            	if( task != null) {
 	            		task.UpdateUtcTime(connectionId,utcTime);
 	            	}
 	            }
-	            var node = NodePool.Create(new FastQueueEntry<T>(tick,utcTime));
-	           	queue.AddFirst(node);
 	           	Interlocked.Increment(ref count);
 	           	if( task != null) task.IncreaseActivity();
             } finally {
