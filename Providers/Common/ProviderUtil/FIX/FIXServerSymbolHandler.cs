@@ -248,7 +248,7 @@ namespace TickZoom.FIX
 			}
 			onTick( quoteMessage, symbol, nextTick);
 			if( trace) log.Trace("Added tick to packet: " + nextTick.UtcTime);
-			quoteMessage.UtcTime = nextTick.UtcTime.Internal;
+			quoteMessage.SendUtcTime = nextTick.UtcTime.Internal;
             return Yield.DidWork.Invoke(TryEnqueuePacket);
 		}
 
@@ -257,14 +257,14 @@ namespace TickZoom.FIX
                 throw new InvalidOperationException("Quote essage created was emptry.");
 			}
             TickBinary nextBinary;
-		    while( !fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quoteMessage,quoteMessage.UtcTime))
+		    while( !fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quoteMessage,quoteMessage.SendUtcTime))
 		    {
 		        if( fixSimulatorSupport.QuotePacketQueue.IsFull)
 		        {
 		            return Yield.NoWork.Repeat;
 		        }
 		    }
-			if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.UtcTime));
+			if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.SendUtcTime));
 			quoteMessage = fixSimulatorSupport.QuoteSocket.CreateMessage();
             reader.ReadQueue.RemoveStruct();
             tickStatus = TickStatus.Sent;

@@ -285,8 +285,8 @@ namespace TickZoom.FIX
 			string message = mbtMsg.ToString();
 			if( debug) log.Debug("Sending resend request: " + message);
 			writePacket.DataOut.Write(message.ToCharArray());
-			writePacket.UtcTime = TimeStamp.UtcNow.Internal;
-			return fixPacketQueue.EnqueueStruct(ref writePacket, writePacket.UtcTime);
+			writePacket.SendUtcTime = TimeStamp.UtcNow.Internal;
+			return fixPacketQueue.EnqueueStruct(ref writePacket, writePacket.SendUtcTime);
 		}
 		private Random random = new Random(1234);
 		private int sequenceCounter = 1;
@@ -443,9 +443,9 @@ namespace TickZoom.FIX
 				mbtMsg.AddHeader("1");
 				string message = mbtMsg.ToString();
 				writePacket.DataOut.Write(message.ToCharArray());
-				writePacket.UtcTime = TimeStamp.UtcNow.Internal;
+				writePacket.SendUtcTime = TimeStamp.UtcNow.Internal;
 				if( trace) log.Trace("Requesting heartbeat: " + message);
-				while( !fixPacketQueue.EnqueueStruct(ref writePacket,writePacket.UtcTime)) {
+				while( !fixPacketQueue.EnqueueStruct(ref writePacket,writePacket.SendUtcTime)) {
 					if( fixPacketQueue.IsFull) {
 						throw new ApplicationException("Fix Queue is full.");
 					}

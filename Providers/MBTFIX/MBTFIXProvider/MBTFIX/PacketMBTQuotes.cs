@@ -55,7 +55,8 @@ namespace TickZoom.MBTQuotes
         private StringBuilder time = new StringBuilder();
         private StringBuilder date = new StringBuilder();
         private long tickUtcTime = long.MaxValue;
-        private long utcTime = long.MaxValue;
+        private long _sendUtcTime = long.MaxValue;
+        private long _recvUtcTime = long.MaxValue;
         private double last;
 		
         public double Last {
@@ -374,10 +375,10 @@ namespace TickZoom.MBTQuotes
             }
         }
 
-        public long UtcTime
+        public long SendUtcTime
         {
-            get { return utcTime; }
-            set { utcTime = value; }
+            get { return _sendUtcTime; }
+            set { _sendUtcTime = value; }
         }
 				
         public string Symbol {
@@ -410,6 +411,12 @@ namespace TickZoom.MBTQuotes
 		
         public string FeedType {
             get { return feedType.ToString(); }
+        }
+
+        public long RecvUtcTime
+        {
+            get { return _recvUtcTime; }
+            set { _recvUtcTime = value; }
         }
     }
 }

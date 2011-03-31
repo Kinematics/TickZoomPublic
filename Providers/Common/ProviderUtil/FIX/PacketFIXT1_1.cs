@@ -48,8 +48,9 @@ namespace TickZoom.FIX
 		private BinaryWriter dataOut;
 		private static int packetIdCounter = 0;
 		private int id = 0;
-		private long utcTime;
-		private GCHandle handle;
+		private long sendUtcTime;
+        private long recvUtcTime;
+        private GCHandle handle;
 		private byte* ptr;
 		private byte* end;
 		private string version = null;
@@ -308,7 +309,7 @@ namespace TickZoom.FIX
 				case 52:
 					result = GetString(out timeStamp);
 					if( result) {
-						utcTime = new TimeStamp(timeStamp).Internal;
+						sendUtcTime = new TimeStamp(timeStamp).Internal;
 					}
 					break;
 				case 10:
@@ -381,9 +382,15 @@ namespace TickZoom.FIX
 			get { return maxSize; }
 		}
 		
-		public long UtcTime {
-			get { return utcTime; }
-			set { utcTime = value; }
+		public long SendUtcTime {
+			get { return sendUtcTime; }
+			set { sendUtcTime = value; }
 		}
+
+	    public long RecvUtcTime
+	    {
+	        get { return recvUtcTime; }
+	        set { recvUtcTime = value; }
+	    }
 	}
 }

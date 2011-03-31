@@ -289,7 +289,7 @@ namespace TickZoom.MBTFIX
 			string textMessage = "G|100=DEMOXJSP;8055=demo01\n";
 			if( debug) log.Debug("Login response: " + textMessage);
 			writePacket.DataOut.Write(textMessage.ToCharArray());
-			while( !quotePacketQueue.EnqueueStruct(ref writePacket,message.UtcTime)) {
+			while( !quotePacketQueue.EnqueueStruct(ref writePacket,message.SendUtcTime)) {
 				if( quotePacketQueue.IsFull) {
 					throw new ApplicationException("Quote Queue is full.");
 				}
@@ -400,7 +400,7 @@ namespace TickZoom.MBTFIX
 
         private void SendPacket( Message writeMessage)
         {
-            while (!fixPacketQueue.EnqueueStruct(ref writeMessage, writeMessage.UtcTime))
+            while (!fixPacketQueue.EnqueueStruct(ref writeMessage, writeMessage.SendUtcTime))
             {
                 if (fixPacketQueue.IsFull)
                 {
