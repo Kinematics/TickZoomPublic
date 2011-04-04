@@ -31,14 +31,14 @@ using TickZoom.Common;
 
 namespace TickZoom.Examples
 {
-	public class LimitChangeLoader : ModelLoaderCommon
+    public class LimitChangeLoader : ModelLoaderCommon
 	{
 		public LimitChangeLoader() {
 			/// <summary>
 			/// IMPORTANT: You can personalize the name of each model loader.
 			/// </summary>
 			category = "Example";
-			name = "Limit Order Change Multi-Symbol";
+			name = "Limit Order Change Single-Symbol";
 		}
 		
 		public override void OnInitialize(ProjectProperties properties) {

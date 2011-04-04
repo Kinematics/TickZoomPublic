@@ -38,7 +38,7 @@ using TickZoom.Statistics;
 
 namespace TickZoom.Examples
 {
-	public class LimitChangeStrategy : Strategy
+    public class LimitChangeStrategy : Strategy
 	{
 		IndicatorCommon bidLine;
 		IndicatorCommon askLine;

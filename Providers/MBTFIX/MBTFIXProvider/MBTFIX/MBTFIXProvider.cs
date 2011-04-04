@@ -559,21 +559,36 @@ namespace TickZoom.MBTFIX
 			var timeZone = new SymbolTimeZone(symbolInfo);
 			if( GetSymbolStatus(symbolInfo)) {
 				var algorithm = GetAlgorithm(symbolInfo.BinaryIdentifier);
-				var order = GetPhysicalOrder( packetFIX.ClientOrderId);
-				var fillPosition = packetFIX.LastQuantity * SideToSign(packetFIX.Side);
-				TimeStamp executionTime;
-				if( UseLocalFillTime) {
-					executionTime = TimeStamp.UtcNow;
-				} else {
-					executionTime = new TimeStamp(packetFIX.TransactionTime);
-				}
-				var configTime = executionTime;
-				configTime.AddSeconds( timeZone.UtcOffset(executionTime));
-				var fill = Factory.Utility.PhysicalFill(fillPosition,packetFIX.LastPrice,configTime,executionTime,order,false);
-				if( debug) log.Debug( "Sending physical fill: " + fill);
-	            algorithm.ProcessFill( fill,packetFIX.OrderQuantity,packetFIX.CumulativeQuantity,packetFIX.LeavesQuantity);
+                try
+                {
+				    var order = GetPhysicalOrder( packetFIX.ClientOrderId);
+				    var fillPosition = packetFIX.LastQuantity * SideToSign(packetFIX.Side);
+				    TimeStamp executionTime;
+				    if( UseLocalFillTime) {
+					    executionTime = TimeStamp.UtcNow;
+				    } else {
+					    executionTime = new TimeStamp(packetFIX.TransactionTime);
+				    }
+				    var configTime = executionTime;
+				    configTime.AddSeconds( timeZone.UtcOffset(executionTime));
+				    var fill = Factory.Utility.PhysicalFill(fillPosition,packetFIX.LastPrice,configTime,executionTime,order,false);
+				    if( debug) log.Debug( "Sending physical fill: " + fill);
+	                algorithm.ProcessFill( fill,packetFIX.OrderQuantity,packetFIX.CumulativeQuantity,packetFIX.LeavesQuantity);
+                } catch( PhysicalOrderNotFoundException )
+                {
+                    log.Notice("Fill id " + packetFIX.ClientOrderId + " not found. Must have been a manual trade. Note, TickZoom will likely replace the position of this trade.");
+                }
 			}
 		}
+
+        [Serializable]
+        public class PhysicalOrderNotFoundException : Exception
+	    {
+	        public PhysicalOrderNotFoundException(string value) : base( value)
+	        {
+	            
+	        }
+    	}
 		
 		public void ProcessFill( SymbolInfo symbol, LogicalFillBinary fill) {
 			lock( openOrdersLocker) {
@@ -813,7 +828,7 @@ namespace TickZoom.MBTFIX
 				if( openOrders.TryGetValue(clientOrderId, out origOrder)) {
 				   	return origOrder;
 				} else {
-					throw new ApplicationException("Can't find client order id " + clientOrderId + " in list.");
+					throw new PhysicalOrderNotFoundException("Can't find client order id " + clientOrderId + " in list.");
 				}
 			}
 		}

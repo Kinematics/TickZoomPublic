@@ -68,7 +68,7 @@ namespace TickZoom.Interceptors
 		private PhysicalOrderHandler confirmOrders;
 		private bool isBarData = false;
 		private bool createSimulatedFills = false;
-		private LimitOrderSimulation limitOrderSimulation = LimitOrderSimulation.OppositeQuote;
+        private LimitOrderSimulation limitOrderSimulation = LimitOrderSimulation.OppositeQuote;
 		// Randomly rotate the partial fills but using a fixed
 		// seed so that test results are reproducable.
 		private Random random = new Random(1234);
