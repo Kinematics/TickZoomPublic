@@ -41,7 +41,8 @@ namespace TickZoom.Starters
 		
 		public override void Run(ModelLoaderInterface loader)
 		{
-			Factory.SysLog.Reconfigure("FIXSimulator",GetDefaultLogConfig());
+            parallelMode = ParallelMode.RealTime;
+            Factory.SysLog.Reconfigure("FIXSimulator", GetDefaultLogConfig());
 			Config = "WarehouseTest.config";
 			var provider = "MBTFIXProvider/Simulate";
 			AddProvider(provider);

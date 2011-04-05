@@ -302,10 +302,15 @@ namespace TickZoom.FIX
 						return Resend(packetFIX);
 					}
 					if (trace) log.Trace("Local Read: " + _fixReadMessage);
-					if( packetFIX.Sequence != sequenceCounter) {
-						return Resend(packetFIX);
+					if( packetFIX.Sequence > sequenceCounter) {
+                        if (debug) log.Debug("packet sequence " + packetFIX.Sequence + " mismatch with counter " + sequenceCounter);
+                        return Resend(packetFIX);
+					}
+                    else if( packetFIX.Sequence < sequenceCounter)
+					{
+                        if (debug) log.Debug("Already received packet sequence " + packetFIX.Sequence + ". Ignoring.");
 					} else {
-						sequenceCounter++;
+    				    sequenceCounter++;
 						ParseFIXMessage(_fixReadMessage);
 						return true;
 					}
