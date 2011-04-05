@@ -52,7 +52,7 @@ namespace TickZoom.TickUtil
 		bool logProgress = false;
 		bool bulkFileLoad = false;
 		private Receiver receiver;
-		Task fileReaderTask;
+		protected Task fileReaderTask;
 		private static object readerListLocker = new object();
 		private static List<Reader> readerList = new List<Reader>();
 		string priceDataFolder;
@@ -195,7 +195,7 @@ namespace TickZoom.TickUtil
 		}
 
         private SimpleLock startLocker = new SimpleLock();
-		public void Start(Receiver receiver)
+		public virtual void Start(Receiver receiver)
 		{
             using (startLocker.Using())
             {

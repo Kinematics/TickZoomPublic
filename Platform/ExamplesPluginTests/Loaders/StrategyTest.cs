@@ -219,6 +219,8 @@ namespace Loaders
 			StaticGlobal.Clear();
 			CleanupFiles();
 			StartGUIThread();
+		    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
+            GC.WaitForPendingFinalizers();
 			
 			try {
 				// Run the loader.

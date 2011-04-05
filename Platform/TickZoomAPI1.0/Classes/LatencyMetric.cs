@@ -56,6 +56,7 @@ namespace TickZoom.Api
 		}
 		
 		public void TryUpdate( long symbol, long timeStamp) {
+            if( timeStamp == long.MaxValue || timeStamp == 0L) return;
 		    if( id == int.MinValue) {
 				this.symbol = symbol;
 				this.manager = LatencyManager.Register(this, out id, out metricCount, out previous);

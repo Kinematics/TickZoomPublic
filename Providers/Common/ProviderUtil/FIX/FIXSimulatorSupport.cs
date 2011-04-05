@@ -328,9 +328,9 @@ namespace TickZoom.FIX
 				   	log.Info("Current tick UTC time is " + currentTime);
 				   	realTimeOffset = currentTime.Internal - utcTime;
 				   	var microsecondsInMinute = 1000L * 1000L * 60L;
-                    //var extra = realTimeOffset % microsecondsInMinute;
-                    //realTimeOffset -= extra;
-                    //realTimeOffset += microsecondsInMinute;
+                    var extra = realTimeOffset % microsecondsInMinute;
+                    realTimeOffset -= extra;
+                    realTimeOffset += microsecondsInMinute;
 				   	var elapsed = new Elapsed( realTimeOffset);
 				   	log.Info("Setting real time offset to " + elapsed);
 				}

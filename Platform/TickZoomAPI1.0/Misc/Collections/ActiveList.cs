@@ -142,13 +142,13 @@ namespace TickZoom.Api
             return newNode;
         }
 
-        public ActiveListNode<T> SortFirst(T value, Func<T, T, int> comparator)
+        public ActiveListNode<T> SortFirst(T value, Func<T, T, long> comparator)
         {
             var newNode = new ActiveListNode<T>((ActiveList<T>) this, value);
             return SortFirst(newNode, comparator);
         }
 
-	    public ActiveListNode<T> SortFirst(ActiveListNode<T> newNode, Func<T, T, int> comparator)
+	    public ActiveListNode<T> SortFirst(ActiveListNode<T> newNode, Func<T, T, long> comparator)
         {
             locker.Lock();
             if (this.head == null)

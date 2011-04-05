@@ -45,7 +45,8 @@ namespace TickZoom.Api
 	    public int Earliest;
 	    public int Analyze;
 	    public int Simulator;
-	}
+        public int TimerCount;
+    }
 	public class LatencyManager : IDisposable
 	{
 	    public static long TryReadCounter = 0;
@@ -110,11 +111,11 @@ namespace TickZoom.Api
             lastId = id;
             var currentTime = TimeStamp.UtcNow.Internal;
 		    var latency = currentTime - utcTickTime;
-            if( latency < 1000)
+            if (latency < 1000)
             {
                 alreadyShowedLog = false;
             }
-		    var showLog = tickCount > 100 && latency > 2000;
+		    var showLog = tickCount > 100 && latency > 20000;
             var selectCount = Factory.Provider.Manager.SelectCount;
 		    var roundRobinCounter = Factory.Parallel.RoundRobinCounter;
 		    var earliestCounter = Factory.Parallel.EarliestCounter;
@@ -123,7 +124,8 @@ namespace TickZoom.Api
 		    var tryReadCounter = Interlocked.Read(ref TryReadCounter);
             var analyze = (int) Factory.Parallel.AnalyzePoint;
 		    var simulator = simulatorCount;
-		    var entry = new LatencyLogEntry
+            var timerCount = (int)Factory.Parallel.TimerCount;
+            var entry = new LatencyLogEntry
             {
                 Count = tickCount,
                 Id = id,
@@ -138,6 +140,7 @@ namespace TickZoom.Api
                 // - lastEarliestCount),
                 Analyze = analyze,
                 Simulator = (int) (simulator - lastSimulatorCount),
+                TimerCount = timerCount,
 			};
 		    lastSelectCount = selectCount;
 		    lastTryReadCount = tryReadCounter;
@@ -193,7 +196,7 @@ namespace TickZoom.Api
                         var tickTimeStr = tickTime + "." + tickTime.Microseconds;
                         var time = new TimeStamp(entry.UtcTime).TimeOfDay;
                         var timeStr = time + "." + time.Microseconds;
-                        sb.AppendLine(entry.Count + ": " + entry.Id + " => " + tickTimeStr + " at " + timeStr + " latency " + latency + "us, selects " + entry.Selects + ", send " + entry.Sends + ", receive " + entry.Receives + ", (try " + entry.TryReceive + "), roundR " + entry.RoundRobin + ", earliest " + entry.Earliest + ", analyze " + entry.Analyze + ", simulator " + entry.Simulator);
+                        sb.AppendLine(entry.Count + ": " + entry.Id + " => " + tickTimeStr + " at " + timeStr + " latency " + latency + "us, selects " + entry.Selects + ", send " + entry.Sends + ", receive " + entry.Receives + ", (try " + entry.TryReceive + "), roundR " + entry.RoundRobin + ", earliest " + entry.Earliest + ", analyze " + entry.Analyze + ", simulator " + entry.Simulator + ", timers " + entry.TimerCount);
                         if (i % 2000 == 0)
                         {
                             log.Info("Up to " + i + "\n" + sb);

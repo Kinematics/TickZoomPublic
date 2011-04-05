@@ -26,6 +26,7 @@
 
 using System;
 using System.Text;
+using System.Threading;
 using TickZoom.Api;
 
 namespace TickZoom.FIX
@@ -168,7 +169,6 @@ namespace TickZoom.FIX
 						if( tickCounter > 10) {
 							intervalTime = 1000;
 						}
-						var time = new TimeStamp( binary.UtcTime);
 				   	} 
 				   	nextTick.Inject( binary);
 				   	tickSync.AddTick();
@@ -204,16 +204,24 @@ namespace TickZoom.FIX
 				switch( tickStatus) {
 					case TickStatus.None:
 						var overlapp = 300L;
-						if( tickTimer.Active) tickTimer.Cancel();
                         var currentTime = TimeStamp.UtcNow;
+                        if( tickTimer.Active) tickTimer.Cancel();
                         if (nextTick.UtcTime.Internal > currentTime.Internal + overlapp &&
-						   tickTimer.Start(nextTick.UtcTime)) {
-							if( trace) log.Trace("Set next timer for " + nextTick.UtcTime  + "." + nextTick.UtcTime.Microsecond + " at " + currentTime  + "." + currentTime.Microsecond);							
-							tickStatus = TickStatus.Timer;
-						} else {
-							if( trace) log.Trace("Current time " + currentTime + " was greater than tick time " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
+                           tickTimer.Start(nextTick.UtcTime))
+                        {
+                            if (trace) log.Trace("Set next timer for " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond + " at " + currentTime + "." + currentTime.Microsecond);
+                            tickStatus = TickStatus.Timer;
+                        }
+                        else
+                        {
+                            if (nextTick.UtcTime.Internal < currentTime.Internal)
+                            {
+                                if (trace)
+                                    log.Trace("Current time " + currentTime + " was less than tick time " +
+                                              nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
                                 result = Yield.DidWork.Invoke(SendPlayBackTick);
-						}		
+                            }
+                        }
 				        break;
 					case TickStatus.Sent:
 						result = Yield.DidWork.Invoke(ProcessQueue);
