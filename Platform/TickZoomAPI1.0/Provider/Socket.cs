@@ -43,7 +43,6 @@ namespace TickZoom.Api
 		void Connect(string addrStr, ushort port);
 		void Bind(string addrStr, ushort port);
 		void Listen(int queue);
-		Message CreateMessage();
 		bool TrySendMessage(Message message);
 		bool TryGetMessage(out Message message);
 		MessageFactory MessageFactory { get; set;	}

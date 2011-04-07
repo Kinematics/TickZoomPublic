@@ -53,6 +53,10 @@ namespace TickZoom.TickUtil
 
 		public void Free(T item)
 		{
+            if( item == null)
+            {
+                throw new InvalidOperationException("Attempt to free null reference.");
+            }
 			using (_sync.Using()) {
                 _freed.AddFirst(item);
                 if (_freed.Count > 10)

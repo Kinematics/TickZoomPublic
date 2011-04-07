@@ -41,7 +41,7 @@ namespace TickZoom.MBTQuotes
         private const int maxSize = 4096;
         private static readonly Log log = Factory.SysLog.GetLogger(typeof(MessageMbtQuotes));
         private static readonly bool trace = log.IsTraceEnabled;
-        private MemoryStream data = new MemoryStream();
+        private MemoryStream data = new MemoryStream(8*1024);
         private BinaryReader dataIn;
         private BinaryWriter dataOut;
         private static int packetIdCounter = 0;
@@ -58,8 +58,37 @@ namespace TickZoom.MBTQuotes
         private long _sendUtcTime = long.MaxValue;
         private long _recvUtcTime = long.MaxValue;
         private double last;
+
+        public MessageMbtQuotes() {
+            dataIn = new BinaryReader(data, Encoding.ASCII);
+            dataOut = new BinaryWriter(data, Encoding.ASCII);
+            Clear();
+        }
 		
-        public double Last {
+        public void Clear()
+        {
+            id = ++packetIdCounter;
+            data.Position = 0;
+            data.SetLength(0);
+            symbol.Length = 0;
+            feedType.Length = 0;
+            bid = 0D;
+            ask = 0D;
+            askSize = 0;
+            bidSize = 0;
+            time.Length = 0;
+            date.Length = 0;
+            tickUtcTime = long.MaxValue;
+            _sendUtcTime = long.MaxValue;
+            _recvUtcTime = long.MaxValue;
+            last = 0D;
+            date.Length = 0;
+            time.Length = 0;
+            tickUtcTime = long.MaxValue;
+        }
+
+        public double Last
+        {
             get { return last; }
         }
         private int lastSize;
@@ -88,13 +117,6 @@ namespace TickZoom.MBTQuotes
             get { return messageType; }
         }
 		
-        public MessageMbtQuotes() {
-            id = ++packetIdCounter;
-            dataIn = new BinaryReader(data, Encoding.ASCII);
-            dataOut = new BinaryWriter(data, Encoding.ASCII);
-            Clear();
-        }
-		
         public void SetReadableBytes(int bytes) {
             if( trace) log.Trace("SetReadableBytes(" + bytes + ")");
             data.SetLength( data.Position + bytes);
@@ -102,14 +124,6 @@ namespace TickZoom.MBTQuotes
 
         public void Verify() {
 			
-        }
-		
-        public void Clear() {
-            data.Position = 0;
-            data.SetLength(0);
-            date.Length = 0;
-            time.Length = 0;
-            tickUtcTime = long.MaxValue;
         }
 		
         public void BeforeWrite() {

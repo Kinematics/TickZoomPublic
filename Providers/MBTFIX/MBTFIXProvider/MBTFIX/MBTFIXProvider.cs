@@ -149,7 +149,7 @@ namespace TickZoom.MBTFIX
 				RegenerateSocket();
 				return Yield.DidWork.Repeat;
 			}
-			
+		    Socket.MessageFactory.Release(message);
 			StartRecovery();
 			
             return Yield.DidWork.Repeat;

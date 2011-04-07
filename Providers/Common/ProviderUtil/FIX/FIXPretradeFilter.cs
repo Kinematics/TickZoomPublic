@@ -129,7 +129,9 @@ namespace TickZoom.FIX
 				try {
 					if( filter != null) filter.Remote( fixContext, remoteMessage);
 					return Yield.DidWork.Invoke( WriteToLocalMethod);
-				} catch( FilterException) {
+				} catch( FilterException)
+				{
+				    remoteSocket.MessageFactory.Release(remoteMessage);
 					CloseSockets();
 					return Yield.Terminate;
 				}
@@ -146,7 +148,8 @@ namespace TickZoom.FIX
 						if( filter != null) filter.Local( fixContext, localMessage);
 						return Yield.DidWork.Invoke( WriteToRemoteMethod);
 					} catch( FilterException) {
-						CloseSockets();
+                        localSocket.MessageFactory.Release(localMessage);
+                        CloseSockets();
 						return Yield.Terminate;
 					}
 				} else {
@@ -165,7 +168,7 @@ namespace TickZoom.FIX
 		private Yield WriteToLocal() {
 			if( localSocket.TrySendMessage(remoteMessage)) {
 				if(trace) log.Trace("Local Write: " + remoteMessage);
-				return Yield.DidWork.Return;
+                return Yield.DidWork.Return;
 			} else {
 				return Yield.NoWork.Repeat;
 			}
@@ -174,7 +177,7 @@ namespace TickZoom.FIX
 		private Yield WriteToRemote() {
 			if( remoteSocket.TrySendMessage(localMessage)) {
 				if(trace) log.Trace("Remote Write: " + localMessage);
-				return Yield.DidWork.Return;
+                return Yield.DidWork.Return;
 			} else {
 				return Yield.NoWork.Repeat;
 			}

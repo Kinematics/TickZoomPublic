@@ -113,8 +113,9 @@ namespace TickZoom.MBTFIX
 			}			
 		}
 		
-		private void FIXOrderList(MessageFIX4_4 packet) {
-			var writePacket = fixSocket.CreateMessage();			
+		private void FIXOrderList(MessageFIX4_4 packet)
+		{
+		    var writePacket = fixSocket.MessageFactory.Create();
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetText("END");
 			mbtMsg.AddHeader("8");
@@ -124,8 +125,9 @@ namespace TickZoom.MBTFIX
             if (debug) log.Debug("Sending end of order list: " + message);
 		}
 		
-		private void FIXPositionList(MessageFIX4_4 packet) {
-			var writePacket = fixSocket.CreateMessage();			
+		private void FIXPositionList(MessageFIX4_4 packet)
+		{
+		    var writePacket = fixSocket.MessageFactory.Create();	
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetText("DONE");
 			mbtMsg.AddHeader("AO");
@@ -266,7 +268,7 @@ namespace TickZoom.MBTFIX
 				CloseWithFixError(packet, "Invalid login request. Already logged in.");
 			}
 			fixState = ServerState.LoggedIn;
-			var writePacket = fixSocket.CreateMessage();
+		    var writePacket = fixSocket.MessageFactory.Create();
 			target = packet.Target;
 			sender = packet.Sender;
 			FixFactory = new FIXFactory4_4(1,packet.Target,packet.Sender);
@@ -285,7 +287,7 @@ namespace TickZoom.MBTFIX
 				CloseWithQuotesError(message, "Invalid login request. Already logged in.");
 			}
 			quoteState = ServerState.LoggedIn;
-			var writePacket = quoteSocket.CreateMessage();
+		    var writePacket = quoteSocket.MessageFactory.Create();
 			string textMessage = "G|100=DEMOXJSP;8055=demo01\n";
 			if( debug) log.Debug("Login response: " + textMessage);
 			writePacket.DataOut.Write(textMessage.ToCharArray());
@@ -304,8 +306,9 @@ namespace TickZoom.MBTFIX
 			SendExecutionReport( fill.Order, orderStatus, fill.Price, totalSize, cumulativeSize, fill.Size, remainingSize, fill.UtcTime, null);
 		}
 
-		private void OnRejectOrder( PhysicalOrder order, string error) {
-			var writePacket = fixSocket.CreateMessage();
+		private void OnRejectOrder( PhysicalOrder order, string error)
+		{
+		    var writePacket = fixSocket.MessageFactory.Create();
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetAccount( "33006566");
 			mbtMsg.SetClientOrderId( order.BrokerOrder.ToString());
@@ -318,8 +321,9 @@ namespace TickZoom.MBTFIX
             SendPacket(writePacket);
         }	
 		
-		private void SendPositionUpdate(SymbolInfo symbol, int position) {
-			var writePacket = fixSocket.CreateMessage();
+		private void SendPositionUpdate(SymbolInfo symbol, int position)
+		{
+		    var writePacket = fixSocket.MessageFactory.Create();
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetAccount( "33006566");
 			mbtMsg.SetSymbol( symbol.Symbol);
@@ -363,7 +367,7 @@ namespace TickZoom.MBTFIX
 					orderSide = 5;
 					break;
 			}
-			var writePacket = fixSocket.CreateMessage();
+		    var writePacket = fixSocket.MessageFactory.Create();
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetAccount( "33006566");
 			mbtMsg.SetDestination("MBTX");
@@ -528,8 +532,9 @@ namespace TickZoom.MBTFIX
 		private void CloseWithQuotesError(MessageMbtQuotes message, string textMessage) {
 		}
 		
-		private void CloseWithFixError(MessageFIX4_4 packet, string textMessage) {
-			var writePacket = fixSocket.CreateMessage();
+		private void CloseWithFixError(MessageFIX4_4 packet, string textMessage)
+		{
+		    var writePacket = fixSocket.MessageFactory.Create();
 			var fixMsg = (FIXMessage4_4) FixFactory.Create();
 			TimeStamp timeStamp = TimeStamp.UtcNow;
 			fixMsg.SetAccount(packet.Account);

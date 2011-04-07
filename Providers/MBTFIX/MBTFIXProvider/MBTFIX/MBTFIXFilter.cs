@@ -184,8 +184,9 @@ namespace TickZoom.MBTFIX
 			}
 		}
 
-		private void CloseWithError(FIXContext context, MessageFIX4_4 packetIn, string textMessage) {
-			Message message = context.LocalSocket.CreateMessage();
+		private void CloseWithError(FIXContext context, MessageFIX4_4 packetIn, string textMessage)
+		{
+		    Message message = context.LocalSocket.MessageFactory.Create();
 			var fixFactory = new FIXFactory4_4(1,fixSender,packetIn.Sender);
 			var fixMsg = (FIXMessage4_4) fixFactory.Create();
 			TimeStamp timeStamp = TimeStamp.UtcNow;

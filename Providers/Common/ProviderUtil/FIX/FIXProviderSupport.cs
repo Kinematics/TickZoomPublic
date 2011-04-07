@@ -289,6 +289,7 @@ namespace TickZoom.FIX
 								if( !CheckForResend(message)) {
 									ReceiveMessage(message);
 								}
+							    Socket.MessageFactory.Release(message);
 								IncreaseRetryTimeout();
 								return Yield.DidWork.Repeat;
 							} else {
@@ -590,7 +591,7 @@ namespace TickZoom.FIX
 				string view = fixString.Replace(FIXTBuffer.EndFieldStr,"  ");
 				log.Debug("Send FIX message: \n" + view);
 			}
-			var packet = Socket.CreateMessage();
+	        var packet = Socket.MessageFactory.Create();
 			packet.DataOut.Write(fixString.ToCharArray());
 			var end = Factory.Parallel.TickCount + (long)heartbeatDelay * 1000L;
 			while( !Socket.TrySendMessage(packet)) {

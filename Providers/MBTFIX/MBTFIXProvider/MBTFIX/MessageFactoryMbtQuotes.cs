@@ -29,16 +29,18 @@ using TickZoom.Api;
 
 namespace TickZoom.MBTQuotes
 {
-	public class MessageFactoryMbtQuotes : MessageFactory {
-//		private Pool<PacketDefault> pool = new Pool<PacketDefault>();
-		public Message Create() {
-			MessageMbtQuotes message = new MessageMbtQuotes();
+	public class MessageFactoryMbtQuotes : MessageFactory
+	{
+	    private Pool<MessageMbtQuotes> pool = Factory.TickUtil.Pool<MessageMbtQuotes>();
+		public Message Create()
+		{
+		    var message = pool.Create();
 			message.Clear();
 			return (Message) message;
 		}
 		
 		public void Release(Message message) {
-//			pool.Free((PacketDefault) Message);
+            pool.Free((MessageMbtQuotes)message);
 		}
 	}
 }

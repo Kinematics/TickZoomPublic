@@ -75,8 +75,8 @@ namespace TickZoom.MBTQuotes
 		public override Yield OnLogin()
 		{
 			Socket.MessageFactory = new MessageFactoryMbtQuotes();
-			
-			Message message = Socket.CreateMessage();
+
+		    Message message = Socket.MessageFactory.Create();
 			string hashPassword = Hash(Password);
 			string login = "L|100="+UserName+";133="+hashPassword+"\n";
 			if( trace) log.Trace( "Sending: " + login);
@@ -95,7 +95,8 @@ namespace TickZoom.MBTQuotes
 				throw new ApplicationException("Invalid quotes login response: \n" + new string(message.DataIn.ReadChars(message.Remaining)));
 			}
 			if( trace) log.Trace( "Response: " + new string(message.DataIn.ReadChars(message.Remaining)));
-			StartRecovery();
+            Socket.MessageFactory.Release(message);
+            StartRecovery();
 			return Yield.DidWork.Repeat;
         }
 		
@@ -125,6 +126,7 @@ namespace TickZoom.MBTQuotes
 					default:
 						throw new ApplicationException("MBTQuotes message type '" + packet.MessageType + "' was unknown: \n" + new string(packet.DataIn.ReadChars(packet.Remaining)));
 				}
+                Socket.MessageFactory.Release(rawMessage);
 				if( Socket.ReceiveQueueCount > 0) {
 					return Yield.DidWork.Invoke( ReceiveMessageMethod);
 				} else {
@@ -264,8 +266,9 @@ namespace TickZoom.MBTQuotes
 					return;
 			}
 
-			if( tradeType != null) {
-				Message message = Socket.CreateMessage();
+			if( tradeType != null)
+			{
+			    Message message = Socket.MessageFactory.Create();
 				string textMessage = "S|1003="+symbol.Symbol+";2000="+tradeType+"\n";
 				if( debug) log.Debug("Symbol request: " + textMessage);
 				message.DataOut.Write(textMessage.ToCharArray());
@@ -275,8 +278,9 @@ namespace TickZoom.MBTQuotes
 				}
 			}
 			
-			if( quoteType != null) {
-				Message message = Socket.CreateMessage();
+			if( quoteType != null)
+			{
+			    Message message = Socket.MessageFactory.Create();
 				string textMessage = "S|1003="+symbol.Symbol+";2000="+quoteType+"\n";
 				if( debug) log.Debug("Symbol request: " + textMessage);
 				message.DataOut.Write(textMessage.ToCharArray());

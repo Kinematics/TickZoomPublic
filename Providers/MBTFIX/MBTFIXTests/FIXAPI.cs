@@ -140,8 +140,8 @@ namespace Test
 				socket.SetBlocking(true);
 				socket.Connect("127.0.0.1",filter.LocalPort);
 				socket.SetBlocking(false);
-		
-				Message message = socket.CreateMessage();
+
+			    Message message = socket.MessageFactory.Create();
 				string hashPassword = MBTQuotesProvider.Hash(password);
 
 				var fixFactory = new FIXFactory4_4(1,userName,destination);
@@ -178,6 +178,7 @@ namespace Test
 				Assert.NotNull(packetFIX.TimeStamp);
 				Assert.AreEqual("0",packetFIX.Encryption);
 				Assert.AreEqual(30,packetFIX.HeartBeatInterval);
+                socket.MessageFactory.Release(message);
 			}
 		}
 		
@@ -197,8 +198,8 @@ namespace Test
 				socket.SetBlocking(true);
 				socket.Connect(addrStr,port);
 				socket.SetBlocking(false);
-		
-				Message message = socket.CreateMessage();
+
+			    Message message = socket.MessageFactory.Create();
 				string hashPassword = MBTQuotesProvider.Hash(password);
 				
 				var fixFactory = new FIXFactory4_4(1,userName,destination);
@@ -226,6 +227,7 @@ namespace Test
 					}
 					Factory.Parallel.Yield();
 				}
+                socket.MessageFactory.Release(message);
 				Assert.Fail("Should have received login timed out response.");
 			}
 		}

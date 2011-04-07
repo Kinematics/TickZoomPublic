@@ -30,14 +30,16 @@ using TickZoom.Api;
 namespace TickZoom.FIX
 {
 	public class MessageFactoryFix44 : MessageFactory {
-		public Message Create() {
-			MessageFIX4_4 packet = new MessageFIX4_4();
-			packet.Clear();
-			return (Message) packet;
-		}
+        private Pool<MessageFIX4_4> pool = Factory.TickUtil.Pool<MessageFIX4_4>();
+        public Message Create()
+        {
+            var message = pool.Create();
+            message.Clear();
+            return (Message)message;
+        }
 		
 		public void Release(Message message) {
-//			pool.Free((PacketDefault) packet);
+            pool.Free((MessageFIX4_4)message);
 		}
 	}
 }

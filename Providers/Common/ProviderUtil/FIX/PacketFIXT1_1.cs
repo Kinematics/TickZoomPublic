@@ -67,27 +67,45 @@ namespace TickZoom.FIX
 		public static bool IsQuietRecovery = false;		
 		
 		public MessageFIXT1_1() {
-			id = ++packetIdCounter;
 			dataIn = new BinaryReader(data, Encoding.ASCII);
 			dataOut = new BinaryWriter(data, Encoding.ASCII);
 			Clear();
 		}
-		
-		public void SetReadableBytes(int bytes) {
+
+        public virtual void Clear()
+        {
+			id = ++packetIdCounter;
+            data.Position = 0;
+            data.SetLength(0);
+		    sendUtcTime = 0L;
+            recvUtcTime = 0L;
+            if (handle.IsAllocated)
+            {
+                handle.Free();
+            }
+		    ptr = null;
+		    end = null;
+		    version = null;
+		    begSeqNum = 0;
+		    endSeqNum = 0;
+		    length = 0;
+		    messageType = null;
+		    sender = null;
+		    target = null;
+		    sequence = 0;
+		    timeStamp = null;
+		    checkSum = 0;
+		    isPossibleDuplicate = false;
+        }
+
+        public void SetReadableBytes(int bytes)
+        {
 			if( trace) log.Trace("SetReadableBytes(" + bytes + ")");
 			data.SetLength( data.Position + bytes);
 		}
 	
 		public void Verify() {
 			
-		}
-		
-		public void Clear() {
-			data.Position = 0;
-			data.SetLength(0);
-			if( handle.IsAllocated) {
-				handle.Free();
-			}
 		}
 		
 		public void BeforeWrite() {

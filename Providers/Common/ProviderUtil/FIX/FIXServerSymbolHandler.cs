@@ -280,8 +280,8 @@ namespace TickZoom.FIX
             LatencyManager.IncrementSymbolHandler();
             if (quoteMessage == null)
             {
-				quoteMessage = fixSimulatorSupport.QuoteSocket.CreateMessage();
-			}
+                quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
+            }
 			onTick( quoteMessage, symbol, nextTick);
 			if( trace) log.Trace("Added tick to packet: " + nextTick.UtcTime);
 			quoteMessage.SendUtcTime = nextTick.UtcTime.Internal;
@@ -303,7 +303,7 @@ namespace TickZoom.FIX
 		        }
 		    }
 			if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.SendUtcTime));
-			quoteMessage = fixSimulatorSupport.QuoteSocket.CreateMessage();
+		    quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
             reader.ReadQueue.RemoveStruct();
             tickStatus = TickStatus.Sent;
             return Yield.DidWork.Return;

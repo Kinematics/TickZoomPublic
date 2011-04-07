@@ -67,6 +67,41 @@ namespace TickZoom.FIX
 		int leavesQuantity = 0;
 		int longQuantity = 0;
 		int shortQuantity = 0;
+
+        public override void Clear()
+        {
+            base.Clear();
+            heartBeatInterval = 0;
+            encryption = null;
+            account = null;
+
+            massStatusRequestId = null;
+            orderStatus = null;
+            text = null;
+            destination = null;
+            orderQuantity = 0;
+            averagePrice = 0D;
+            orderId = null;
+            positionEffect = null;
+            orderType = null;
+            originalClientOrderId = null;
+            clientOrderId = null;
+            price = 0D;
+            symbol = null;
+            cumulativeQuantity = 0;
+            lastQuantity = 0;
+            lastPrice = 0D;
+            executionId = null;
+            productType = 0;
+            side = null;
+            timeInForce = null;
+            executionType = null;
+            internalOrderId = null;
+            transactionTime = null;
+            leavesQuantity = 0;
+            longQuantity = 0;
+            shortQuantity = 0;
+        }
 		protected override bool HandleKey(int key)
 		{
 			//			1=33117308

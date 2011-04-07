@@ -276,8 +276,9 @@ namespace TickZoom.FIX
 				return false;
 			}
 		}
-		private bool Resend(MessageFIXT1_1 messageFix) {
-			var writePacket = fixSocket.CreateMessage();			
+		private bool Resend(MessageFIXT1_1 messageFix)
+		{
+		    var writePacket = fixSocket.MessageFactory.Create();
 			var mbtMsg = fixFactory.Create();
 			mbtMsg.AddHeader("2");
 			mbtMsg.SetBeginSeqNum(sequenceCounter);
@@ -294,26 +295,36 @@ namespace TickZoom.FIX
 		{
 			if (isFIXSimulationStarted) {
 				if (fixSocket.TryGetMessage(out _fixReadMessage)) {
-					var packetFIX = (MessageFIXT1_1) _fixReadMessage;
-					if( fixFactory != null && random.Next(10) == 1) {
-						// Ignore this message. Pretend we never received it.
-						// This will test the message recovery.
-						if( debug) log.Debug("Ignoring fix message sequence " + packetFIX.Sequence);
-						return Resend(packetFIX);
-					}
-					if (trace) log.Trace("Local Read: " + _fixReadMessage);
-					if( packetFIX.Sequence > sequenceCounter) {
-                        if (debug) log.Debug("packet sequence " + packetFIX.Sequence + " mismatch with counter " + sequenceCounter);
-                        return Resend(packetFIX);
-					}
-                    else if( packetFIX.Sequence < sequenceCounter)
-					{
-                        if (debug) log.Debug("Already received packet sequence " + packetFIX.Sequence + ". Ignoring.");
-					} else {
-    				    sequenceCounter++;
-						ParseFIXMessage(_fixReadMessage);
-						return true;
-					}
+                    try
+                    {
+                        var packetFIX = (MessageFIXT1_1)_fixReadMessage;
+                        if (fixFactory != null && random.Next(10) == 1)
+                        {
+                            // Ignore this message. Pretend we never received it.
+                            // This will test the message recovery.
+                            if (debug) log.Debug("Ignoring fix message sequence " + packetFIX.Sequence);
+                            return Resend(packetFIX);
+                        }
+                        if (trace) log.Trace("Local Read: " + _fixReadMessage);
+                        if (packetFIX.Sequence > sequenceCounter)
+                        {
+                            if (debug) log.Debug("packet sequence " + packetFIX.Sequence + " mismatch with counter " + sequenceCounter);
+                            return Resend(packetFIX);
+                        }
+                        else if (packetFIX.Sequence < sequenceCounter)
+                        {
+                            if (debug) log.Debug("Already received packet sequence " + packetFIX.Sequence + ". Ignoring.");
+                        }
+                        else
+                        {
+                            sequenceCounter++;
+                            ParseFIXMessage(_fixReadMessage);
+                            return true;
+                        }
+                    } finally
+                    {
+                        fixSocket.MessageFactory.Release(_fixReadMessage);
+                    }
 				}
 			}
 			return false;
@@ -382,6 +393,7 @@ namespace TickZoom.FIX
 				if (quoteSocket.TryGetMessage(out _quoteReadMessage)) {
 					if (trace)	log.Trace("Local Read: " + _quoteReadMessage);
 					ParseQuotesMessage(_quoteReadMessage);
+                    quoteSocket.MessageFactory.Release(_quoteReadMessage);
 					return true;
 				}
 			}
@@ -442,8 +454,9 @@ namespace TickZoom.FIX
 		}
 		
 		protected virtual Yield OnHeartbeat() {
-			if( fixSocket != null && FixFactory != null) {
-				var writePacket = fixSocket.CreateMessage();
+			if( fixSocket != null && FixFactory != null)
+			{
+			    var writePacket = fixSocket.MessageFactory.Create();
 				var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 				mbtMsg.AddHeader("1");
 				string message = mbtMsg.ToString();

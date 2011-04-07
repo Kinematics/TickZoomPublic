@@ -187,8 +187,8 @@ namespace Test
 				socket.SetBlocking(true);
 				socket.Connect(addrStr,port);
 				socket.SetBlocking(false);
-				
-				Message message = socket.CreateMessage();
+
+			    Message message = socket.MessageFactory.Create();
 				string hashPassword = MBTQuotesProvider.Hash(password);
 				string login = "L|100="+userName+";133="+hashPassword+"\n";
 				message.DataOut.Write(login.ToCharArray());
@@ -200,6 +200,7 @@ namespace Test
 				}
 				string response = new string(message.DataIn.ReadChars(message.Remaining));
 				string expectedResponse = "G|100=DEMOYZPS;8055=demo01\n";
+                socket.MessageFactory.Release(message);
 				Assert.AreEqual(expectedResponse,response);
 			}
 		}
