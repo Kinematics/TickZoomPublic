@@ -1766,26 +1766,26 @@ namespace ZedGraph
 		}
 */
 
-		/// <summary>
-		/// Make a value label for the axis at the specified ordinal position.
-		/// </summary>
-		/// <remarks>
-		/// This method properly accounts for <see cref="IsLog"/>, <see cref="IsText"/>,
-		/// and other axis format settings.
-		/// </remarks>
-		/// <param name="pane">
-		/// A reference to the <see cref="GraphPane"/> object that is the parent or
-		/// owner of this object.
-		/// </param>
-		/// <param name="index">
-		/// The zero-based, ordinal index of the label to be generated.  For example, a value of 2 would
-		/// cause the third value label on the axis to be generated.
-		/// </param>
-		/// <param name="dVal">
-		/// The numeric value associated with the label.  This value is ignored for log (<see cref="IsLog"/>)
-		/// and text (<see cref="IsText"/>) type axes.
-		/// </param>
-		/// <returns>The resulting value label as a <see cref="string" /></returns>
+	    /// <summary>
+	    /// Make a value label for the axis at the specified ordinal position.
+	    /// </summary>
+	    /// <remarks>
+	    /// This method properly accounts for <see cref="IsLog"/>, <see cref="IsText"/>,
+	    /// and other axis format settings.
+	    /// </remarks>
+	    /// <param name="pane">
+	    /// A reference to the <see cref="GraphPane"/> object that is the parent or
+	    /// owner of this object.
+	    /// </param>
+	    /// <param name="index">
+	    /// The zero-based, ordinal index of the label to be generated.  For example, a value of 2 would
+	    /// cause the third value label on the axis to be generated.
+	    /// </param>
+	    /// <param name="dVal">
+	    /// The numeric value associated with the label.  This value is ignored for log (<see cref="IsLog"/>)
+	    /// and text (<see cref="IsText"/>) type axes.
+	    /// </param>
+	    /// <returns>The resulting value label as a <see cref="string" /></returns>
 		virtual internal string MakeLabel( GraphPane pane, int index, double dVal )
 		{
 			if ( _format == null )
@@ -1796,10 +1796,18 @@ namespace ZedGraph
 
 			double scaleMult = Math.Pow( (double)10.0, _mag );
 
-			return ( dVal / scaleMult ).ToString( _format );
+            if( dVal != cache_dVal || scaleMult != cache_scaleMult)
+            {
+                cache_format = (dVal/scaleMult).ToString(_format);
+            }
+	        return cache_format;
 		}
 
-		/// <summary>
+        private double cache_dVal;
+        private double cache_scaleMult;
+	    private string cache_format;
+
+        /// <summary>
 		/// Get the maximum width of the scale value text that is required to label this
 		/// <see cref="Axis"/>.
 		/// The results of this method are used to determine how much space is required for

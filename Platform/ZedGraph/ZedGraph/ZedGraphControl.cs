@@ -909,7 +909,7 @@ namespace ZedGraph
 						_masterPane.Draw( g );
 					}
 					catch( Exception ex) {
-						if( debug) log.Debug(ex.ToString());
+						log.Error(ex.Message,ex);
 					}
 				}
 				//Copy the back buffer to the screen

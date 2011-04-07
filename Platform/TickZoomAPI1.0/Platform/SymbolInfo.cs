@@ -268,5 +268,19 @@ namespace TickZoom.Api
  		double MaxValidPrice {
  			get;
  		}
+
+        /// <summary>
+        /// Controls how fills get simulated for ticks with bid/ask quote data.
+        /// None, means to ignore bid/ask quotes for filling orders which is useful
+        /// if you want to simulate fills based on trades alone.
+        /// </summary>
+	    LimitOrderQuoteSimulation LimitOrderQuoteSimulation { get; }
+
+        /// <summary>
+        /// Controls how to simulate fills for ticks with trade data of price and size.
+        /// None, means to ignore trade data which is useful if you want to simulate
+        /// fills solely from quote ticks.
+        /// </summary>
+	    LimitOrderTradeSimulation LimitOrderTradeSimulation { get; }
 	}
 }

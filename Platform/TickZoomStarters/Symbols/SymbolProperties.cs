@@ -65,6 +65,8 @@ namespace TickZoom.Symbols
 		private double maxPositionSize = double.MaxValue;
 		private double maxOrderSize = double.MaxValue;
 		private double maxValidPrice = double.MaxValue;
+	    private LimitOrderQuoteSimulation _limitOrderQuoteSimulation = LimitOrderQuoteSimulation.OppositeQuoteTouch;
+	    private LimitOrderTradeSimulation _limitOrderTradeSimulation = LimitOrderTradeSimulation.TradeTouch;
 
 		public SymbolProperties Copy()
 	    {
@@ -238,5 +240,17 @@ namespace TickZoom.Symbols
 		{
 			return this.binaryIdentifier == other.BinaryIdentifier;
 		}
+
+        public LimitOrderQuoteSimulation LimitOrderQuoteSimulation
+	    {
+	        get { return _limitOrderQuoteSimulation; }
+	        set { _limitOrderQuoteSimulation = value; }
+	    }
+
+        public LimitOrderTradeSimulation LimitOrderTradeSimulation
+	    {
+	        get { return _limitOrderTradeSimulation; }
+	        set { _limitOrderTradeSimulation = value; }
+	    }
 	}
 }

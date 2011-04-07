@@ -528,7 +528,10 @@ namespace ZedGraph
 			return path;
 		}
 
-		/// <summary>
+        // (Dale-a-b) we'll set an element to true when it has been drawn	
+	    private MultiDimBitArray isPixelDrawn;
+
+	    /// <summary>
 		/// Draw this <see cref="CurveItem"/> to the specified <see cref="Graphics"/>
 		/// device as a symbol at each defined point.  The routine
 		/// only draws the symbols; the lines are draw by the
@@ -570,7 +573,13 @@ namespace ZedGraph
 			int maxY = (int)pane.Chart.Rect.Bottom;
 
 			// (Dale-a-b) we'll set an element to true when it has been drawn	
-			bool[,] isPixelDrawn = new bool[maxX + 1, maxY + 1];
+            if( isPixelDrawn == null )
+            {
+                isPixelDrawn = new MultiDimBitArray(maxX, maxY);
+            } else
+            {
+                isPixelDrawn.TryResize(maxX, maxY);
+            }
 
 			double curX, curY, lowVal;
 			IPointList points = curve.Points;
@@ -646,13 +655,13 @@ namespace ZedGraph
 								// Maintain an array of "used" pixel locations to avoid duplicate drawing operations
 								if ( tmpX >= minX && tmpX <= maxX && tmpY >= minY && tmpY <= maxY ) // guard against the zoom-in case
 								{
-									if ( isPixelDrawn[tmpX, tmpY] )
+									if ( isPixelDrawn[tmpX,tmpY] )
 										continue;
 									isPixelDrawn[tmpX, tmpY] = true;
 								}
 
 								// If the fill type for this symbol is a Gradient by value type,
-								// the make a brush corresponding to the appropriate current value
+								// then make a brush corresponding to the appropriate current value
 								if ( _fill.IsGradientValueType || _border._gradientFill.IsGradientValueType )
 								{
 									using ( Brush tBrush = _fill.MakeBrush( rect, points[i] ) )

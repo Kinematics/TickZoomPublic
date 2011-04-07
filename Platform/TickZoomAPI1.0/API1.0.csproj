@@ -201,6 +201,8 @@
     <Compile Include="Provider\BreakPointInterface.cs" />
     <Compile Include="Provider\FillHandler.cs" />
     <Compile Include="Provider\FIXSimulator.cs" />
+    <Compile Include="Provider\LimitOrderQuoteSimulation.cs" />
+    <Compile Include="Provider\LimitOrderTradeSimulation.cs" />
     <Compile Include="Provider\LogicalFill.cs" />
     <Compile Include="Provider\LogicalFillBinary.cs" />
     <Compile Include="Provider\LogicalFillBinaryBox.cs" />

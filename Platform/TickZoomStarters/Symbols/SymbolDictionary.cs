@@ -735,6 +735,12 @@ namespace TickZoom.Symbols
 	    <property name=""SessionStart"" value=""15:30:00"" />
 	    <property name=""SessionEnd"" value=""15:15:00"" />
               <symbol name=""ES""/>
+              <symbol name=""/ESM1"">
+                <property name=""TimeAndSales"" value=""ActualTrades"" />
+                <property name=""QuoteType"" value=""Level1"" />
+                <property name=""LimitOrderQuoteSimulation"" value=""OppositeQuoteTouch"" />
+                <property name=""LimitOrderTradeSimulation"" value=""None"" />
+              </symbol>
         </category>
         <category name=""Emini NASDAQ Symbol NQ variants"">
           <property name=""FullPointValue"" value=""20"" />

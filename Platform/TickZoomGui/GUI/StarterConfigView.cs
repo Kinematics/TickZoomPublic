@@ -1,5 +1,4 @@
 using TickZoom.Presentation;
-using TickZoom.Presentation.Framework;
 
 #region Header
 
@@ -33,12 +32,8 @@ namespace TickZoom.GUI
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel;
-    using System.Configuration;
-    using System.IO;
     using System.Linq;
     using System.Media;
-    using System.Threading;
     using System.Windows.Forms;
 
     using TickZoom.Api;
@@ -47,7 +42,7 @@ namespace TickZoom.GUI
     {
         #region Fields
 
-        bool failedAlarmSound = false;
+        private bool failedAlarmSound = false;
         private bool isEngineLoaded = false;
         private Log log;
         private List<PortfolioDoc> portfolioDocs = new List<PortfolioDoc>();

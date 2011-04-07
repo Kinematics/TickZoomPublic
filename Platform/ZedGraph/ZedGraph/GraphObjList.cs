@@ -213,7 +213,7 @@ namespace ZedGraph
 		}
 	}
 	
-	bool[,] isPixelDrawn = null;
+	private MultiDimBitArray isPixelDrawn = null;
 
 		/// <summary>
 		/// Render text to the specified <see cref="Graphics"/> device
@@ -258,12 +258,12 @@ namespace ZedGraph
 				minY = (int)graphPane.Chart.Rect.Top;
 				maxY = (int)graphPane.Chart.Rect.Bottom;
 				if ( isOptDraw ) {
-					if( isPixelDrawn == null ||
-						maxX > isPixelDrawn.GetLength(0) ||
-						maxY > isPixelDrawn.GetLength(1) ) {
-						isPixelDrawn = new bool[maxX + 1, maxY + 1]; 
-					} else {
-						Array.Clear(isPixelDrawn,0,isPixelDrawn.GetLength(0)*isPixelDrawn.GetLength(1));
+					if( isPixelDrawn == null)
+					{
+					    isPixelDrawn = new MultiDimBitArray(maxX,maxY);
+					} else
+					{
+					    isPixelDrawn.TryResize(maxX,maxY);
 					}
 				}
 			}

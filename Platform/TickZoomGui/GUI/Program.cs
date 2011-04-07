@@ -30,14 +30,8 @@ using TickZoom.Presentation;
 namespace TickZoom.GUI
 {
     using System;
-    using System.Collections.Generic;
-    using System.Configuration;
     using System.IO;
-    using System.Reflection;
     using System.Windows.Forms;
-
-    using TickZoom.Api;
-    using TickZoom.Presentation.Framework;
 
     static class Program
     {

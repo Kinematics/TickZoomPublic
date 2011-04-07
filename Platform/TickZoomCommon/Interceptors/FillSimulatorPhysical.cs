@@ -33,20 +33,6 @@ using TickZoom.Common;
 
 namespace TickZoom.Interceptors
 {
-    public enum LimitOrderTradeSimulation
-    {
-        None,
-        TradeTouch,
-        TradeThrough,
-    }
-    public enum LimitOrderQuoteSimulation
-    {
-        None,
-		SameSideQuoteTouch,
-        SameSideQuoteThrough,
-        OppositeQuoteTouch,
-        OppositeQuoteThrough,
-	}
 	public class FillSimulatorPhysical : FillSimulator
 	{
 		private static readonly Log staticLog = Factory.SysLog.GetLogger(typeof(FillSimulatorPhysical));
@@ -77,8 +63,8 @@ namespace TickZoom.Interceptors
 		private PhysicalOrderHandler confirmOrders;
 		private bool isBarData = false;
 		private bool createSimulatedFills = false;
-		private LimitOrderQuoteSimulation limitOrderQuoteSimulation = LimitOrderQuoteSimulation.OppositeQuoteTouch;
-        private LimitOrderTradeSimulation limitOrderTradeSimulation = LimitOrderTradeSimulation.TradeTouch;
+	    private LimitOrderQuoteSimulation limitOrderQuoteSimulation;
+	    private LimitOrderTradeSimulation limitOrderTradeSimulation;
         // Randomly rotate the partial fills but using a fixed
 		// seed so that test results are reproducable.
 		private Random random = new Random(1234);
@@ -87,6 +73,8 @@ namespace TickZoom.Interceptors
 		public FillSimulatorPhysical(string name, SymbolInfo symbol, bool createSimulatedFills)
 		{
 			this.symbol = symbol;
+		    limitOrderQuoteSimulation = symbol.LimitOrderQuoteSimulation;
+		    limitOrderTradeSimulation = symbol.LimitOrderTradeSimulation;
 			this.minimumTick = symbol.MinimumTick.ToLong();
 			this.tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			this.createSimulatedFills = createSimulatedFills;

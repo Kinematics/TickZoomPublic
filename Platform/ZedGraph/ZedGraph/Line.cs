@@ -631,7 +631,10 @@ namespace ZedGraph
 			return false;
 		}
 
-		/// <summary>
+        // (Dale-a-b) we'll set an element to true when it has been drawn	
+        private MultiDimBitArray curveDrawn = null;
+
+        /// <summary>
 		/// Draw the this <see cref="CurveItem"/> to the specified <see cref="Graphics"/>
 		/// device.  The format (stair-step or line) of the curve is
 		/// defined by the <see cref="StepType"/> property.  The routine
@@ -695,11 +698,16 @@ namespace ZedGraph
 
 					bool isOptDraw = _isOptimizedDraw && points.Count > 1000;
 
-					// (Dale-a-b) we'll set an element to true when it has been drawn	
-					bool[,] isPixelDrawn = null;
-					
 					if ( isOptDraw )
-						isPixelDrawn = new bool[maxX + 1, maxY + 1]; 
+					{
+                        if( curveDrawn == null)
+                        {
+                            curveDrawn = new MultiDimBitArray(maxX, maxY);
+                        } else
+                        {
+                            curveDrawn.TryResize(maxX,maxY);
+                        }
+					}
 					int minOrdinal = 0;
 					int maxOrdinal = int.MaxValue;
 					Axis baseAxis = curve.BaseAxis(pane);
@@ -774,9 +782,9 @@ namespace ZedGraph
 								    tmpY < minY || tmpY > maxY ) {
 									continue;
 								}
-								if ( isPixelDrawn[tmpX, tmpY] )
+								if ( curveDrawn[tmpX, tmpY] )
 									continue;
-								isPixelDrawn[tmpX, tmpY] = true;
+								curveDrawn[tmpX, tmpY] = true;
 							}
 
 							isOut = ( tmpX < minX && lastX < minX ) || ( tmpX > maxX && lastX > maxX ) ||
