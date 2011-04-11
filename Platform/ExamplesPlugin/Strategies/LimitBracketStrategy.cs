@@ -93,11 +93,11 @@ namespace TickZoom.Examples
             else if( Position.IsLong)
             {
                 Orders.Exit.ActiveNow.SellLimit(ask);
-                Orders.Exit.ActiveNow.SellStop(bid - spread);
+                //Orders.Exit.ActiveNow.SellStop(bid - spread);
             }
             else if( Position.IsShort)
             {
-                Orders.Exit.ActiveNow.BuyStop(ask + spread);
+                //Orders.Exit.ActiveNow.BuyStop(ask + spread);
                 Orders.Exit.ActiveNow.BuyLimit(bid);
             }
 

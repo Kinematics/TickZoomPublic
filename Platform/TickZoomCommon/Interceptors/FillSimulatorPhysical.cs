@@ -397,7 +397,7 @@ namespace TickZoom.Interceptors
 		private bool ProcessBuyStop(PhysicalOrder order, Tick tick)
 		{
 			bool retVal = false;
-			long price = tick.IsTrade ? tick.lPrice : tick.lAsk;
+		    long price = tick.IsQuote ? tick.lAsk : tick.lPrice;
 			if (price >= order.Price.ToLong()) {
 				CreatePhysicalFillHelper(order.Size, price.ToDouble(), tick.Time, tick.UtcTime, order);
 				retVal = true;
@@ -437,6 +437,13 @@ namespace TickZoom.Interceptors
                         result = true;
                     }
                     break;
+                case LimitOrderTradeSimulation.TradeThrough:
+                    if (tick.lPrice < orderPrice)
+                    {
+                        fillPrice = order.Price;
+                        result = true;
+                    }
+                    break;
                 default:
                     throw new InvalidOperationException("Unknown limit order trade simulation: " + limitOrderTradeSimulation);
             }
@@ -455,10 +462,16 @@ namespace TickZoom.Interceptors
             switch (limitOrderQuoteSimulation)
             {
                 case LimitOrderQuoteSimulation.OppositeQuoteTouch:
-                    long price = tick.IsQuote ? tick.lAsk : tick.lPrice;
                     if (tick.lAsk <= orderPrice)
                     {
                         fillPrice = tick.Ask;
+                        result = true;
+                    }
+                    break;
+                case LimitOrderQuoteSimulation.OppositeQuoteThrough:
+                    if (tick.lAsk < orderPrice)
+                    {
+                        fillPrice = order.Price;
                         result = true;
                     }
                     break;
@@ -482,6 +495,13 @@ namespace TickZoom.Interceptors
                     if (tick.lPrice >= orderPrice)
                     {
                         fillPrice = tick.Price;
+                        result = true;
+                    }
+                    break;
+                case LimitOrderTradeSimulation.TradeThrough:
+                    if (tick.lPrice > orderPrice)
+                    {
+                        fillPrice = order.Price;
                         result = true;
                     }
                     break;
@@ -509,12 +529,13 @@ namespace TickZoom.Interceptors
                         result = true;
                     }
                     break;
-                //case LimitOrderQuoteSimulation.SameSideQuoteTouch:
-                //    ProcessSellLimitMM(order, tick);
-                //    break;
-                //case LimitOrderQuoteSimulation.OppositeQuoteThrough:
-                //    ProcessSellLimitQuoteThrough(order, tick);
-                //    break;
+                case LimitOrderQuoteSimulation.OppositeQuoteThrough:
+                    if (tick.lBid > orderPrice)
+                    {
+                        fillPrice = order.Price;
+                        result = true;
+                    }
+                    break;
                 default:
                     throw new InvalidOperationException("Unknown limit order quote simulation: " + limitOrderQuoteSimulation);
             }
