@@ -421,7 +421,7 @@ namespace TickZoom.MBTFIX
 							SendFill( packetFIX);
 						}
 						order = RemoveOrder( packetFIX.ClientOrderId);
-						if( IsRecovered) {
+						if( order != null && IsRecovered) {
 							var algorithm = GetAlgorithm( order.Symbol.BinaryIdentifier);
 							algorithm.PerformCompare();
 						}
@@ -505,13 +505,26 @@ namespace TickZoom.MBTFIX
 			switch( orderStatus) {
 				case "8": // Rejected
 					var rejectReason = false;
-					rejectReason = packetFIX.Text.Contains("No such order") ? true : rejectReason;
-					rejectReason = packetFIX.Text.Contains("Cancel request already pending") ? true : rejectReason;
-					rejectReason = packetFIX.Text.Contains("ORDER in pending state") ? true : rejectReason;
-					RemoveOrder( packetFIX.ClientOrderId);
-					if( packetFIX.Text.Contains("No such order")) {
-						RemoveOrder( packetFIX.OriginalClientOrderId);
-					}
+                    switch( packetFIX.Text)
+                    {
+                        case "No such order":
+                            rejectReason = true;
+                            RemoveOrder( packetFIX.ClientOrderId);
+    						RemoveOrder( packetFIX.OriginalClientOrderId);
+                            break;
+                        case "Order pending remote":
+                        case "Cancel request already pending":
+                        case "ORDER in pending state":
+                        case "General Order Replace Error":
+                            rejectReason = true;
+                            ResetFromPending(packetFIX.OriginalClientOrderId);
+                            RemoveOrder(packetFIX.ClientOrderId);
+                            break;
+                        default:
+                            ResetFromPending(packetFIX.OriginalClientOrderId);
+                            RemoveOrder(packetFIX.ClientOrderId);
+                            break;
+                    }
 					if( !rejectReason && IsRecovered) {
 						var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
 						var ignore = "The cancel reject error message '" + packetFIX.Text + "' was unrecognized. So it is being ignored. ";
@@ -727,8 +740,29 @@ namespace TickZoom.MBTFIX
 			}
 			return logicalOrderId;
 		}
-		
-		public PhysicalOrder UpdateOrder( MessageFIX4_4 packetFIX, OrderState orderState, object note) {
+
+        public void ResetFromPending(string clientOrderId)
+        {
+            PhysicalOrder oldOrder = null;
+            try
+            {
+                oldOrder = GetOrderById(clientOrderId);
+                if( oldOrder.OrderState == OrderState.Pending)
+                {
+                    oldOrder.OrderState = OrderState.Active;
+                }
+            }
+            catch (ApplicationException)
+            {
+                if (!IsRecovery)
+                {
+                    log.Warn("Order ID# " + clientOrderId + " was not found for update or replace.");
+                }
+            }
+        }
+
+        public PhysicalOrder UpdateOrder(MessageFIX4_4 packetFIX, OrderState orderState, object note)
+        {
 			var clientOrderId = packetFIX.ClientOrderId;
 			if( !string.IsNullOrEmpty(packetFIX.OriginalClientOrderId)) {
 			   	clientOrderId = packetFIX.OriginalClientOrderId;
