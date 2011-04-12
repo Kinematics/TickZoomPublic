@@ -1103,8 +1103,8 @@ namespace TickZoom
 		   }
 		   
 		   //Create the signals
-		   for( int i = 0; i < lineList.Count; i++) {
-	   			   ModelInterface indicator = indicators[i];
+		   for( int i = 0; i < lineList.Count && i < indicators.Count; i++) {
+	   		   ModelInterface indicator = indicators[i];
 		   	   PointPairList pplist = lineList[i];
 		   	   if( !indicator.Drawing.AlreadyDrawn) {
 				   switch( indicator.Drawing.PaneType ) {

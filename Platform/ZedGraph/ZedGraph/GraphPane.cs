@@ -2353,21 +2353,12 @@ namespace ZedGraph
 		{
 			index = -1;
 
-			// First look for graph objects that lie in front of the data points
-			foreach ( GraphObj graphObj in _graphObjList )
-			{
-				link = graphObj._link;
-				bool inFront = graphObj.IsInFrontOfData;
-
-				if ( link.IsActive )
-				{
-					if ( graphObj.PointInBox( mousePt, this, g, scaleFactor ) )
-					{
-						source = graphObj;
-						return true;
-					}
-				}
-			}
+		    int temp;
+		    if( _graphObjList.FindLinkableObject(out source, out link, out temp,
+		                                     (p) => p.PointInBox(mousePt, this, g, scaleFactor)))
+		    {
+		        return true;
+		    }
 
 			// Second, look at the curve data points
 			foreach ( CurveItem curve in _curveList )
@@ -2386,21 +2377,11 @@ namespace ZedGraph
 				}
 			}
 
-			// Third, look for graph objects that lie behind the data points
-			foreach ( GraphObj graphObj in _graphObjList )
-			{
-				link = graphObj._link;
-				bool inFront = graphObj.IsInFrontOfData;
-
-				if ( link.IsActive )
-				{
-					if ( graphObj.PointInBox( mousePt, this, g, scaleFactor ) )
-					{
-						source = graphObj;
-						return true;
-					}
-				}
-			}
+            if (_graphObjList.FindLinkableObject(out source, out link, out temp,
+                                             (p) => !p.IsInFrontOfData && p.PointInBox(mousePt, this, g, scaleFactor)))
+            {
+                return true;
+            }
 
 			source = null;
 			link = null;

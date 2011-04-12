@@ -16,17 +16,13 @@ namespace TickZoom.Examples
         double ask;
         double bid;
 
-        public LimitBracketStrategy()
-        {
-        }
-
         public override void OnInitialize()
         {
             Performance.Equity.GraphEquity = true;
 
             minimumTick = Data.SymbolInfo.MinimumTick;
             lotSize = 1000;
-            spread = 15 * minimumTick;
+            ResetSpread();
 
             bidLine = Formula.Indicator();
             bidLine.Drawing.IsVisible = true;
@@ -39,10 +35,17 @@ namespace TickZoom.Examples
             position.Drawing.IsVisible = true;
         }
 
+        private void ResetSpread()
+        {
+            spread = 5 * minimumTick;
+        }
+
         private double askPrice;
         private double bidPrice;
+        private double midPoint;
         private double lastBidPrice;
         private double lastAskPrice;
+        private double entryPrice;
 
         public void SetPrices(Tick tick)
         {
@@ -59,6 +62,7 @@ namespace TickZoom.Examples
             {
                 throw new InvalidOperationException("Tick must have either trade or quote data.");
             }
+            midPoint = (askPrice + bidPrice)/2;
         }
 
         private void ResetBidAsk()
@@ -69,17 +73,41 @@ namespace TickZoom.Examples
 
         private void ResetBid()
         {
-            bid = askPrice - spread;
+            bid = midPoint - spread;
         }
 
         private void ResetAsk()
         {
-            ask = bidPrice + spread;
+            ask = midPoint + spread;
         }
 
         public override bool OnProcessTick(Tick tick)
         {
             SetPrices(tick);
+            if (Position.IsFlat)
+            {
+                OnProcessFlat();
+            }
+            else if( Position.IsLong)
+            {
+                OnProcessLong();
+            }
+            else if( Position.IsShort)
+            {
+                OnProcessShort();
+            }
+
+            if( bidLine.Count > 0 )
+            {
+                bidLine[0] = bid;
+                askLine[0] = ask;
+                position[0] = Position.Current;
+            }
+            return true;
+        }
+
+        private void OnProcessFlat()
+        {
             if (isFirstTick)
             {
                 isFirstTick = false;
@@ -99,34 +127,44 @@ namespace TickZoom.Examples
                 lastBidPrice = bidPrice;
                 ResetAsk();
             }
+            Orders.Enter.ActiveNow.SellLimit(ask, lotSize);
+            Orders.Enter.ActiveNow.BuyLimit(bid, lotSize);
+        }
 
-            if (Position.IsFlat)
+        private void OnProcessLong()
+        {
+            //if( askPrice < entryPrice)
+            //{
+            //    TighterSpread();
+            //}
+            if (bidPrice < lastBidPrice)
             {
-                Orders.Enter.ActiveNow.SellLimit(ask, lotSize);
-                Orders.Enter.ActiveNow.BuyLimit(bid, lotSize);
+                lastBidPrice = bidPrice;
+                ResetBidAsk();
             }
-            else if( Position.IsLong)
-            {
-                Orders.Reverse.ActiveNow.SellLimit(ask, lotSize);
-            }
-            else if( Position.IsShort)
-            {
-                Orders.Reverse.ActiveNow.BuyLimit(bid, lotSize);
-            }
+            Orders.Reverse.ActiveNow.SellLimit(ask, lotSize);
+        }
 
-            if( bidLine.Count > 0 )
+        private void OnProcessShort()
+        {
+            //if (bidPrice > entryPrice)
+            //{
+            //    TighterSpread();
+            //}
+            if (askPrice > lastAskPrice)
             {
-                bidLine[0] = bid;
-                askLine[0] = ask;
-                position[0] = Position.Current;
+                lastAskPrice = askPrice;
+                ResetBidAsk();
             }
-            return true;
+            Orders.Reverse.ActiveNow.BuyLimit(bid, lotSize);
         }
 
         public override void OnEnterTrade()
         {
+            entryPrice = Performance.ComboTrades[Performance.ComboTrades.Current].EntryPrice;
             SetPrices(Ticks[0]);
             ResetBidAsk();
+            ResetSpread();
             lastAskPrice = askPrice;
             lastBidPrice = bidPrice;
         }
@@ -138,12 +176,10 @@ namespace TickZoom.Examples
             lastAskPrice = askPrice;
             lastBidPrice = bidPrice;
         }
+
         public override void OnExitTrade()
         {
-            SetPrices(Ticks[0]);
-            ResetBidAsk();
-            lastAskPrice = askPrice;
-            lastBidPrice = bidPrice;
         }
+
     }
 }
