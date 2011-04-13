@@ -1,3 +1,4 @@
+using System.Threading;
 using TickZoom.Presentation;
 
 #region Header
@@ -307,6 +308,12 @@ namespace TickZoom.GUI
             stopMessages = true;
             CloseCharts();
             vm.Stop();
+            var end = Factory.Parallel.TickCount + 10000;
+            while (vm.IsBusy && Factory.Parallel.TickCount < end)
+            {
+                Application.DoEvents();
+                Thread.Sleep(1);
+            }
         }
 
         void TestTheAlarmClick(object sender, EventArgs e)

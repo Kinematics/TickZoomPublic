@@ -86,7 +86,7 @@ namespace TickZoom.MBTFIX
 	            isDisposed = true;   
 	            if (disposing) {
 	            	if( fixProvider != null) {
-	            		fixProvider.Dispose();
+	            		fixProvider.LogOut();
 	            	}
 	            	if( quotesProvider != null) {
 		            	quotesProvider.Dispose();

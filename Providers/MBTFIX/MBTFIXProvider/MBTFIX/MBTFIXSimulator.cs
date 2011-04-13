@@ -94,7 +94,11 @@ namespace TickZoom.MBTFIX
 				case "0":
 					if( debug) log.Debug("Received heartbeat response.");
 					break;
-				default: 
+                case "5":
+                    log.Info("Received logout message.");
+                    Dispose();
+                    break;
+                default: 
 					throw new ApplicationException("Unknown FIX message type '" + packetFIX.MessageType + "'\n" + packetFIX);
 			}			
 		}

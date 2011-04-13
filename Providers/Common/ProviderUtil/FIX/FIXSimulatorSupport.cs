@@ -298,7 +298,7 @@ namespace TickZoom.FIX
                     try
                     {
                         var packetFIX = (MessageFIXT1_1)_fixReadMessage;
-                        if (fixFactory != null && random.Next(10) == 1)
+                        if (fixFactory != null && packetFIX.MessageType != "5" && random.Next(10) == 1)
                         {
                             // Ignore this message. Pretend we never received it.
                             // This will test the message recovery.

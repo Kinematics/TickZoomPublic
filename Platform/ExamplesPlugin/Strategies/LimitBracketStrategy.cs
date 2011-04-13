@@ -99,8 +99,6 @@ namespace TickZoom.Examples
 
             if( bidLine.Count > 0 )
             {
-                bidLine[0] = bid;
-                askLine[0] = ask;
                 position[0] = Position.Current;
             }
             return true;
@@ -133,30 +131,49 @@ namespace TickZoom.Examples
 
         private void OnProcessLong()
         {
-            //if( askPrice < entryPrice)
+            //if (ask < entryPrice)
             //{
-            //    TighterSpread();
+            //    if (bidPrice < ask)
+            //    {
+            //        ask = bidPrice;
+            //    }
+            //} else
+            //{
+                if (bidPrice < lastBidPrice)
+                {
+                    lastBidPrice = bidPrice;
+                    ResetBidAsk();
+                }
             //}
-            if (bidPrice < lastBidPrice)
-            {
-                lastBidPrice = bidPrice;
-                ResetBidAsk();
-            }
             Orders.Reverse.ActiveNow.SellLimit(ask, lotSize);
+            if( bidLine.Count > 0 )
+            {
+                bidLine[0] = double.NaN;
+                askLine[0] = ask;
+            }
         }
 
         private void OnProcessShort()
         {
-            //if (bidPrice > entryPrice)
+            //if( bid > entryPrice)
             //{
-            //    TighterSpread();
+            //    if( askPrice > bid)
+            //    {
+            //        bid = askPrice;
+            //    }
+            //} else {
+                if (askPrice > lastAskPrice)
+                {
+                    lastAskPrice = askPrice;
+                    ResetBidAsk();
+                }
             //}
-            if (askPrice > lastAskPrice)
-            {
-                lastAskPrice = askPrice;
-                ResetBidAsk();
-            }
             Orders.Reverse.ActiveNow.BuyLimit(bid, lotSize);
+            if (bidLine.Count > 0)
+            {
+                bidLine[0] = bid;
+                askLine[0] = double.NaN;
+            }
         }
 
         public override void OnEnterTrade()

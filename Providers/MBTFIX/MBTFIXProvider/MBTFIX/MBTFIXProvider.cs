@@ -71,9 +71,12 @@ namespace TickZoom.MBTFIX
 		}
 		
 		public override void OnDisconnect() {
-			log.Error( " FIX connection lost -- Sending EndBroker event.");
-			SendEndBroker();
-		}
+            if( ConnectionStatus == Status.Recovered)
+            {
+                log.Error("Logging out -- Sending EndBroker event.");
+                SendEndBroker();
+            }
+        }
 
 		public override void OnRetry() {
 		}
@@ -82,7 +85,7 @@ namespace TickZoom.MBTFIX
 			lock( symbolsRequestedLocker) {
 				foreach( var kvp in symbolsRequested) {
 					SymbolInfo symbol = kvp.Value;
-					long end = Factory.Parallel.TickCount + 2000;
+					long end = Factory.Parallel.TickCount + 5000;
 					while( !receiver.OnEvent(symbol,(int)EventType.StartBroker,symbol)) {
 						if( isDisposed) return;
 						if( Factory.Parallel.TickCount > end) {
@@ -109,58 +112,52 @@ namespace TickZoom.MBTFIX
 				}
 			}
 		}
-		
-		public override Yield OnLogin() {
-			if( debug) log.Debug("Login()");
-			
-			if( lastLoginTry + loginRetryTime > Factory.Parallel.TickCount) {
-				return Yield.NoWork.Repeat;
-			}
-			
-			lastLoginTry = Factory.Parallel.TickCount;
 
-			FixFactory = new FIXFactory4_4(1,UserName,fixDestination);
-			var mbtMsg = FixFactory.Create();
-			mbtMsg.SetEncryption(0);
-			mbtMsg.SetHeartBeatInterval(30);
-			mbtMsg.ResetSequence();
-			mbtMsg.SetEncoding("554_H1");
-			mbtMsg.SetPassword(Password);
-			mbtMsg.AddHeader("A");
-			if( debug) {
-				log.Debug("Login message: \n" + mbtMsg);
-			}
-			SendMessage( mbtMsg);
-			
-			var end = Factory.Parallel.TickCount + 15 * 1000;
-			Message message;
-			while( !Socket.TryGetMessage(out message)) {
-				if( IsInterrupted) return Yield.NoWork.Repeat;
-				Factory.Parallel.Yield();
-				if( Factory.Parallel.TickCount > end) {
-					WriteFailedLoginFile(mbtMsg.ToString());
-                    RegenerateSocket();
-                    return Yield.DidWork.Repeat;
-                }
-			}
+        private void SendLogin()
+        {
+            lastLoginTry = Factory.Parallel.TickCount;
 
-			if( debug) log.Debug("Received FIX message: " + message);
-			if( !VerifyLogin(message)) {
-				RegenerateSocket();
-				return Yield.DidWork.Repeat;
-			}
-		    Socket.MessageFactory.Release(message);
-			StartRecovery();
-			
-            return Yield.DidWork.Repeat;
+            FixFactory = new FIXFactory4_4(1, UserName, fixDestination);
+            var mbtMsg = FixFactory.Create();
+            mbtMsg.SetEncryption(0);
+            mbtMsg.SetHeartBeatInterval(30);
+            mbtMsg.ResetSequence();
+            mbtMsg.SetEncoding("554_H1");
+            mbtMsg.SetPassword(Password);
+            mbtMsg.AddHeader("A");
+            if (debug)
+            {
+                log.Debug("Login message: \n" + mbtMsg);
+            }
+            SendMessage(mbtMsg);
         }
 		
-		private void Logout() {
-			var mbtMsg = FixFactory.Create();
-			log.Info("Logout message = " + mbtMsg);
-			mbtMsg.AddHeader("5");
-			SendMessage(mbtMsg);
-		}
+
+		public override bool OnLogin() {
+			if( debug) log.Debug("Login()");
+
+            SendLogin();
+
+		    string errorMessage;
+            if( !LookForLoginAck(out errorMessage))
+            {
+                return false;
+            }
+			
+			StartRecovery();
+			
+            return true;
+        }
+
+        public override void OnLogout()
+        {
+            var mbtMsg = FixFactory.Create();
+            mbtMsg.AddHeader("5");
+            SendMessage(mbtMsg);
+            log.Info("Logout message sent: " + mbtMsg);
+            log.Info("Logging out -- Sending EndBroker event.");
+            SendEndBroker();
+        }
 		
 		protected override void OnStartRecovery()
 		{
@@ -213,7 +210,11 @@ namespace TickZoom.MBTFIX
 		}
 
 		private void RequestOrders() {
-			var fixMsg = (FIXMessage4_4) FixFactory.Create();
+            lock (openOrdersLocker)
+            {
+                openOrders.Clear();
+            }
+            var fixMsg = (FIXMessage4_4)FixFactory.Create();
 			fixMsg.SetAccount(AccountNumber);
 			fixMsg.SetMassStatusRequestID(TimeStamp.UtcNow);
 			fixMsg.SetMassStatusRequestType(90);
@@ -226,8 +227,45 @@ namespace TickZoom.MBTFIX
 			fixMsg.AddHeader("0");
 			SendMessage( fixMsg);
 		}
-		
-		private unsafe bool VerifyLogin(Message message)
+
+        private unsafe bool LookForLoginAck(out string errorMessage)
+        {
+            var timeout = 30;
+            var end = Factory.Parallel.TickCount + timeout * 1000;
+            Message message;
+            while (!Socket.TryGetMessage(out message))
+            {
+                if (IsInterrupted)
+                {
+                    errorMessage = "Wait on socket interrupting. Shutting down.";
+                    return false;
+                }
+                Factory.Parallel.Yield();
+                if (Factory.Parallel.TickCount > end)
+                {
+                    errorMessage = "Timeout of " + timeout + " seconds while waiting for login acknowledgment.";
+                    return false;
+                }
+            }
+
+            if (debug) log.Debug("Received FIX message: " + message);
+            try
+            {
+                if (VerifyLoginAck(message, out errorMessage))
+                {
+                    return true;
+                } else
+                {
+                    return false;
+                }
+            } finally
+            {
+                Socket.MessageFactory.Release(message);
+            }
+            return false;
+        }
+
+        private unsafe bool VerifyLoginAck(Message message, out string errorMessage)
 		{
 		    var result = false;
 		    MessageFIX4_4 packetFIX = (MessageFIX4_4) message;
@@ -238,24 +276,29 @@ namespace TickZoom.MBTFIX
 		        "0" == packetFIX.Encryption &&
 		        30 == packetFIX.HeartBeatInterval)
 		    {
+		        errorMessage = null;
                 return 1 == packetFIX.Sequence;
             }
-		    if ("1" == packetFIX.MessageType)
-		    {
-		        return true;
-		    }
-		    StringBuilder textMessage = new StringBuilder();
-		    textMessage.AppendLine("Invalid login response:");
-		    textMessage.AppendLine("  message type = " + packetFIX.MessageType);
-		    textMessage.AppendLine("  version = " + packetFIX.Version);
-		    textMessage.AppendLine("  sender = " + packetFIX.Sender);
-		    textMessage.AppendLine("  target = " + packetFIX.Target);
-		    textMessage.AppendLine("  encryption = " + packetFIX.Encryption);
+            //if ("1" == packetFIX.MessageType)
+            //{
+            //    return true;
+            //}
+            //if ("0" == packetFIX.MessageType)
+            //{
+            //    return true;
+            //}
+            var textMessage = new StringBuilder();
+            textMessage.AppendLine("Invalid login response:");
+            textMessage.AppendLine("  message type = " + packetFIX.MessageType);
+            textMessage.AppendLine("  version = " + packetFIX.Version);
+            textMessage.AppendLine("  sender = " + packetFIX.Sender);
+            textMessage.AppendLine("  target = " + packetFIX.Target);
+            textMessage.AppendLine("  encryption = " + packetFIX.Encryption);
             textMessage.AppendLine("  sequence = " + packetFIX.Sequence);
             textMessage.AppendLine("  heartbeat interval = " + packetFIX.HeartBeatInterval);
-		    textMessage.AppendLine(packetFIX.ToString());
-		    log.Warn(textMessage + " -- retrying.");
-		    return false;
+            textMessage.AppendLine(packetFIX.ToString());
+            errorMessage = textMessage.ToString();
+            return false;
 		}
 		
 		protected override void ReceiveMessage(Message message) {
@@ -1088,5 +1131,6 @@ namespace TickZoom.MBTFIX
 			if( debug) log.Debug( "OnChangeBrokerOrder( " + physicalOrder + ")");
 			OnCreateOrChangeBrokerOrder( physicalOrder, origBrokerOrder, true);
 		}
+
 	}
 }

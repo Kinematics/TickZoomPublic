@@ -61,8 +61,9 @@ namespace TickZoom.FIX
 		private	string accountNumber;
 		public abstract void OnDisconnect();
 		public abstract void OnRetry();
-		public abstract Yield OnLogin();
-		private string providerName;
+		public abstract bool OnLogin();
+        public abstract void OnLogout();
+        private string providerName;
 		private long heartbeatTimeout;
 		private int heartbeatDelay = 35;
 		private bool logRecovery = true;
@@ -121,7 +122,8 @@ namespace TickZoom.FIX
 				log.Trace(message);
 			}
 		}
-		
+
+	    private bool isInitialized = false;
 		protected void Initialize() {
         	try { 
 				if( debug) log.Debug("> Initialize.");
@@ -134,10 +136,10 @@ namespace TickZoom.FIX
                 if (File.Exists(failedFile))
                 {
                     log.Error("Please correct the username or password error described in " + failedFile + ". Then delete the file before retrying, please.");
+                    return;
                 }
 				
 				LoadProperties(configFile);
-				
         	} catch( Exception ex) {
         		log.Error(ex.Message,ex);
         		throw;
@@ -156,7 +158,8 @@ namespace TickZoom.FIX
         			RegenerateSocket();
         		}
         	}
-		}
+            isInitialized = true;
+        }
 		
 		public enum Status {
 			New,
@@ -164,8 +167,9 @@ namespace TickZoom.FIX
 			PendingLogin,
 			PendingRecovery,
 			Recovered,
-			Disconnected,
-			PendingRetry
+            Disconnected,
+			PendingRetry,
+		    PendingLogOut
 		}
 		
 		public void WriteFailedLoginFile(string packetString) {
@@ -190,7 +194,10 @@ namespace TickZoom.FIX
 				return;
 			}
 			log.Info("OnDisconnect( " + socket + " ) ");
-			connectionStatus = Status.Disconnected;
+            if( connectionStatus != Status.PendingLogOut)
+            {
+                connectionStatus = Status.Disconnected;
+            }
 		}
 	
 		public bool IsInterrupted {
@@ -258,6 +265,7 @@ namespace TickZoom.FIX
 				case SocketState.Connected:
 					if( connectionStatus == Status.New) {
 						connectionStatus = Status.Connected;
+                        if( debug) log.Debug("Connected with socket: " + socket);
 						if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
 					}
 					switch( connectionStatus) {
@@ -265,8 +273,12 @@ namespace TickZoom.FIX
 							connectionStatus = Status.PendingLogin;
 							if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
 							IncreaseRetryTimeout();
-							var result = OnLogin();
-							return result;
+                            if( !OnLogin())
+                            {
+                                RegenerateSocket();
+            	            	nextConnectTime = Factory.Parallel.TickCount + 30000;
+                            }
+							return Yield.DidWork.Repeat;
 						case Status.PendingRecovery:
 						case Status.Recovered:
 							if( retryDelay != retryStart) {
@@ -295,13 +307,15 @@ namespace TickZoom.FIX
 							} else {
 								return Yield.NoWork.Repeat;
 							}
+                        case Status.PendingLogOut:
 						case Status.PendingLogin:
-						default:
 							return Yield.NoWork.Repeat;
-					}
+                        default:
+                            throw new InvalidOperationException("Unknown connection status: " + connectionStatus);
+                    }
 				case SocketState.Disconnected:
 					switch( connectionStatus) {
-						case Status.Disconnected:
+                        case Status.Disconnected:
 							OnDisconnect();
 							retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
 							connectionStatus = Status.PendingRetry;
@@ -319,10 +333,16 @@ namespace TickZoom.FIX
 							} else {
 								return Yield.NoWork.Repeat;
 							}
-						default:
-							return Yield.NoWork.Repeat;
+					        break;
+                        case Status.PendingLogOut:
+                            Dispose();
+                            return Yield.NoWork.Repeat;
+                        default:
+                            throw new InvalidOperationException("Unknown connection status: " + connectionStatus);
 					}
-				default:
+                case SocketState.Closing:
+                    return Yield.NoWork.Repeat;
+                default:
 					string textMessage = "Unknown socket state: " + socket.State;
 					log.Error( textMessage);
 					throw new ApplicationException(textMessage);
@@ -592,6 +612,7 @@ namespace TickZoom.FIX
 				log.Debug("Send FIX message: \n" + view);
 			}
 	        var packet = Socket.MessageFactory.Create();
+	        packet.SendUtcTime = TimeStamp.UtcNow.Internal;
 			packet.DataOut.Write(fixString.ToCharArray());
 			var end = Factory.Parallel.TickCount + (long)heartbeatDelay * 1000L;
 			while( !Socket.TrySendMessage(packet)) {
@@ -602,8 +623,25 @@ namespace TickZoom.FIX
 				Factory.Parallel.Yield();
 			}
 	    }
-			
-		public Socket Socket {
+
+        public void LogOut()
+        {
+            if( connectionStatus == Status.Recovered)
+            {
+                OnLogout();
+                connectionStatus = Status.PendingLogOut;
+                while( socket != null && socket.State == SocketState.Connected)
+                {
+                    Factory.Parallel.Yield();
+                }
+            } else
+            {
+                Dispose();
+            }
+        }
+
+        public Socket Socket
+        {
 			get { return socket; }
 		}
 		
@@ -680,5 +718,6 @@ namespace TickZoom.FIX
 			get { return fixFactory; }
 			set { fixFactory = value; }
 		}
+
 	}
 }
