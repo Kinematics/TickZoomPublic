@@ -108,6 +108,7 @@
     <Compile Include="Strategies\LimitBracketStrategy.cs" />
     <Compile Include="Strategies\LimitChangeStrategy.cs" />
     <Compile Include="Strategies\LimitReversalStrategy.cs" />
+    <Compile Include="Strategies\SimpleStrategy.cs" />
     <Compile Include="Strategies\TestCancelReplaceStrategy.cs" />
     <Compile Include="Strategies\TestStopStrategy.cs" />
     <Compile Include="Strategies\Unsupported\BreakoutTrend.cs" />

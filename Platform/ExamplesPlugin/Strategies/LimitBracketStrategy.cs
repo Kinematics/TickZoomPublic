@@ -131,20 +131,11 @@ namespace TickZoom.Examples
 
         private void OnProcessLong()
         {
-            //if (ask < entryPrice)
-            //{
-            //    if (bidPrice < ask)
-            //    {
-            //        ask = bidPrice;
-            //    }
-            //} else
-            //{
-                if (bidPrice < lastBidPrice)
-                {
-                    lastBidPrice = bidPrice;
-                    ResetBidAsk();
-                }
-            //}
+            if (bidPrice < lastBidPrice)
+            {
+                lastBidPrice = bidPrice;
+                ResetBidAsk();
+            }
             Orders.Reverse.ActiveNow.SellLimit(ask, lotSize);
             if( bidLine.Count > 0 )
             {
@@ -155,19 +146,11 @@ namespace TickZoom.Examples
 
         private void OnProcessShort()
         {
-            //if( bid > entryPrice)
-            //{
-            //    if( askPrice > bid)
-            //    {
-            //        bid = askPrice;
-            //    }
-            //} else {
-                if (askPrice > lastAskPrice)
-                {
-                    lastAskPrice = askPrice;
-                    ResetBidAsk();
-                }
-            //}
+            if (askPrice > lastAskPrice)
+            {
+                lastAskPrice = askPrice;
+                ResetBidAsk();
+            }
             Orders.Reverse.ActiveNow.BuyLimit(bid, lotSize);
             if (bidLine.Count > 0)
             {

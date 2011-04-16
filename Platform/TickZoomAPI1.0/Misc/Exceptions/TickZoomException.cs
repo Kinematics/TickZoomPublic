@@ -27,6 +27,7 @@
 using System;
 using System.Diagnostics;
 using System.Reflection;
+using System.Text;
 
 namespace TickZoom.Api
 {
@@ -45,10 +46,19 @@ namespace TickZoom.Api
 				frame++;
 				sf = new StackFrame(frame,true);
 			} while( sf.GetMethod().DeclaringType.Namespace == "TickZoom.Interceptors");
-			
-			StackTrace st = new StackTrace(sf);
-			stackTrace = st.ToString();
-			this.message = message + " " + stackTrace;
+
+		    var sb = new StringBuilder();
+		    var extra = 0;
+		    do
+		    {
+		        var st = new StackTrace(sf);
+		        sb.Append(st.ToString());
+		        frame++;
+		        extra++;
+		        sf = new StackFrame(frame, true);
+		    } while (extra < 5);
+		    stackTrace = sb.ToString();
+			this.message = message;
 		}
 		
 	    // Constructor needed for serialization 

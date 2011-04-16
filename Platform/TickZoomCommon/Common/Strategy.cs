@@ -316,23 +316,25 @@ namespace TickZoom.Common
 		public bool IsTrace {
 			get { return instanceTrace; }
 		}
-		
-		public virtual void OnEnterTrade(LogicalFill fill, LogicalOrder filledOrder) {
+
+        public virtual void OnEnterTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
+        {
 			OnEnterTrade();
 		}
 		
 		public virtual void OnEnterTrade() {
 			
 		}
-		
-		public virtual void OnChangeTrade(LogicalFill fill, LogicalOrder filledOrder) {
+
+        public virtual void OnChangeTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
+        {
 			OnChangeTrade();
 		}
 		
 		public virtual void OnChangeTrade() {
 		}		
 		
-		public virtual void OnExitTrade(LogicalFill fill, LogicalOrder filledOrder) {
+		public virtual void OnExitTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder) {
 			OnExitTrade();
 		}
 		
