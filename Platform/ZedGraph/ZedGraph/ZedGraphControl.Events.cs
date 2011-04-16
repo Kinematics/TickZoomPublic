@@ -774,12 +774,12 @@ namespace ZedGraph
 					{
 						GraphObj graphObj = (GraphObj)nearestObj;
 
-						if ( graphObj.Tag is string ) {
-							this.pointToolTip.SetToolTip( this, (string)graphObj.Tag );
-							this.pointToolTip.Active = true;
+						if ( graphObj.Tag == null) {
+                            this.pointToolTip.Active = false;
 						} else {
-							this.pointToolTip.Active = false;
-						}
+                            this.pointToolTip.SetToolTip(this, graphObj.Tag.ToString());
+                            this.pointToolTip.Active = true;
+                        }
 
 					}
 					else

@@ -16,7 +16,7 @@ namespace TickZoom.Examples
         int lotSize;
         double ask;
         double bid;
-        int[] fibonacci = new int[19] { 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 };
+        int[] factors = new int[] { 0, 0, 0, 0, 0, 1, 2, 3, 5, 10, 15, 20, 40, 60, 100, 150, 200};
 
         public override void OnInitialize()
         {
@@ -37,18 +37,20 @@ namespace TickZoom.Examples
             position.Drawing.IsVisible = true;
         }
 
-        private void ResetBid(Tick tick, int increaseFactor, int decreaseFactor)
+        private void ResetBid(double tradePrice, Tick tick, int increasePositions, int decreasePositions)
         {
-            bid = tick.Bid - (spread*increaseFactor)/2 + minimumTick*decreaseFactor;
+            bid = tick.Bid - (spread)/2 - factors[increasePositions] * 10 * minimumTick + decreasePositions * minimumTick;
+            bid = Math.Min(bid, tick.Bid);
             if (bidLine.Count > 0)
             {
                 bidLine[0] = bid;
             }
         }
 
-        private void ResetAsk(Tick tick, int increaseFactor, int decreaseFactor)
+        private void ResetAsk(double tradePrice, Tick tick, int increasePositions, int decreasePositions)
         {
-            ask = tick.Ask + (spread*increaseFactor)/2 - minimumTick*decreaseFactor;
+            ask = tick.Ask + (spread) / 2 + factors[increasePositions] * 10 * minimumTick - decreasePositions * minimumTick;
+            ask = Math.Max(ask, tick.Ask);
             if (askLine.Count > 0)
             {
                 askLine[0] = ask;
@@ -86,8 +88,9 @@ namespace TickZoom.Examples
             if (isFirstTick)
             {
                 isFirstTick = false;
-                ResetBid(tick,1,0);
-                ResetAsk(tick,1,0);
+                var midPoint = (tick.Bid+tick.Ask)/2;
+                ResetBid(midPoint, tick, 0, 0);
+                ResetAsk(midPoint, tick, 0, 0);
             }
             Orders.Enter.ActiveNow.SellLimit(ask, lotSize);
             Orders.Enter.ActiveNow.BuyLimit(bid, lotSize);
@@ -95,11 +98,29 @@ namespace TickZoom.Examples
 
         private void OnProcessLong(Tick tick)
         {
+            //var positions = Position.Size/lotSize;
+            //if( positions >= 10)
+            //{
+            //    Orders.Reverse.ActiveNow.CancelOrders();
+            //    Orders.Change.ActiveNow.CancelOrders();
+            //    Orders.Enter.ActiveNow.CancelOrders();
+            //    Orders.Exit.ActiveNow.CancelOrders();
+            //    Orders.Exit.ActiveNow.GoFlat();
+            //}
             SetUpSpread(tick);
         }
 
         private void OnProcessShort(Tick tick)
         {
+            //var positions = Position.Size / lotSize;
+            //if (positions >= 10)
+            //{
+            //    Orders.Reverse.ActiveNow.CancelOrders();
+            //    Orders.Change.ActiveNow.CancelOrders();
+            //    Orders.Enter.ActiveNow.CancelOrders();
+            //    Orders.Exit.ActiveNow.CancelOrders();
+            //    Orders.Exit.ActiveNow.GoFlat();
+            //}
             SetUpSpread(tick);
         }
 
@@ -140,33 +161,39 @@ namespace TickZoom.Examples
             Log.Notice("Total volume was " + totalVolume + ". With commission paid of " + ((totalVolume / 1000) * 0.02D));
         }
 
-        public override void OnEnterTrade()
+        public override void OnEnterTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
         {
             var tick = Ticks[0];
-            ResetBid(tick,1,1);
-            ResetAsk(tick,1,1);
+            ResetBid(fill.Price, tick, 0, 0);
+            ResetAsk(fill.Price, tick, 0, 0);
         }
 
         public override void  OnChangeTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
         {
             var tick = Ticks[0];
             var positions = Math.Abs(comboTrade.CurrentPosition)/lotSize;
-            if( comboTrade.CurrentPosition > 0)
-            {
-                ResetBid(tick, fibonacci[positions], 0);
-                ResetAsk(tick, 1, fibonacci[positions]);
-            } else {
-                ResetBid(tick, 1, fibonacci[positions]);
-                ResetAsk(tick, fibonacci[positions], 0);
-            }
+            var lots = Math.Abs(comboTrade.CurrentPosition) / lotSize;
+//            if( fill.Position == filledOrder.Position)
+//            {
+                if (comboTrade.CurrentPosition > 0)
+                {
+                    ResetAsk(fill.Price, tick, 0, lots);
+                    ResetBid(fill.Price, tick, lots, 0);
+                }
+                else
+                {
+                    ResetAsk(fill.Price, tick, lots, 0);
+                    ResetBid(fill.Price, tick, 0, lots);
+                }
+//            }
         }
 
         private long totalVolume = 0;
         public override void OnExitTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
         {
             var tick = Ticks[0];
-            ResetBid(tick,1,0);
-            ResetAsk(tick,1,0);
+            ResetBid(fill.Price, tick, 0, 0);
+            ResetAsk(fill.Price, tick, 0, 0);
             if( !comboTrade.Completed)
             {
                 throw new InvalidOperationException("Trade must be completed.");
