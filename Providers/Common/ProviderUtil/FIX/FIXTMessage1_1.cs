@@ -33,20 +33,6 @@ using TickZoom.Api;
 namespace TickZoom.FIX
 {
 	public class FIXTMessage1_1 : FIXTMessage {
-		string encoding;
-		string sender;
-		string target;
-		int sequence;
-		bool duplicate;
-		string type;
-		public int Sequence {
-			get {
-				return sequence;
-			}
-			set {
-				sequence = value;
-			}
-		}
 		public FIXTMessage1_1(string version, string sender, string target) : base(version) {
 			this.target = target;
 			this.sender = sender;
@@ -104,6 +90,7 @@ namespace TickZoom.FIX
 			}
 			Append(554,password);
 		}
+
 		public override void AddHeader(string type)
 		{
 			this.type = type;
@@ -111,7 +98,7 @@ namespace TickZoom.FIX
 		
 		public override void CreateHeader() {
 			header.Clear();
-			header.Append(35,type);
+			header.Append(35,Type);
 			header.Append(49,sender);
 			header.Append(56,target);
 			header.Append(34,Sequence);
@@ -134,9 +121,6 @@ namespace TickZoom.FIX
 			string hashString = BitConverter.ToString(hashBytes);
 			return hashString.Replace("-","");
 		}
-		
-		public string Sender {
-			get { return sender; }
-		}
+
 	}
 }

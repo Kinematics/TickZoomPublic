@@ -34,7 +34,14 @@ namespace TickZoom.FIX
 		protected FIXTBuffer header = new FIXTBuffer();
 		protected FIXTBuffer body = new FIXTBuffer();
 		protected string version = "FIXT.1.1";
-		public FIXTMessage() {
+        protected string encoding;
+        protected string sender;
+        protected string target;
+        protected int sequence;
+        protected bool duplicate;
+        protected string type;
+        public FIXTMessage()
+        {
 		}
 		public FIXTMessage( string version) {
 			this.version = version;
@@ -79,5 +86,26 @@ namespace TickZoom.FIX
 			AddFIXTFooter(message);
 			return message.ToString();
 		}
-	}
+        public int Sequence
+        {
+            get
+            {
+                return sequence;
+            }
+            set
+            {
+                sequence = value;
+            }
+        }
+
+        public string Sender
+        {
+            get { return sender; }
+        }
+
+        public string Type
+        {
+            get { return type; }
+        }
+    }
 }
