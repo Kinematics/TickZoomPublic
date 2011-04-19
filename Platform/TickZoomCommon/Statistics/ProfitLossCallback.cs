@@ -114,7 +114,8 @@ namespace TickZoom.Statistics
 				model.OnCalculateProfitLoss(trade, out grossProfit, out costs);
 			} else {
 				costs = (slippage + commission)*fullPointValue*Math.Abs(trade.CurrentPosition);
-				grossProfit = (trade.AverageEntryPrice - trade.EntryPrice) * trade.CurrentPosition * fullPointValue;
+			    var grossPoints = (trade.AverageEntryPrice - trade.EntryPrice)*trade.CurrentPosition + trade.ClosedPoints;
+                grossProfit = Math.Round(grossPoints, symbol.MinimumTickPrecision) * symbol.FullPointValue;
 			}
 		}
 

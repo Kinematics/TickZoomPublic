@@ -1267,6 +1267,12 @@ namespace Orders
 			public MockPhysicalOrderHandler(SymbolInfo symbol) {
 				this.symbol = symbol;
 			}
+
+            public int ProcessOrders()
+            {
+                return 1;
+            }
+
 			public void OnCancelBrokerOrder(SymbolInfo symbol, object brokerOrder)
 			{
 				CanceledOrders.Add(brokerOrder);
@@ -1362,7 +1368,7 @@ namespace Orders
 			}
 			public void PerformCompare()
 			{
-				orderAlgorithm.PerformCompare();
+				orderAlgorithm.ProcessOrders();
 			}
 			
 			public double ActualPosition {

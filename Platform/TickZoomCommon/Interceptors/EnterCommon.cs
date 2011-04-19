@@ -161,7 +161,6 @@ namespace TickZoom.Interceptors
         private InternalOrders orders;
 		
 		private bool enableWrongSideOrders = false;
-		private bool allowReversal = true;
 		private bool isNextBar = false;
 		
 		public EnterCommon(Strategy strategy) : base(strategy) {
@@ -194,18 +193,15 @@ namespace TickZoom.Interceptors
         }
         
         public void SellMarket( double lots) {
-        	if( Strategy.Position.IsShort) {
-        		string reversal = allowReversal ? "or long " : "";
-        		string reversalEnd = allowReversal ? " since AllowReversal is true" : "";
-        		throw new TickZoomException("Strategy must be flat "+reversal+"before a sell market entry"+reversalEnd+".");
-        	}
-        	if( !allowReversal && Strategy.Position.IsLong) {
-        		throw new TickZoomException("Strategy cannot enter sell market when position is short. Set AllowReversal to true to allow this.");
-        	}
-        	if( !allowReversal && Strategy.Position.HasPosition) {
+        	if( Strategy.Position.HasPosition) {
         		throw new TickZoomException("Strategy must be flat before a short market entry.");
         	}
-        	/// <summary>
+            var trades = Strategy.Performance.ComboTrades;
+            if (trades.Count > 0 && !trades.Tail.Completed)
+            {
+                throw new TickZoomException("Combo trade must be completed before setting a sell market entry.");
+            }
+            /// <summary>
         	/// comment.
         	/// </summary>
         	/// <param name="allowReversal"></param>
@@ -233,14 +229,14 @@ namespace TickZoom.Interceptors
         }
         
         public void BuyMarket(double lots) {
-        	if( Strategy.Position.IsLong) {
-        		string reversal = allowReversal ? "or short " : "";
-        		string reversalEnd = allowReversal ? " since AllowReversal is true" : "";
-        		throw new TickZoomException("Strategy must be flat "+reversal+"before a long market entry"+reversalEnd+".");
-        	}
-        	if( !allowReversal && Strategy.Position.IsShort) {
+        	if( Strategy.Position.HasPosition) {
         		throw new TickZoomException("Strategy cannot enter long market when position is short. Set AllowReversal to true to allow this.");
         	}
+            var trades = Strategy.Performance.ComboTrades;
+            if (trades.Count > 0 && !trades.Tail.Completed)
+            {
+                throw new TickZoomException("Combo trade must be completed before setting a buy market entry.");
+            }
             var order = orders.BuyMarket;
         	order.Price = 0;
         	order.Position = (int) lots;
@@ -274,7 +270,12 @@ namespace TickZoom.Interceptors
         	if( Strategy.Position.HasPosition) {
         		throw new TickZoomException("Strategy must be flat before setting a long limit entry.");
         	}
-        	orders.BuyLimit.Price = price;
+            var trades = Strategy.Performance.ComboTrades;
+            if (trades.Count > 0 && !trades.Tail.Completed)
+            {
+                throw new TickZoomException("Combo trade must be completed before setting a long limit entry.");
+            }
+            orders.BuyLimit.Price = price;
         	orders.BuyLimit.Position = (int) lots;
         	if( isNextBar && !orders.BuyLimit.IsActive) {
 	        	orders.BuyLimit.Status = OrderStatus.NextBar;
@@ -298,7 +299,12 @@ namespace TickZoom.Interceptors
         	if( Strategy.Position.HasPosition) {
         		throw new TickZoomException("Strategy must be flat before setting a short limit entry.");
         	}
-        	orders.SellLimit.Price = price;
+            var trades = Strategy.Performance.ComboTrades;
+            if (trades.Count > 0 && !trades.Tail.Completed)
+            {
+                throw new TickZoomException("Combo trade must be completed before setting a short limit entry.");
+            }
+            orders.SellLimit.Price = price;
         	orders.SellLimit.Position = (int) lots;
         	if( isNextBar && !orders.SellLimit.IsActive) {
 	        	orders.SellLimit.Status = OrderStatus.NextBar;
@@ -322,7 +328,12 @@ namespace TickZoom.Interceptors
         	if( Strategy.Position.HasPosition) {
         		throw new TickZoomException("Strategy must be flat before setting a long stop entry.");
         	}
-        	orders.BuyStop.Price = price;
+            var trades = Strategy.Performance.ComboTrades;
+            if (trades.Count > 0 && !trades.Tail.Completed)
+            {
+                throw new TickZoomException("Combo trade must be completed before setting a long stop entry.");
+            }
+            orders.BuyStop.Price = price;
         	orders.BuyStop.Position = (int) lots;
         	if( isNextBar && !orders.BuyStop.IsActive) {
 	        	orders.BuyStop.Status = OrderStatus.NextBar;
@@ -346,7 +357,12 @@ namespace TickZoom.Interceptors
         	if( Strategy.Position.HasPosition) {
         		throw new TickZoomException("Strategy must be flat before setting a short stop entry.");
         	}
-        	orders.SellStop.Price = price;
+            var trades = Strategy.Performance.ComboTrades;
+            if (trades.Count > 0 && !trades.Tail.Completed)
+            {
+                throw new TickZoomException("Combo trade must be completed before setting a short stop entry.");
+            }
+            orders.SellStop.Price = price;
         	orders.SellStop.Position = (int) lots;
         	if( isNextBar && !orders.SellStop.IsActive) {
 	        	orders.SellStop.Status = OrderStatus.NextBar;

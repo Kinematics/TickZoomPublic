@@ -85,7 +85,6 @@ namespace TickZoom.BrokerageFramework
 		}
 		
 		[Test]
-		[ExpectedException(typeof(ApplicationException))]
 		public void ProfitLossException()
 		{
 			pair = TransactionPairBinary.Create();
@@ -94,6 +93,7 @@ namespace TickZoom.BrokerageFramework
 				tradesBinary.Add(pair);
 				TransactionPairs trades = new TransactionPairs(null,new ProfitLossCallback(),tradesBinary);
 				double pnl = trades.CalcProfitLoss(0);
+                Assert.AreEqual(0D,pnl);
 			}
 		}
 		
@@ -136,8 +136,8 @@ namespace TickZoom.BrokerageFramework
 		public void ToStringTest()
 		{
 			Constructor();
-							   
-			string expected = "1,0,0,1,12344,12344,2005-05-02 08:33:34.432,2005-05-02 08:33:34.432,0,0,1,125440,2005-05-02 08:43:34.432,2005-05-02 08:43:34.432,12344,12344,1,1";
+
+            string expected = "1,0,0,1,12344,2005-05-02 08:33:34.432,2005-05-02 08:33:34.432,0,0,1,125440,2005-05-02 08:43:34.432,2005-05-02 08:43:34.432,12344,12344,1,1";
 			string actual = pair.ToString();
 			Assert.AreEqual(expected,actual,"ToString");
 			

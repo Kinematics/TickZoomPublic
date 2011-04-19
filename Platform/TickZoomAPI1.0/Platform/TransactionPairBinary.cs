@@ -19,6 +19,7 @@ namespace TickZoom.Api
         private int currentPosition;
         private int shortVolume;
         private int longVolume;
+        private double closedPoints;
         private double entryPrice;
         private double averageEntryPrice;
         private double exitPrice;
@@ -37,7 +38,6 @@ namespace TickZoom.Api
             pair.entrySerialNumber = long.Parse(fields[field++]);
             pair.entryBar = int.Parse(fields[field++]);
             pair.entryPrice = double.Parse(fields[field++]);
-            pair.averageEntryPrice = double.Parse(fields[field++]);
             pair.entryTime = TimeStamp.Parse(fields[field++]).Internal;
             pair.postedEntryTime = TimeStamp.Parse(fields[field++]).Internal;
             pair.exitOrderId = int.Parse(fields[field++]);
@@ -65,6 +65,7 @@ namespace TickZoom.Api
             exitPrice = other.exitPrice;
             minPrice = other.minPrice;
             maxPrice = other.maxPrice;
+            closedPoints = other.ClosedPoints;
             exitBar = other.exitBar;
             entryBar = other.entryBar;
             completed = other.completed;
@@ -78,7 +79,7 @@ namespace TickZoom.Api
 
         public override string ToString()
         {
-            return currentPosition + "," + entryOrderId + "," + entrySerialNumber + "," + entryBar + "," + entryPrice + "," + averageEntryPrice + "," + new TimeStamp(entryTime) + "," + new TimeStamp(postedEntryTime) + "," +
+            return Direction + "," + entryOrderId + "," + entrySerialNumber + "," + entryBar + "," + entryPrice + "," + new TimeStamp(entryTime) + "," + new TimeStamp(postedEntryTime) + "," +
                    exitOrderId + "," + exitSerialNumber + "," + exitBar + "," + exitPrice + "," + new TimeStamp(exitTime) + "," + new TimeStamp(postedExitTime) + "," + maxPrice + "," + minPrice + "," + longVolume + "," + shortVolume;
         }
 		
@@ -155,20 +156,33 @@ namespace TickZoom.Api
         }
 		
         public void ChangeSize( int newSize, double price) {
-            var sum = averageEntryPrice.ToLong() * currentPosition; // 1951840000000000
             var sizeChange = newSize - currentPosition;      // -6666
-            var sum2 = sizeChange * price.ToLong();    // -650394954000000
-            if( newSize == 0) {
-                throw new ApplicationException( "Sorry, but the size argument must be non-zero.");
-            }
-            var newPrice = ((sum + sum2) / newSize).ToDouble();     // 97603498275
-            if( sizeChange > 0) {
+            if (sizeChange > 0)
+            {
                 longVolume += Math.Abs(sizeChange);
-            } else {
+            }
+            else
+            {
                 shortVolume += Math.Abs(sizeChange);
             }
-            averageEntryPrice = newPrice;
+
+            if( currentPosition == 0)
+            {
+                averageEntryPrice = price;
+            }
+            else if (Math.Abs(newSize) > Math.Abs(currentPosition))
+            {
+                var sum = averageEntryPrice.ToLong() * currentPosition; // 1951840000000000
+                var sum2 = sizeChange * price.ToLong();    // -650394954000000
+                var newPrice = ((sum + sum2) / newSize).ToDouble();     // 97603498275
+                averageEntryPrice = newPrice;
+            }
+            else
+            {
+                closedPoints -= (price - averageEntryPrice) * sizeChange;
+            }
             currentPosition = newSize;
+
             if( trace) log.Trace("Price = " + price + ", averageEntryPrice = " + averageEntryPrice + ", CurrentPosition = " + currentPosition + ", NewSize = " + newSize + ", Direction = " + Direction + ", sizeChange = " + sizeChange + ", Long volume = " + this.longVolume + ", short volume = " + shortVolume);
         }
 		
@@ -256,6 +270,11 @@ namespace TickZoom.Api
 		
         public int CurrentPosition {
             get { return currentPosition; }
+        }
+
+        public double ClosedPoints
+        {
+            get { return closedPoints; }
         }
     }
 }

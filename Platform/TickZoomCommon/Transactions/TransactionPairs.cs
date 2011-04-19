@@ -149,9 +149,6 @@ namespace TickZoom.Transactions
 		public double ProfitInPosition( int index, double price) {
 			TransactionPairBinary binary = transactionPairs[index];
 			if( trace) log.Trace("direction = " + binary.Direction + ", currentPosition = " + binary.CurrentPosition + ", volume = " + binary.Volume);
-			if( binary.Direction == 0) {
-				throw new ApplicationException("Direction not set for profit loss calculation.");
-			}
             binary.ExitPrice = price;
             return CalcProfitLoss(binary);
 		}

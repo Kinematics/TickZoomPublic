@@ -217,7 +217,7 @@ namespace TickZoom.Test
 	  			Assert.GreaterOrEqual(count,2,"tick count");
 	  			
 				ClearOrders(0);
-				ClearPosition(provider,verify,secondsDelay);
+                //ClearPosition(provider,verify,secondsDelay);
 	  			count = verify.Wait(symbol,1,secondsDelay);
 			}
 		}

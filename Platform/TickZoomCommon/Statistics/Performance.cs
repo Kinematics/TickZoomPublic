@@ -69,7 +69,6 @@ namespace TickZoom.Statistics
 		}
 		
 		public double GetCurrentPrice( double direction) {
-			System.Diagnostics.Debug.Assert(direction!=0);
 			Tick tick = model.Ticks[0];
 			if( direction > 0) {
 				return tick.IsQuote ? tick.Bid : tick.Price;
@@ -149,6 +148,9 @@ namespace TickZoom.Statistics
 						strategy.TryGetOrderById( fill.OrderId, out filledOrder);
 						if( filledOrder.TradeDirection != TradeDirection.Change) {
 							ExitComboTrade(fill);
+						} else
+						{
+						    ChangeComboSize(fill);
 						}
 					} else {
 						ExitComboTrade(fill);
@@ -181,12 +183,6 @@ namespace TickZoom.Statistics
 				strategy.Result.Position.Copy(position);
 			}
 
-//			if( model is Portfolio) {
-//				Portfolio portfolio = (Portfolio) model;
-//				double tempNetPortfolioEquity = 0;
-//				tempNetPortfolioEquity += portfolio.Performance.Equity.ClosedEquity;
-//				tempNetPortfolioEquity -= portfolio.Performance.Equity.StartingEquity;
-//			}
 			return true;
 		}
 		

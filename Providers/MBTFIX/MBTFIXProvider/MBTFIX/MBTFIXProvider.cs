@@ -96,6 +96,11 @@ namespace TickZoom.MBTFIX
 				}
 			}
 		}
+
+        public int ProcessOrders()
+        {
+            return 0;
+        }
 		
 		private void SendEndBroker() {
 			lock( symbolsRequestedLocker) {
@@ -466,7 +471,7 @@ namespace TickZoom.MBTFIX
 						order = RemoveOrder( packetFIX.ClientOrderId);
 						if( order != null && IsRecovered) {
 							var algorithm = GetAlgorithm( order.Symbol.BinaryIdentifier);
-							algorithm.PerformCompare();
+							algorithm.ProcessOrders();
 						}
 						if( order != null && order.Replace != null) {
 							if( debug) log.Debug( "Found this order in the replace property. Removing it also: " + order.Replace);
@@ -530,13 +535,18 @@ namespace TickZoom.MBTFIX
 			}
 			if( packetFIX.LeavesQuantity == 0) {
 				var order = RemoveOrder( packetFIX.ClientOrderId);
-				if( packetFIX.OriginalClientOrderId != null) {
-					order = RemoveOrder( packetFIX.OriginalClientOrderId);
-				}
-				if( IsRecovered) {
-					var algorithm = GetAlgorithm( order.Symbol.BinaryIdentifier);
-					algorithm.PerformCompare();
-				}
+                if (order != null)
+                {
+                    if (packetFIX.OriginalClientOrderId != null)
+                    {
+                        order = RemoveOrder(packetFIX.OriginalClientOrderId);
+                    }
+                    if (IsRecovered)
+                    {
+                        var algorithm = GetAlgorithm(order.Symbol.BinaryIdentifier);
+                        algorithm.ProcessOrders();
+                    }
+                }
 			}
 		}
 		
@@ -972,7 +982,7 @@ namespace TickZoom.MBTFIX
 		private void CompareLogicalOrders(SymbolInfo symbol) {
 			var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
 			lock( orderAlgorithmLocker) {
-    			algorithm.PerformCompare();
+    			algorithm.ProcessOrders();
 			}
 		}
 		

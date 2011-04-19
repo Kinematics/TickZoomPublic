@@ -64,8 +64,9 @@ namespace TickZoom.Common
 				{
 					int sig = randomEntries[randomIndex].Second % 3 - 1;
 					if( sig != Position.Current) {
-						if( sig == 0) {
-							Orders.Exit.ActiveNow.GoFlat();
+						if( sig == 0)
+						{
+                            Orders.Exit.ActiveNow.GoFlat();
 						} else {
 							if( Position.IsFlat) {
 								if( sig > 0) {

@@ -37,7 +37,7 @@ namespace TickZoom.TickUtil
 		private Stack<T> _items = new Stack<T>();
         private SimpleLock _sync = new SimpleLock();
 		private int count = 0;
-        private ActiveList<T> _freed = new ActiveList<T>();
+        private Queue<T> _freed = new Queue<T>();
 
 		public T Create()
 		{
@@ -58,10 +58,10 @@ namespace TickZoom.TickUtil
                 throw new InvalidOperationException("Attempt to free null reference.");
             }
 			using (_sync.Using()) {
-                _freed.AddFirst(item);
+                _freed.Enqueue(item);
                 if (_freed.Count > 10)
                 {
-                    _items.Push(_freed.RemoveLast().Value);
+                    _items.Push(_freed.Dequeue());
                 }
 			}
 		}

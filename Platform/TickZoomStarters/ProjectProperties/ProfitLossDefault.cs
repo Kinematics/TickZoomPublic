@@ -43,7 +43,7 @@ namespace TickZoom.Properties
         public void CalculateProfit(TransactionPairBinary trade, out double grossProfit, out double costs)
         {
             costs = (slippage + commission) * symbol.FullPointValue * Math.Abs(trade.Direction);
-            var grossPoints = (trade.ExitPrice - trade.AverageEntryPrice)*trade.CurrentPosition;
+            var grossPoints = (trade.ExitPrice - trade.AverageEntryPrice)*trade.CurrentPosition + trade.ClosedPoints;
             grossProfit = Math.Round(grossPoints,symbol.MinimumTickPrecision) * symbol.FullPointValue;
         }
 		

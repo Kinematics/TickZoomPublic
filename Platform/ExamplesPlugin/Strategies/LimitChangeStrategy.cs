@@ -71,7 +71,8 @@ namespace TickZoom.Examples
 			position.Drawing.PaneType = PaneType.Secondary;
 			position.Drawing.IsVisible = true;
 		}
-		
+
+        private int changeCount = 0;
 		public override bool OnProcessTick(Tick tick)
 		{
 			if( isFirstTick) {
@@ -87,12 +88,25 @@ namespace TickZoom.Examples
 			if( tick.Bid > bid) {
 				bid = tick.Bid - spread;
 			}
-			
-			if( Position.IsFlat) {
+
+		    var trades = Performance.ComboTrades;
+			if( Position.IsFlat && (trades.Count == 0 || trades.Tail.Completed)) {
 				Orders.Enter.ActiveNow.SellLimit(ask, lotSize);
 				Orders.Enter.ActiveNow.BuyLimit(bid, lotSize);
+			}
+            else if( Position.HasPosition)
+			{
+                if( Position.IsLong)
+                {
+                    Orders.Exit.ActiveNow.SellLimit(ask);
+                    Orders.Change.ActiveNow.BuyLimit(bid, lotSize);
+                } else
+                {
+                    Orders.Exit.ActiveNow.BuyLimit(bid);
+                    Orders.Change.ActiveNow.SellLimit(ask, lotSize);
+                }
 			} else {
-				Orders.Change.ActiveNow.SellLimit(ask, lotSize);
+		        Orders.Change.ActiveNow.SellLimit(ask, lotSize);
 				Orders.Change.ActiveNow.BuyLimit(bid, lotSize);
 			}
 			
@@ -104,19 +118,30 @@ namespace TickZoom.Examples
 		
 		public override void OnEnterTrade()
 		{
-			ask = Ticks[0].Ask + spread;
+            var trades = Performance.ComboTrades;
+            var trade = trades.Tail;
+            Log.Info("OnEnterTrade() completed=" + trade.Completed);
+            ask = Ticks[0].Ask + spread;
 			bid = Ticks[0].Bid - spread;
 		}
 		
 		public override void OnChangeTrade()
 		{
-			ask = Ticks[0].Ask + spread;
+            var trades = Performance.ComboTrades;
+            var trade = trades.Tail;
+            Log.Info("OnChangeTrade() completed=" + trade.Completed);
+            ask = Ticks[0].Ask + spread;
 			bid = Ticks[0].Bid - spread;
+		    changeCount++;
 		}
 		public override void OnExitTrade()
 		{
+            var trades = Performance.ComboTrades;
+		    var trade = trades.Tail;
+		    Log.Info("OnExitTrade completed=" + trade.Completed);
 			ask = Ticks[0].Ask + spread;
 			bid = Ticks[0].Bid - spread;
+		    changeCount = 0;
 		}
 	}
 }

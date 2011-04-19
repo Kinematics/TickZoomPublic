@@ -57,13 +57,18 @@ namespace TickZoom.Examples
 				if( Position.IsShort) {
 					Orders.Exit.ActiveNow.GoFlat();
 				}
-				Orders.Enter.ActiveNow.BuyMarket(2 * tradeSize);
-			}
+                else
+				{
+                    Orders.Enter.ActiveNow.BuyMarket(tradeSize);
+				}
+            }
 			if( !Position.IsShort && Bars.Close[0] < Bars.Low[1]) {
 				if( Position.IsLong) {
 					Orders.Exit.ActiveNow.GoFlat();
+				} else
+				{
+                    Orders.Enter.ActiveNow.SellMarket(tradeSize);
 				}
-				Orders.Enter.ActiveNow.SellMarket(2 * tradeSize);
 			}
 			return true;
 		}

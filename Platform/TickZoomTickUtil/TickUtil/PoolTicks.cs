@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using TickZoom.Api;
@@ -10,7 +10,7 @@ namespace TickZoom.TickUtil
         private Stack<TickBinaryBox> _items = new Stack<TickBinaryBox>();
         private SimpleLock _sync = new SimpleLock();
         private int count = 0;
-        private ActiveList<TickBinaryBox> _freed = new ActiveList<TickBinaryBox>();
+        private Queue<TickBinaryBox> _freed = new Queue<TickBinaryBox>();
         private int enqueDiagnoseMetric;
         private int pushDiagnoseMetric;
         private static int nextPoolId = 0;
@@ -49,19 +49,18 @@ namespace TickZoom.TickUtil
                     var binary = item.TickBinary;
                     Diagnose.AddTick(enqueDiagnoseMetric,ref binary);
                 }
-                for( var node = _freed.First; node != null; node = node.Next)
-                {
-                    if( node.Value.TickBinary.Id == item.TickBinary.Id)
-                    {
-                        Diagnose.LogTicks(300);
-                        System.Diagnostics.Debugger.Break();
-                    }
-                }
-                _freed.AddFirst(item);
+                //for( var node = _freed.First; node != null; node = node.Next)
+                //{
+                //    if( node.Value.TickBinary.Id == item.TickBinary.Id)
+                //    {
+                //        Diagnose.LogTicks(300);
+                //        System.Diagnostics.Debugger.Break();
+                //    }
+                //}
+                _freed.Enqueue(item);
                 if (_freed.Count > 10)
                 {
-                    var freed = _freed.Last.Value;
-                    _freed.RemoveLast();
+                    var freed = _freed.Dequeue();
                     if (Diagnose.TraceTicks)
                     {
                         var binary = freed.TickBinary;

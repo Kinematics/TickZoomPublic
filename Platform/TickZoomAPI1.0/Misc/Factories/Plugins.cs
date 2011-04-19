@@ -44,6 +44,7 @@ namespace TickZoom.Api
         private readonly bool debug = log.IsDebugEnabled;
         private static Plugins plugins;
         private static object pluginsLocker = new object();
+        private bool isInitialized = false;
 
         public string PluginFolder;
 
@@ -80,6 +81,7 @@ namespace TickZoom.Api
 
         private void Initialize()
         {
+            if( isInitialized) return;
             string appData = Factory.Settings["AppDataFolder"];
             if (appData == null)
             {
@@ -88,6 +90,7 @@ namespace TickZoom.Api
             PluginFolder = appData + @"\Plugins";
             Directory.CreateDirectory(PluginFolder);
             LoadAssemblies(PluginFolder);
+            isInitialized = true;
         }
 
         public ModelLoaderInterface GetLoader(string name)
@@ -185,6 +188,7 @@ namespace TickZoom.Api
 
         public ModelInterface GetModel(string name)
         {
+            Initialize();
             for (int i = 0; i < models.Count; i++)
             {
                 if (models[i].Name.Equals(name))

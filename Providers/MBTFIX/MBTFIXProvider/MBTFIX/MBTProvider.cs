@@ -104,6 +104,11 @@ namespace TickZoom.MBTFIX
 		{
 			fixProvider.OnCreateBrokerOrder(order);
 		}
+
+        public int ProcessOrders()
+        {
+            return 0;
+        }
 		
 		public void OnCancelBrokerOrder(SymbolInfo symbol, object origBrokerOrder)
 		{

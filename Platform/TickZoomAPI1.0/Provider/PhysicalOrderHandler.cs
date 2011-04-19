@@ -34,5 +34,6 @@ namespace TickZoom.Api
 		void OnCreateBrokerOrder(PhysicalOrder order);
 		void OnCancelBrokerOrder(SymbolInfo symbol, object origBrokerOrder);
 		Iterable<PhysicalOrder> GetActiveOrders(SymbolInfo symbol);
-	}
+        int ProcessOrders();
+    }
 }

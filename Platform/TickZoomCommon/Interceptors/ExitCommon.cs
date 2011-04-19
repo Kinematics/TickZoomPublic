@@ -69,7 +69,8 @@ namespace TickZoom.Interceptors
         #region Orders
 
         public void GoFlat() {
-        	if( Strategy.Position.IsLong) {
+            if (Strategy.Position.IsLong)
+            {
 	        	orders.SellMarket.Price = 0;
 	        	orders.SellMarket.Position = 0;
 	        	if( isNextBar) {
@@ -97,7 +98,7 @@ namespace TickZoom.Interceptors
         			throw new TickZoomException("When flat, a sell order must be active before creating a buy order to exit.");
         		}
 			}
-    		orders.BuyStop.Price = price;
+            orders.BuyStop.Price = price;
         	if( isNextBar) {
     	    	orders.BuyStop.Status = OrderStatus.NextBar;
 	       	} else {
@@ -110,7 +111,7 @@ namespace TickZoom.Interceptors
         		throw new TickZoomException("Strategy must be long or flat before setting a sell stop to exit.");
         	} else if( Strategy.Position.IsFlat) {
         		if(!Strategy.Orders.Enter.ActiveNow.HasBuyOrder) {
-        			throw new TickZoomException("When flat, a buy order must be active before creating a sell order to exit.");
+        			throw new TickZoomException("When flat, a buy order must be active before creating a sell stop to exit.");
         		}
         	}
 			orders.SellStop.Price = price;
@@ -129,7 +130,7 @@ namespace TickZoom.Interceptors
         			throw new TickZoomException("When flat, a sell order must be active before creating a buy order to exit.");
         		}
 			}
-    		orders.BuyLimit.Price = price;
+            orders.BuyLimit.Price = price;
         	if( isNextBar) {
     	    	orders.BuyLimit.Status = OrderStatus.NextBar;
 	       	} else {
@@ -145,7 +146,7 @@ namespace TickZoom.Interceptors
         			throw new TickZoomException("When flat, a buy order must be active before creating a sell order to exit.");
         		}
 			}
-			orders.SellLimit.Price = price;
+            orders.SellLimit.Price = price;
         	if( isNextBar) {
     	    	orders.SellLimit.Status = OrderStatus.NextBar;
 	       	} else {

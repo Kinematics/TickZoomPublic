@@ -76,7 +76,12 @@ namespace TickZoom.Interceptors
 	        	if( !Strategy.Position.HasPosition) {
 	        		throw new TickZoomException("Strategy must have a position before a change sell market.");
 	        	}
-	        	/// <summary>
+                var trades = Strategy.Performance.ComboTrades;
+                if (trades.Count == 0 || trades.Tail.Completed)
+                {
+                    throw new TickZoomException("Combo trade must be still open before setting a change order to sell at the market.");
+                }
+                /// <summary>
 	        	/// comment.
 	        	/// </summary>
 	        	/// <param name="allowReversal"></param>
@@ -105,7 +110,12 @@ namespace TickZoom.Interceptors
 	        	if( !Strategy.Position.HasPosition) {
 	        		throw new TickZoomException("Strategy must have a position before a change buy market.");
 	        	}
-	        	orders.BuyMarket.Price = 0;
+                var trades = Strategy.Performance.ComboTrades;
+                if (trades.Count == 0 || trades.Tail.Completed)
+                {
+                    throw new TickZoomException("Combo trade must be still open before setting a chagne order to buy at the market.");
+                }
+                orders.BuyMarket.Price = 0;
 	        	orders.BuyMarket.Position = (int) lots;
 	        	if( isNextBar && !orders.BuyMarket.IsActive) {
 	        	orders.BuyMarket.Status = OrderStatus.NextBar;
@@ -137,9 +147,9 @@ namespace TickZoom.Interceptors
 	        	if( Strategy.Performance.ComboTrades.Count == 0) {
 	        		throw new TickZoomException("Strategy must have an open combo trade to set a change sell limit.");
 	        	}
-	        	var trade = Strategy.Performance.ComboTrades[Strategy.Performance.ComboTrades.Current];
+	        	var trade = Strategy.Performance.ComboTrades.Tail;
 	        	if( trade.Completed ) {
-	        		throw new TickZoomException("Strategy must have an open combo trade to set a change sell limit.");
+	        		throw new TickZoomException("A current combo trade must be open to set a change sell limit.");
 	        	}
 	        	orders.BuyLimit.Price = price;
 	        	orders.BuyLimit.Position = (int) lots;

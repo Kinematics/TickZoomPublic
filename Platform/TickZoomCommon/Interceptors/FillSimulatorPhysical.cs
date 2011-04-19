@@ -40,13 +40,21 @@ namespace TickZoom.Interceptors
 		private readonly bool debug = staticLog.IsDebugEnabled;
 		private static readonly bool notice = staticLog.IsNoticeEnabled;
 		private Log log;
+        public struct ChangeOrderEntry
+        {
+            public PhysicalOrder Order;
+            public string OrigOrderId;
+        }
 
 		private Dictionary<string,PhysicalOrder> orderMap = new Dictionary<string, PhysicalOrder>();
 		private ActiveList<PhysicalOrder> increaseOrders = new ActiveList<PhysicalOrder>();
 		private ActiveList<PhysicalOrder> decreaseOrders = new ActiveList<PhysicalOrder>();
 		private ActiveList<PhysicalOrder> marketOrders = new ActiveList<PhysicalOrder>();
-		private NodePool<PhysicalOrder> nodePool = new NodePool<PhysicalOrder>();
-		private object orderMapLocker = new object();
+        private NodePool<PhysicalOrder> nodePool = new NodePool<PhysicalOrder>();
+        private ActiveList<PhysicalOrder> createOrderQueue = new ActiveList<PhysicalOrder>();
+        private ActiveList<string> cancelOrderQueue = new ActiveList<string>();
+        private ActiveList<ChangeOrderEntry> changeOrderQueue = new ActiveList<ChangeOrderEntry>();
+        private object orderMapLocker = new object();
 		private bool isOpenTick = false;
 		private TimeStamp openTime;
 
@@ -103,9 +111,8 @@ namespace TickZoom.Interceptors
 		public void OnChangeBrokerOrder(PhysicalOrder order, object origBrokerOrder)
 		{
 			if( debug) log.Debug("OnChangeBrokerOrder( " + order + ")");
-			CancelBrokerOrder( origBrokerOrder);
-			CreateBrokerOrder( order);
-			ProcessOrders();
+            CancelBrokerOrder((string) origBrokerOrder);
+            CreateBrokerOrder( order);
 			if( confirmOrders != null) confirmOrders.OnChangeBrokerOrder(order, origBrokerOrder);
 		}
 
@@ -129,28 +136,7 @@ namespace TickZoom.Interceptors
 			}
 			return order;
 		}
-		
-		private PhysicalOrder CancelBrokerOrder(object origBrokerOrder) {
-			var oldOrderId = (string) origBrokerOrder;
-		    PhysicalOrder physicalOrder;
-            if( TryGetOrderById(oldOrderId, out physicalOrder))
-		    {
-                var node = (ActiveListNode<PhysicalOrder>)physicalOrder.Reference;
-		        if (node.List != null)
-		        {
-		            node.List.Remove(node);
-		        }
-		        lock (orderMapLocker)
-		        {
-		            orderMap.Remove(oldOrderId);
-		        }
-		        LogOpenOrders();
-		    } else
-		    {
-		        log.Info("PhysicalOrder too late to cancel or already canceled, ignoring: " + origBrokerOrder);
-		    }
-            return physicalOrder;
-		}
+
 		
 		private void CreateBrokerOrder(PhysicalOrder order) {
 			lock( orderMapLocker) {
@@ -164,29 +150,77 @@ namespace TickZoom.Interceptors
 			SortAdjust(order);
 			VerifySide(order);
 		}
-		
+
+		private void CancelBrokerOrder(string oldOrderId)
+		{
+            PhysicalOrder physicalOrder;
+            if (TryGetOrderById(oldOrderId, out physicalOrder))
+            {
+                var node = (ActiveListNode<PhysicalOrder>)physicalOrder.Reference;
+                if (node.List != null)
+                {
+                    node.List.Remove(node);
+                }
+                lock (orderMapLocker)
+                {
+                    orderMap.Remove(oldOrderId);
+                }
+                LogOpenOrders();
+            }
+            else
+            {
+                log.Info("PhysicalOrder too late to cancel or already canceled, ignoring: " + oldOrderId);
+            }
+        }
+
 		public void OnCreateBrokerOrder(PhysicalOrder order)
 		{
 			if( debug) log.Debug("OnCreateBrokerOrder( " + order + ")");
 			if( order.Size <= 0) {
 				throw new ApplicationException("Sorry, Size of order must be greater than zero: " + order);
 			}
-			CreateBrokerOrder(order);
-			ProcessOrders();
+		    createOrderQueue.AddLast(order);
 			if( confirmOrders != null) confirmOrders.OnCreateBrokerOrder(order);
 		}
 		
 		public void OnCancelBrokerOrder(SymbolInfo symbol, object origBrokerOrder)
 		{
 			if( debug) log.Debug("OnCancelBrokerOrder( " + origBrokerOrder + ")");
-			var order = CancelBrokerOrder(origBrokerOrder);
-			if( confirmOrders != null) confirmOrders.OnCancelBrokerOrder(symbol, origBrokerOrder);
-		}
+            CancelBrokerOrder((string) origBrokerOrder);
+            //cancelOrderQueue.AddLast((string)origBrokerOrder);
+            if (confirmOrders != null) confirmOrders.OnCancelBrokerOrder(symbol, origBrokerOrder);
+        }
+
+        private void CleanOrderQueues()
+        {
+            for( var current = createOrderQueue.First; current != null; current = current.Next)
+            {
+                var order = current.Value;
+                CreateBrokerOrder(order);
+                createOrderQueue.Remove(current);
+            }
+            for (var current = cancelOrderQueue.First; current != null; current = current.Next)
+            {
+                var origOrderId = current.Value;
+                CancelBrokerOrder(origOrderId);
+                cancelOrderQueue.Remove(current);
+            }
+            for (var current = changeOrderQueue.First; current != null; current = current.Next)
+            {
+                var changeOrderEntry = current.Value;
+                CancelBrokerOrder(changeOrderEntry.OrigOrderId);
+                CreateBrokerOrder(changeOrderEntry.Order);
+                changeOrderQueue.Remove(current);
+            }
+        }
 		
-		public void ProcessOrders() {
+		public int ProcessOrders() {
 			if( hasCurrentTick) {
-				ProcessOrdersInternal( currentTick);
-			}
+                ProcessOrdersInternal(currentTick);
+                CleanOrderQueues();
+                ProcessOrdersInternal(currentTick);
+            }
+		    return 1;
 		}
 		
 		public void StartTick(Tick lastTick)
@@ -213,7 +247,7 @@ namespace TickZoom.Interceptors
 			if( symbol == null) {
 				throw new ApplicationException("Please set the Symbol property for the " + GetType().Name + ".");
 			}
-			var next = marketOrders.First;
+            var next = marketOrders.First;
 			for( var node = next; node != null; node = node.Next) {
 				var order = node.Value;
 				OnProcessOrder(order, tick);
@@ -228,7 +262,7 @@ namespace TickZoom.Interceptors
 				var order = node.Value;
 				OnProcessOrder(order, tick);
 			}
-		}
+        }
 		
 		private void LogOpenOrders() {
 			if( trace) {
@@ -598,8 +632,9 @@ namespace TickZoom.Interceptors
 					order.Size = 0;
 				}
 				cumulativeQuantity += lastSize;
-				if( order.Size == 0) {
-					CancelBrokerOrder(order.BrokerOrder);
+				if( order.Size == 0)
+				{
+                    CancelBrokerOrder((string)order.BrokerOrder);
 				}
 				CreateSingleFill( lastSize, totalSize, cumulativeQuantity, order.Size, price, time, utcTime, order);
 			}

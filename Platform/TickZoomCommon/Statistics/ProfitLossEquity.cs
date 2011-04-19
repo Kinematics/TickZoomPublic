@@ -35,7 +35,7 @@ namespace TickZoom.Statistics
 
         public void CalculateProfit(TransactionPairBinary trade, out double grossProfit, out double costs)
         {
-            grossProfit = trade.ExitPrice - trade.EntryPrice;
+            grossProfit = trade.ExitPrice - trade.EntryPrice + trade.ClosedPoints;
             costs = 0D;
         }
 

@@ -75,7 +75,7 @@ namespace TickZoom.TickUtil
 	    readonly int spinCycles = 1000;
 	    int timeout = 30000; // milliseconds
         private SimpleLock nodePoolLocker = new SimpleLock();
-        private NodePool<FastQueueEntry<T>> nodePool;
+        private static NodePool<FastQueueEntry<T>> nodePool;
         private static SimpleLock queuePoolLocker = new SimpleLock();
         private static Pool<Queue<FastQueueEntry<T>>> queuePool;
         private ActiveList<FastQueueEntry<T>> queue;
