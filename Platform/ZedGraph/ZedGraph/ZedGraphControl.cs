@@ -20,6 +20,7 @@
 using System;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -909,7 +910,15 @@ namespace ZedGraph
 						_masterPane.Draw( g );
 					}
 					catch( Exception ex) {
-						log.Error(ex.Message,ex);
+                        if( log != null)
+                        {
+                            log.Error(ex.Message, ex);
+                        }
+                        else
+                        {
+                            Debug.WriteLine(ex.ToString());
+                            Console.WriteLine(ex.ToString());
+                        }
 					}
 				}
 				//Copy the back buffer to the screen

@@ -39,7 +39,7 @@ namespace TickZoom.Api
 
         public StrategyPosition()
         {
-            log.Info("New StrategyPosition");
+            if( debug) log.Debug("New StrategyPosition");
         }
 
 	    public int Position

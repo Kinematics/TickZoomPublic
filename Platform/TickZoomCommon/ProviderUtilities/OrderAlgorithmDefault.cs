@@ -660,6 +660,7 @@ namespace TickZoom.Common
 			if( debug) log.Debug( "ProcessFill() physical: " + physical);
             //log.warn("processfill() physical: " + physical);
             //physicalOrders.Remove(physical.Order);
+            actualPosition += physical.Size;
 			var isCompletePhysicalFill = remainingSize == 0;
 			if( isCompletePhysicalFill) {
 				if( debug) log.Debug("Physical order completely filled: " + physical.Order);
@@ -992,6 +993,7 @@ namespace TickZoom.Common
 		public void SetActualPosition( int position) {
 			actualPosition = position;
 		}
+
 		public PhysicalOrderHandler PhysicalOrderHandler {
 			get { return physicalOrderHandler; }
 		}

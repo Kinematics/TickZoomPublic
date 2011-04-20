@@ -1334,7 +1334,6 @@ namespace Orders
 
 		public class TestOrderAlgorithm
 		{
-		    private int actualPosition = 0;
 			private OrderAlgorithm orderAlgorithm;
 			private MockPhysicalOrderHandler orders;
 			private SymbolInfo symbol;
@@ -1354,7 +1353,6 @@ namespace Orders
 			}
 			public void SetActualPosition( int position) {
 				orderAlgorithm.SetActualPosition(position);
-			    actualPosition = position;
 			}
 			public void SetDesiredPosition( int position) {
 				strategy.Position.Change(position,100.00,TimeStamp.UtcNow);
@@ -1393,9 +1391,7 @@ namespace Orders
                                    ? physical.Size
                                    : -physical.Size;
                     var fill = Factory.Utility.PhysicalFill(size, physical.Price, TimeStamp.UtcNow, TimeStamp.UtcNow, physical, false);
-                    actualPosition += size;
                     orders.inputOrders.Remove(physical);
-                    orderAlgorithm.SetActualPosition(actualPosition);
                     orderAlgorithm.ProcessFill(fill, size, size, 0);
                 }
             }

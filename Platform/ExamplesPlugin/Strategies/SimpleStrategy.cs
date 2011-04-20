@@ -28,17 +28,21 @@ namespace TickZoom.Examples
             lotSize = 1000;
             spread = 20*minimumTick;
 
-            bidLine = Formula.Indicator();
-            bidLine.Drawing.IsVisible = true;
-
             askLine = Formula.Indicator();
+            askLine.Name = "Ask";
             askLine.Drawing.IsVisible = true;
 
+            bidLine = Formula.Indicator();
+            bidLine.Name = "Bid";
+            bidLine.Drawing.IsVisible = true;
+
             averagePrice = Formula.Indicator();
+            averagePrice.Name = "BE";
             averagePrice.Drawing.IsVisible = true;
             averagePrice.Drawing.Color = Color.Black;
 
             position = Formula.Indicator();
+            position.Name = "Position";
             position.Drawing.PaneType = PaneType.Secondary;
             position.Drawing.IsVisible = true;
         }
@@ -105,9 +109,9 @@ namespace TickZoom.Examples
         {
             var comboTrade = Performance.ComboTrades.Tail;
             var averageEntry = comboTrade.AverageEntryPrice;
-            if (Math.Abs(comboTrade.CurrentPosition) > lotSize * 5 && averageEntry <= ask)
+            if (averageEntry <= ask)
             {
-                Orders.Reverse.ActiveNow.SellLimit(averageEntry, lotSize);
+                Orders.Reverse.ActiveNow.SellLimit(ask, lotSize);
             }
             else
             if( Math.Abs(comboTrade.CurrentPosition) <= lotSize)
@@ -126,9 +130,9 @@ namespace TickZoom.Examples
             var comboTrade = Performance.ComboTrades.Tail;
             var averageEntry = comboTrade.AverageEntryPrice;
             Orders.Change.ActiveNow.SellLimit(ask, lotSize);
-            if (Math.Abs(comboTrade.CurrentPosition) > lotSize * 5 && averageEntry >= bid)
+            if (averageEntry >= bid)
             {
-                Orders.Reverse.ActiveNow.BuyLimit(averageEntry, lotSize);
+                Orders.Reverse.ActiveNow.BuyLimit(bid, lotSize);
             }
             else
             if (Math.Abs(comboTrade.CurrentPosition) <= lotSize)

@@ -559,6 +559,7 @@ namespace TickZoom
 			if( !isBusy) {
 				isBusy = true;
 				AddBarPrivate();
+                FormatToolStripText();
 			}
 		}
 		
@@ -1123,50 +1124,14 @@ namespace TickZoom
 		   	   }
 		   }
 		}
-		
-		private bool DataGraphMouseMoveEvent(ZedGraph.ZedGraphControl sender, System.Windows.Forms.MouseEventArgs e)
+
+	    private PointF mousePt;
+        private bool DataGraphMouseMoveEvent(ZedGraph.ZedGraphControl sender, System.Windows.Forms.MouseEventArgs e)
 		{
 			try { 
-		        GraphPane myPane = dataGraph.GraphPane;
 				// Save the mouse location
-				PointF mousePt = new PointF( e.X, e.Y );
-				int dragIndex;
-				StockPt startPair;
-				
-				GraphPane.Default.NearestTol = 200.00f;
-				
-				// find the point that was clicked, and make sure the point list is editable
-				// and that it's a primary Y axis (the first Y or Y2 axis)
-				double curX, curY;
-		        myPane.ReverseTransform( mousePt, out curX, out curY);
-	        	dragIndex = 0;
-				// save the starting point information
-				if( stockPointList.Count > 0 && !double.IsInfinity(curX) && !double.IsNaN(curX)) {
-					if( priceGraphPane.XAxis.Scale.IsAnyOrdinal) {
-						dragIndex = Math.Min(stockPointList.Count-1,Math.Max(0,(int) Math.Round(curX-1)));
-					} else {
-						for( int i = 0; i<stockPointList.Count; i++) {
-							if( stockPointList[i].X-(ClusterWidth/2) <= curX) {
-								dragIndex = i;
-							}
-						}
-					}
-					startPair = (StockPt) stockPointList[dragIndex];
-					TimeStamp time = new TimeStamp(startPair.X);
-					if( isCompactMode) {
-						toolStripStatusXY.Text = time.ToString() + ", " +
-							startPair.Close.ToString("f0");
-					} else {
-						    toolStripStatusXY.Text = time.ToString() + " " + 
-							time.ToString() + ", " +
-							"O:" + startPair.Open.ToString(",0.0000") + ", " + 
-							"H:" + startPair.High.ToString(",0.0000") + ", " + 
-							"L:" + startPair.Low.ToString(",0.0000") + ", " + 
-							"C:" + startPair.Close.ToString(",0.0000") + ", " +
-							"Bar: " + (dragIndex+1) + ", " +
-							"Period: " + intervalChartBar;
-					}
-				}
+				mousePt = new PointF( e.X, e.Y );
+                FormatToolStripText();
 			} catch( Exception ex) {
 				log.Notice(ex.ToString());
 			}
@@ -1174,8 +1139,99 @@ namespace TickZoom
 		   // ZedGraphControl should still go ahead and handle it
 		   return false;
 		}
-		
-		private void refreshTick(object sender, EventArgs e)
+
+	    private TaskLock formatToolStripLocker = new TaskLock();
+	    private void FormatToolStripText()
+	    {
+            if (!formatToolStripLocker.TryLock()) return;
+            try
+            {
+                GraphPane myPane = dataGraph.GraphPane;
+                GraphPane.Default.NearestTol = 200.00f;
+                // find the point that was clicked, and make sure the point list is editable
+                // and that it's a primary Y axis (the first Y or Y2 axis)
+                double curX, curY;
+                myPane.ReverseTransform(mousePt, out curX, out curY);
+                var dragIndex = 0;
+                // save the starting point information
+                if (stockPointList.Count > 0 && !double.IsInfinity(curX) && !double.IsNaN(curX))
+                {
+                    if (priceGraphPane.XAxis.Scale.IsAnyOrdinal)
+                    {
+                        dragIndex = Math.Min(stockPointList.Count - 1, Math.Max(0, (int)Math.Round(curX - 1)));
+                    }
+                    else
+                    {
+                        var temp = 0;
+                        for (int i = 0; i < stockPointList.Count; i++)
+                        {
+                            if (stockPointList[i].X - (ClusterWidth / 2) <= curX)
+                            {
+                                temp = i;
+                            }
+                        }
+                        dragIndex = temp;
+                    }
+                    FormatToolStripText(dragIndex);
+                }
+            } finally
+            {
+                formatToolStripLocker.Unlock();
+            }
+        }
+
+	    private void FormatToolStripText(int dragIndex)
+	    {
+            var startPair = (StockPt)stockPointList[dragIndex];
+            TimeStamp time = new TimeStamp(startPair.X);
+            if (isCompactMode)
+            {
+                toolStripStatusXY.Text = time.ToString() + ", " +
+                    startPair.Close.ToString("f0");
+            }
+            else
+            {
+                var format = "N" + symbol.MinimumTickPrecision;
+                var sb = new StringBuilder();
+                sb.Append(time.ToString() + " " +
+                    "O:" + startPair.Open.ToString(format) + ", " +
+                    "H:" + startPair.High.ToString(format) + ", " +
+                    "L:" + startPair.Low.ToString(format) + ", " +
+                    "C:" + startPair.Close.ToString(format) + ", " +
+                    "Bar: " + (dragIndex + 1) + ", " +
+                    intervalChartBar);
+                var text = sb.ToString();
+                execute.OnUIThread(() => toolStripStatusXY.Text = text);
+
+                sb.Length = 0;
+                var count = 0;
+                for (var i = 0; i < indicators.Count; i++)
+                {
+                    var indicator = indicators[i];
+                    var line = lineList[i];
+                    if (line.Count > dragIndex)
+                    {
+                        var value = line[dragIndex].Y;
+                        if (!double.IsNaN(value))
+                        {
+                            if (count != 0) sb.Append(", ");
+                            var typeName = indicator.GetType().Name;
+                            var name = indicator.Name == typeName ? "" : indicator.Name + " ";
+                            sb.Append(name + value);
+                            count++;
+                        }
+                    }
+                }
+                if (sb.Length > 0)
+                {
+                    sb.Insert(0, "Indicators: ");
+                }
+                var text2 = sb.ToString();
+                execute.OnUIThread(() => indicatorValues.Text = text2);
+            }
+        }
+
+	    private void refreshTick(object sender, EventArgs e)
 		{
 			try {
                 //if (trace) log.Trace("refreshTick()");
@@ -1282,19 +1338,6 @@ namespace TickZoom
 		
 		void ButtonVolumeTestClick(object sender, EventArgs e)
 		{
-		}
-		
-		void AudioNotifyCheckStateChanged(object sender, EventArgs e)
-		{
-			if( audioNotify.Checked) {
-				isAudioNotify = true;
-//				// For volume test.
-//				AudioNotify( Audio.RisingVolume);
-//				Thread.Sleep(5000);
-//				AudioNotify( Audio.IntervalChime);
-			} else {
-				isAudioNotify = false;
-			}
 		}
 		
 		internal Point _menuClickPt;

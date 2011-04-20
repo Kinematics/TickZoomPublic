@@ -417,17 +417,17 @@ namespace TickZoom.MBTFIX
 				if(debug) log.Debug("PositionUpdate Complete.");
 				TryEndRecovery();
 			} else {
-				var position = packetFIX.LongQuantity + packetFIX.ShortQuantity;
-				SymbolInfo symbolInfo;
-				try {
-					symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-				} catch( ApplicationException ex) {
-					log.Error("Error looking up " + packetFIX.Symbol + ": " + ex.Message);
-					return;
-				}
-				if( debug) log.Debug("PositionUpdate: " + symbolInfo + "=" + position);
-				var orderHandler = GetAlgorithm(symbolInfo.BinaryIdentifier);
-				orderHandler.SetActualPosition( position);
+                //var position = packetFIX.LongQuantity + packetFIX.ShortQuantity;
+                //SymbolInfo symbolInfo;
+                //try {
+                //    symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+                //} catch( ApplicationException ex) {
+                //    log.Error("Error looking up " + packetFIX.Symbol + ": " + ex.Message);
+                //    return;
+                //}
+                //if( debug) log.Debug("PositionUpdate: " + symbolInfo + "=" + position);
+                //var orderHandler = GetAlgorithm(symbolInfo.BinaryIdentifier);
+                //orderHandler.SetActualPosition( position);
 			}
 		}
 		

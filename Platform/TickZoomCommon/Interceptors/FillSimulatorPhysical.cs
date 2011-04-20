@@ -643,9 +643,9 @@ namespace TickZoom.Interceptors
 		private void CreateSingleFill(int size, int totalSize, int cumulativeSize, int remainingSize, double price, TimeStamp time, TimeStamp utcTime, PhysicalOrder order) {
 			if( debug) log.Debug("Changing actual position from " + this.actualPosition + " to " + (actualPosition+size) + ". Fill size is " + size);
 			this.actualPosition += size;
-			if( onPositionChange != null) {
-				onPositionChange( actualPosition);
-			}
+            //if( onPositionChange != null) {
+            //    onPositionChange( actualPosition);
+            //}
 			var fill = new PhysicalFillDefault(size,price,time,utcTime,order,createSimulatedFills);
 			if( debug) log.Debug("Fill: " + fill );
 			if( onPhysicalFill == null) {

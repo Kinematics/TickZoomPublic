@@ -48,7 +48,6 @@ namespace TickZoom.Common
         private static readonly Log barDataLog = Factory.SysLog.GetLogger("BarDataLog");
         private readonly bool barDataDebug = barDataLog.IsDebugEnabled;
         private DataHasher barHasher = new DataHasher();
-        private bool isChartDynamic = false;
 		double startValue = Double.NaN;
 		bool isStartValueSet = false;
 		Interval fastUpdateInterval = null;
@@ -82,9 +81,7 @@ namespace TickZoom.Common
 				RequestUpdate(fastUpdateInterval);
 			}
 			output =  Doubles();
-			if( isChartDynamic) {
-				RequestEvent(EventType.Tick);
-			}
+			RequestEvent(EventType.Tick);
 		}
 
 		public override void OnConfigure()
@@ -94,7 +91,6 @@ namespace TickZoom.Common
 			} else {
 				input = Doubles(anyInput);
 			}
-			isChartDynamic = Chart != null && Chart.IsDynamicUpdate;
 		}
 		
 		public sealed override bool OnBeforeIntervalOpen() {
@@ -118,7 +114,7 @@ namespace TickZoom.Common
 
 		public override bool OnProcessTick(Tick tick)
 		{
-			if( isChartDynamic) {
+			if( Chart != null && Chart.IsDynamicUpdate) {
 				Update();
 				return true;
 			} else {
