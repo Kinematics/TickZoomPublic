@@ -57,10 +57,12 @@ namespace TickZoom.Common
 		private int sentPhysicalOrders = 0;
 		private TickSync tickSync;
 		private Dictionary<long,long> filledOrders = new Dictionary<long,long>();
+	    private LogicalOrderCache orderCache;
 		
-		public OrderAlgorithmDefault(string name, SymbolInfo symbol, PhysicalOrderHandler brokerOrders) {
+		public OrderAlgorithmDefault(string name, SymbolInfo symbol, PhysicalOrderHandler brokerOrders, LogicalOrderCache orderCache) {
 			this.log = Factory.SysLog.GetLogger(typeof(OrderAlgorithmDefault).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name );
 			this.symbol = symbol;
+		    this.orderCache = orderCache;
 			this.tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			this.physicalOrderHandler = brokerOrders;
             this.canceledLogicals = new ActiveList<LogicalOrder>();
@@ -588,7 +590,6 @@ namespace TickZoom.Common
 				int count = originalLogicals == null ? 0 : originalLogicals.Count;
 				log.Trace("SetLogicalOrders() order count = " + count);
 			}
-			var orderCache = Factory.Engine.LogicalOrderCache(symbol);
 			orderCache.SetActiveOrders(inputLogicals);
 			lock( bufferedLogicalsLocker) {
 				bufferedLogicals.Clear();
@@ -986,8 +987,13 @@ namespace TickZoom.Common
 			get { return handleSimulatedExits; }
 			set { handleSimulatedExits = value; }
 		}
-		
-		// This is a callback to confirm order was properly placed.
+
+	    public LogicalOrderCache OrderCache
+	    {
+	        get { return orderCache; }
+	    }
+
+	    // This is a callback to confirm order was properly placed.
 		public void OnChangeBrokerOrder(PhysicalOrder order, object origBrokerOrder)
 		{
 			PerformCompareProtected();

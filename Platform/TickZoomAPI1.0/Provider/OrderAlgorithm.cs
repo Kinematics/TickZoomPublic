@@ -39,5 +39,6 @@ namespace TickZoom.Api
 		Action<SymbolInfo,LogicalFillBinary> OnProcessFill { get; set; }
 		void SetActualPosition(int position);
 		int ActualPosition { get; }
+	    LogicalOrderCache OrderCache { get; }
 	}
 }

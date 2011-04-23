@@ -935,7 +935,8 @@ namespace TickZoom.MBTFIX
 			lock( orderAlgorithmLocker) {
 				if( !orderAlgorithms.TryGetValue(symbol, out algorithm)) {
 					var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
-					algorithm = Factory.Utility.OrderAlgorithm( "mbtfix", symbolInfo, this);
+				    var orderCache = Factory.Engine.LogicalOrderCache(symbolInfo, false);
+					algorithm = Factory.Utility.OrderAlgorithm( "mbtfix", symbolInfo, this, orderCache);
 					orderAlgorithms.Add(symbol,algorithm);
 					algorithm.OnProcessFill = ProcessFill;
 				}

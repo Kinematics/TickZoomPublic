@@ -1349,7 +1349,8 @@ namespace Orders
 				this.symbol = symbol;
 				this.strategy = strategy;
 				orders = new MockPhysicalOrderHandler(symbol);
-				orderAlgorithm = Factory.Utility.OrderAlgorithm("test",symbol,orders);
+			    var orderCache = Factory.Engine.LogicalOrderCache(symbol, false);
+				orderAlgorithm = Factory.Utility.OrderAlgorithm("test",symbol,orders,orderCache);
 				orders.ConfirmOrders = orderAlgorithm;
 			}
 			public void Clear() {
