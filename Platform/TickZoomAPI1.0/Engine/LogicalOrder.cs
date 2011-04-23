@@ -101,6 +101,7 @@ namespace TickZoom.Api
 		long SerialNumber {
 			get;
 		}
-		
+
+	    long Recency { get; }
 	}
 }

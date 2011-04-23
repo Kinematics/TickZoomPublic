@@ -44,9 +44,11 @@ namespace TickZoom.Api
 		private long orderSerialNumber;
 		private int orderPosition;
 		private bool isSimulated;
-		public LogicalFillBinary(int position, double price, TimeStamp time, TimeStamp utcTime, int orderId, long orderSerialNumber, int orderPosition, bool isSimulated)
+	    private long recency;
+		public LogicalFillBinary(int position, long recency, double price, TimeStamp time, TimeStamp utcTime, int orderId, long orderSerialNumber, int orderPosition, bool isSimulated)
 		{
 			this.position = position;
+		    this.recency = recency;
 			this.orderPosition = orderPosition;
 			this.price = price;
 			this.time = time;
@@ -124,7 +126,7 @@ namespace TickZoom.Api
 			var time = TimeStamp.Parse(fields[field++]);
 			var utcTime = TimeStamp.Parse(fields[field++]);
 			var postedTime = TimeStamp.Parse(fields[field++]);
-			var fill = new LogicalFillBinary(position,price,time,utcTime,orderId,orderSerialNumber,orderPosition,false);
+			var fill = new LogicalFillBinary(position,0,price,time,utcTime,orderId,orderSerialNumber,orderPosition,false);
 			fill.postedTime = postedTime;
 			return fill;
 		}		
@@ -132,5 +134,10 @@ namespace TickZoom.Api
 		public bool IsSimulated {
 			get { return isSimulated; }
 		}
+
+	    public long Recency
+	    {
+	        get { return recency; }
+	    }
 	}
 }

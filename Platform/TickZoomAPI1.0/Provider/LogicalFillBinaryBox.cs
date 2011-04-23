@@ -70,7 +70,12 @@ namespace TickZoom.Api
 		public bool IsSimulated {
 			get { return LogicalFillBinary.IsSimulated; }
 		}
-		
+
+	    public long Recency
+	    {
+            get { return LogicalFillBinary.Recency; }
+	    }
+
 		public override string ToString()
 		{
 			return LogicalFillBinary.ToString();

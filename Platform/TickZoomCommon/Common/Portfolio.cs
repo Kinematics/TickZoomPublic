@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text;
-
+using System.Threading;
 using TickZoom.Api;
 using TickZoom.Statistics;
 
@@ -51,6 +51,7 @@ namespace TickZoom.Common
 		private Performance performance;
 		private bool isActiveOrdersChanged;
 		private Action<StrategyInterface> onActiveOrdersChange;
+	    private long recency;
 		
 		public Portfolio()
 		{
@@ -364,6 +365,12 @@ namespace TickZoom.Common
         {
             get { return orderManager; }
             set { orderManager = value; }
+        }
+
+        public long Recency
+        {
+            get { return Interlocked.Read(ref recency); }
+            set { Interlocked.Exchange(ref recency, value); }
         }
     }
 

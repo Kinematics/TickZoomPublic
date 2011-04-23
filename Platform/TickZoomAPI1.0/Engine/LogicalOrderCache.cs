@@ -28,9 +28,48 @@ using System;
 
 namespace TickZoom.Api
 {
-	public class StrategyPosition {
+	public class StrategyPosition
+	{
+	    private static readonly Log log = Factory.Log.GetLogger(typeof (StrategyPosition));
+	    private bool debug = log.IsDebugEnabled;
 		public int Id;
-		public int Position;
+        public SymbolInfo Symbol;
+        private int _position;
+	    private long recency;
+
+        public StrategyPosition()
+        {
+            log.Info("New StrategyPosition");
+        }
+
+	    public int Position
+	    {
+	        get { return _position; }
+	    }
+
+	    public long Recency
+	    {
+	        get { return recency; }
+	    }
+
+        public void SetPosition( int position)
+        {
+            _position = position;
+        }
+
+	    public void TrySetPosition( int position, long recency)
+        {
+            if( recency == 0L)
+            {
+                throw new InvalidOperationException("Recency must be non-zero.");
+            }
+            if (position != _position)
+            {
+                    if( debug) log.Debug("Strategy " + Id + " for symbol " + Symbol + " position change from " + _position + " to " + position + ". Recency " + this.recency + " to " + recency);
+                    _position = position;
+                    this.recency = recency;
+            }
+        }
 	}
 	public interface LogicalOrderCache
 	{

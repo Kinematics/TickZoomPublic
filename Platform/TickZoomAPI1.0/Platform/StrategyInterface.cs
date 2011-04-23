@@ -66,5 +66,6 @@ namespace TickZoom.Api
 		
 		bool TryGetOrderById( int id, out LogicalOrder order);
 		void AddOrder( LogicalOrder order);
+        long Recency { get; set; }
 	}
 }

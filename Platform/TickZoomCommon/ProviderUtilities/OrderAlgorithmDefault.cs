@@ -666,8 +666,9 @@ namespace TickZoom.Common
 				if( debug) log.Debug("Adjusting symbol position to desired " + desiredPosition + ", physical fill was " + physical.Size);
 				var position = logical.StrategyPosition + physical.Size;
 				if( debug) log.Debug("Creating logical fill with position " + position + " from strategy position " + logical.StrategyPosition);
+                var strategyPosition = (StrategyPosition)logical.Strategy;
 				fill = new LogicalFillBinary(
-					position, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber,logical.Position,physical.IsSimulated);
+					position, strategyPosition.Recency+1, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber,logical.Position,physical.IsSimulated);
 			} catch( ApplicationException ex) {
                 log.Warn("Leaving symbol position at desired " + desiredPosition + ", since this appears to be an adjustment market order: " + physical.Order);
 				if( debug) log.Debug("Skipping logical fill for an adjustment market order.");
@@ -843,8 +844,8 @@ namespace TickZoom.Common
 	
 		private void UpdateOrderCache(LogicalOrder order, LogicalFill fill) {
 			var strategyPosition = (StrategyPosition) order.Strategy;
-			if( debug) log.Debug("Adjusting strategy position to " + order.Position + ", strategy position was " + strategyPosition.Position);
-			strategyPosition.Position = fill.Position;
+            if( debug) log.Debug("Adjusting strategy position to " + fill.Position + " from " + strategyPosition.Position + ". Recency " + fill.Recency + " for strategy id " + strategyPosition.Id);
+            strategyPosition.TrySetPosition(fill.Position, fill.Recency);
 //			orderCache.RemoveInactive(order);
 		}
 		

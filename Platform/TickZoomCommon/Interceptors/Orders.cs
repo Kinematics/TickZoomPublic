@@ -136,5 +136,13 @@ namespace TickZoom.Interceptors
 				get { return nextBar; }
 			}
 		}
+
+	    public void SetAutoCancel()
+	    {
+	        this.enter.ActiveNow.CancelOrders();
+            this.exit.ActiveNow.CancelOrders();
+            this.change.ActiveNow.CancelOrders();
+            this.reverse.ActiveNow.CancelOrders();
+	    }
 	}
 }

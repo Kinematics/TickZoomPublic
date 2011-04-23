@@ -41,5 +41,6 @@ namespace TickZoom.Api
 		double Price { get; }
 		int Position { get; }
 		bool IsSimulated { get; }
+	    long Recency { get; }
 	}
 }

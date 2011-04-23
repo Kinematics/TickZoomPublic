@@ -157,7 +157,6 @@ namespace TickZoom.TickUtil
 	    private int connectionId;
 	    public void Connect(Task task)
 	    {
-	        this.connectionId = connectionId;
 			if( this.task != task) {
 				this.task = task;
 				task.Connect( this, out connectionId);
