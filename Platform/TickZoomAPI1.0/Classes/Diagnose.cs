@@ -38,6 +38,7 @@ namespace TickZoom.Api
         private static Log log = Factory.Log.GetLogger("TickZoom.Api.Diagnose");
         private static Dictionary<long, long> symbols;
 	    public static readonly bool TraceTicks = false;
+        private static TaskLock metricsLocker = new TaskLock();
         private static DiagnoseTicksMetric[] metrics = new DiagnoseTicksMetric[8];
 	    private static DataSeries<DiagnoseTickEntry> tickLog = Factory.Engine.Series<DiagnoseTickEntry>();
 
@@ -88,30 +89,33 @@ namespace TickZoom.Api
 
         public static int RegisterMetric(string metricName)
         {
-            for( int i=0; i< nextMetricId; i++)
+            using( metricsLocker.Using())
             {
-                if (metricName == metrics[i].Name)
+                for (int i = 0; i < nextMetricId; i++)
                 {
-                    return i + 1; // ids are 1 based.
+                    if (metricName == metrics[i].Name)
+                    {
+                        return i + 1; // ids are 1 based.
+                    }
                 }
+                // not found
+                var metricId = Interlocked.Increment(ref nextMetricId);
+                if (metricId > metrics.Length)
+                {
+                    Array.Resize(ref metrics, metrics.Length * 2);
+                }
+                var metric = metrics[metricId - 1] = new DiagnoseTicksMetric
+                {
+                    Id = metricId,
+                    Name = metricName,
+                    Enabled = true,
+                };
+                if (metric.Name.Contains("PoolTicks"))
+                {
+                    metric.Enabled = true;
+                }
+                return metricId;
             }
-            // not found
-            var metricId = Interlocked.Increment(ref nextMetricId);
-            if( metricId > metrics.Length)
-            {
-                Array.Resize(ref metrics, metrics.Length * 2);
-            }
-            var metric = metrics[metricId - 1] = new DiagnoseTicksMetric
-            {
-                Id = metricId,
-                Name = metricName,
-                Enabled = true,
-            };
-            if( metric.Name.Contains("PoolTicks"))
-            {
-                metric.Enabled = true;
-            }
-            return metricId;
         }
 
         //public static void LogTicks(long symbol, int quantity)

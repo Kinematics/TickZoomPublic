@@ -74,8 +74,7 @@ namespace TickZoom.Logging
 			private bool isInitialized = false;
 			
 			public LogImplWrapper(ILogger logger) : base( logger) {
-			
-			}
+            }
 			
 			private static readonly Level[] levels = new Level[] {
 				Level.Verbose,
@@ -159,13 +158,12 @@ namespace TickZoom.Logging
 				}
 			}
 
-			private Dictionary<Level,int> childrenByLevel;
+			private Dictionary<Level,int> childrenByLevel = new Dictionary<Level, int>();
             private object childrenLocker = new object();
 			
 			private void FindAnyEnabled() {
                 lock(childrenLocker)
                 {
-                    childrenByLevel = new Dictionary<Level, int>();
 			        foreach( var level in levels) {
 					    childrenByLevel[level] = 0;
 				    }

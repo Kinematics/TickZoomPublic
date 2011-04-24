@@ -109,6 +109,7 @@ namespace TickZoom.Statistics
 			profitLoss.Symbol = model.Data.SymbolInfo;
 
 		}
+
 		public bool OnProcessFill(LogicalFill fill)
 		{
 			if( debug) log.Debug(model + ": OnProcessFill: " + fill);

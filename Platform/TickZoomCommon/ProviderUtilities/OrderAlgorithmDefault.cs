@@ -406,9 +406,7 @@ namespace TickZoom.Common
 					}
 					break;
 				case TradeDirection.Reverse:
-					if( logical.StrategyPosition != 0) {
-						ProcessMissingPhysical(logical);
-					}
+					ProcessMissingPhysical(logical);
 					break;
 				case TradeDirection.Change:
 					ProcessMissingPhysical(logical);
@@ -429,7 +427,7 @@ namespace TickZoom.Common
 				case TradeDirection.Exit:
 				case TradeDirection.ExitStrategy:
 					var size = Math.Abs(logical.StrategyPosition);
-					ProcessMissingPhysical( logical, size);
+					ProcessMissingExit( logical, size);
 					break;
 				case TradeDirection.Reverse:
 					var logicalPosition =
@@ -438,9 +436,9 @@ namespace TickZoom.Common
 						logical.Type == OrderType.BuyStop ?
 						logical.Position : - logical.Position;
 					size = Math.Abs(logicalPosition - logical.StrategyPosition);
-					if( size != 0) {
-						ProcessMissingPhysical( logical, size);
-					}
+                    if( size != 0) {
+						ProcessMissingReverse( logical, size);
+                    }
 					break;
 				case TradeDirection.Change:
 					logicalPosition = 
@@ -461,8 +459,17 @@ namespace TickZoom.Common
 					throw new ApplicationException("Unknown trade direction: " + logical.TradeDirection);
 			}
 		}
-		
-		private void ProcessMissingPhysical(LogicalOrder logical, int size) {
+
+        private void ProcessMissingReverse(LogicalOrder logical, int size)
+        {
+            if (debug) log.Debug("ProcessMissingPhysical(" + logical + ")");
+            var side = GetOrderSide(logical.Type);
+            var physical = new PhysicalOrderDefault(OrderState.Active, symbol, logical, side, size);
+            TryCreateBrokerOrder(physical);
+        }
+
+        private void ProcessMissingExit(LogicalOrder logical, int size)
+        {
 			if( logical.StrategyPosition > 0) {
 				if( logical.Type == OrderType.SellLimit ||
 				  logical.Type == OrderType.SellStop ||
