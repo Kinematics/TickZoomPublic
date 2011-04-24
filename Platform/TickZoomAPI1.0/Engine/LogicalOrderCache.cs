@@ -30,7 +30,7 @@ namespace TickZoom.Api
 {
 	public class StrategyPosition
 	{
-	    private static readonly Log log = Factory.Log.GetLogger(typeof (StrategyPosition));
+	    private static readonly Log log = Factory.SysLog.GetLogger(typeof (StrategyPosition));
 	    private bool debug = log.IsDebugEnabled;
 		public int Id;
         public SymbolInfo Symbol;
@@ -54,6 +54,7 @@ namespace TickZoom.Api
 
         public void SetPosition( int position)
         {
+            if (debug) log.Debug("SetPositions() strategy " + Id + " for " + Symbol + " position change from " + _position + " to " + position + ". Recency " + this.recency + " to " + recency);
             _position = position;
         }
 
@@ -65,9 +66,17 @@ namespace TickZoom.Api
             }
             if (position != _position)
             {
-                    if( debug) log.Debug("Strategy " + Id + " for symbol " + Symbol + " position change from " + _position + " to " + position + ". Recency " + this.recency + " to " + recency);
+                if (recency > this.recency)
+                {
+                    if( debug) log.Debug("Strategy " + Id + " for " + Symbol + " position change from " + _position + " to " + position + ". Recency " + this.recency + " to " + recency);
                     _position = position;
                     this.recency = recency;
+                }
+                else
+                {
+                    if (debug) log.Debug("Rejected change of strategy " + Id + " for " + Symbol + "position " + _position + " to " + position +
+                             ".  Recency " + recency + " wasn't newer than " + this.recency);
+                }
             }
         }
 	}

@@ -873,37 +873,24 @@ namespace TickZoom.Common
 		
 		private int recursiveCounter;
 		private void PerformCompareInternal() {
-			if( debug) {
-				log.Debug( "PerformCompare for " + symbol + " with " +
-			                     actualPosition + " actual " + 
-			                     desiredPosition + " desired and " +
-			                     originalLogicals.Count + " logical, " +
-			                     originalPhysicals.Count + " physical.");
-			}
-			originalPhysicals.Clear();
-			originalPhysicals.AddLast( physicalOrderHandler.GetActiveOrders(symbol));
-			if( debug) {
-				var next = originalLogicals.First;
-				for( var node = next; node != null; node = node.Next) {
-					var order = node.Value;
-					log.Debug("Logical Order: " + order);
-				}
-			}
-				
-			if( debug) {
-				var next = originalPhysicals.First;
-				for( var node = next; node != null; node = node.Next) {
-					var order = node.Value;
-					log.Debug("Physical Order: " + order);
-				}
+			if( debug)
+			{
+			    log.Debug("PerformCompare for " + symbol + " with " +
+			              actualPosition + " actual " +
+			              desiredPosition + " desired.");
 			}
 			
-			if( CheckForPending()) {
-				if( debug) log.Debug("Found pending physical orders. Skipping compare.");
-				return;
-			}
-			
-			lock( bufferedLogicalsLocker) {
+            originalPhysicals.Clear();
+            originalPhysicals.AddLast(physicalOrderHandler.GetActiveOrders(symbol));
+
+            if (CheckForPending())
+            {
+                if (debug) log.Debug("Found pending physical orders. Skipping compare.");
+                return;
+            }
+
+            lock (bufferedLogicalsLocker)
+            {
 				if( CheckForFilledOrders(bufferedLogicals)) {
 					if( debug) log.Debug("Found already filled orders in position change event. Skipping compare.");
 					return;
@@ -914,8 +901,32 @@ namespace TickZoom.Common
 					originalLogicals.AddLast(bufferedLogicals);
 				}
 			}
-			
-			logicalOrders.Clear();
+
+            if (debug)
+            {
+                log.Debug(originalLogicals.Count + " logicals, " + originalPhysicals.Count + " physicals.");
+            }
+
+            if (debug)
+            {
+                var next = originalLogicals.First;
+                for (var node = next; node != null; node = node.Next)
+                {
+                    var order = node.Value;
+                    log.Debug("Logical Order: " + order);
+                }
+            }
+
+            if (debug)
+            {
+                var next = originalPhysicals.First;
+                for (var node = next; node != null; node = node.Next)
+                {
+                    var order = node.Value;
+                    log.Debug("Physical Order: " + order);
+                }
+            }
+            logicalOrders.Clear();
 			logicalOrders.AddLast(originalLogicals);
 			
 			physicalOrders.Clear();

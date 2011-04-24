@@ -81,7 +81,7 @@ namespace TickZoom.Interceptors
                 if( fill.Recency > strategy.Recency)
                 {
                     if( debug) Log.Debug("strategy recency now " + fill.Recency);
-                    strategy.Recency = fill.Recency;
+                    strategy.Recency = fill.Recency+1;
                 }
 			} else {
 				throw new ApplicationException("A fill for order id: " + orderId + " was incorrectly routed to: " + strategyInterface.Name);
