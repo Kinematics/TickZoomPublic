@@ -660,7 +660,9 @@ namespace TickZoom.Common
 			if( debug) log.Debug( "ProcessFill() physical: " + physical);
             //log.warn("processfill() physical: " + physical);
             //physicalOrders.Remove(physical.Order);
+		    var beforePosition = actualPosition;
             actualPosition += physical.Size;
+            if( debug) log.Debug("Updating actual position from " + beforePosition + " to " + actualPosition + " from fill size " + physical.Size);
 			var isCompletePhysicalFill = remainingSize == 0;
 			if( isCompletePhysicalFill) {
 				if( debug) log.Debug("Physical order completely filled: " + physical.Order);
@@ -680,7 +682,8 @@ namespace TickZoom.Common
 					position, strategyPosition.Recency+1, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber,logical.Position,physical.IsSimulated);
 			} catch( ApplicationException ex) {
                 log.Warn("Leaving symbol position at desired " + desiredPosition + ", since this appears to be an adjustment market order: " + physical.Order);
-				if( debug) log.Debug("Skipping logical fill for an adjustment market order.");
+                orderCache.SyncPositions();
+                if (debug) log.Debug("Skipping logical fill for an adjustment market order.");
 				if( debug) log.Debug("Performing extra compare.");
 				PerformCompareProtected();
 				TryRemovePhysicalFill(physical);
@@ -853,7 +856,7 @@ namespace TickZoom.Common
 	
 		private void UpdateOrderCache(LogicalOrder order, LogicalFill fill) {
 			var strategyPosition = (StrategyPosition) order.Strategy;
-            if( debug) log.Debug("Adjusting strategy position to " + fill.Position + " from " + strategyPosition.Position + ". Recency " + fill.Recency + " for strategy id " + strategyPosition.Id);
+            if( debug) log.Debug("Adjusting strategy position to " + fill.Position + " from " + strategyPosition.ActualPosition + ". Recency " + fill.Recency + " for strategy id " + strategyPosition.Id);
             strategyPosition.TrySetPosition(fill.Position, fill.Recency);
 //			orderCache.RemoveInactive(order);
 		}

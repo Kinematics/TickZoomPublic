@@ -80,9 +80,10 @@ namespace TickZoom
             this.statusStrip1.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripStatusXY});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 430);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 427);
+            this.statusStrip1.MinimumSize = new System.Drawing.Size(0, 25);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(791, 22);
+            this.statusStrip1.Size = new System.Drawing.Size(791, 25);
             this.statusStrip1.TabIndex = 1;
             this.statusStrip1.Text = "statusStrip1";
             // 
@@ -90,11 +91,11 @@ namespace TickZoom
             // 
             this.logTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
-            this.logTextBox.Location = new System.Drawing.Point(10, 338);
+            this.logTextBox.Location = new System.Drawing.Point(10, 324);
             this.logTextBox.Multiline = true;
             this.logTextBox.Name = "logTextBox";
             this.logTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.logTextBox.Size = new System.Drawing.Size(772, 72);
+            this.logTextBox.Size = new System.Drawing.Size(772, 83);
             this.logTextBox.TabIndex = 5;
             this.logTextBox.Text = "Chart Log";
             this.logTextBox.Visible = false;
@@ -113,7 +114,7 @@ namespace TickZoom
             this.dataGraph.ScrollMinX = 0;
             this.dataGraph.ScrollMinY = 0;
             this.dataGraph.ScrollMinY2 = 0;
-            this.dataGraph.Size = new System.Drawing.Size(772, 407);
+            this.dataGraph.Size = new System.Drawing.Size(772, 404);
             this.dataGraph.TabIndex = 0;
             this.dataGraph.MouseMoveEvent += new ZedGraph.ZedGraphControl.ZedMouseEventHandler(this.DataGraphMouseMoveEvent);
             this.dataGraph.ScrollEvent += new System.Windows.Forms.ScrollEventHandler(this.DataGraphScrollEvent);
@@ -121,9 +122,9 @@ namespace TickZoom
             // 
             // indicatorValues
             // 
-            this.indicatorValues.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+            this.indicatorValues.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
-            this.indicatorValues.Location = new System.Drawing.Point(10, 413);
+            this.indicatorValues.Location = new System.Drawing.Point(10, 410);
             this.indicatorValues.Name = "indicatorValues";
             this.indicatorValues.Size = new System.Drawing.Size(772, 17);
             this.indicatorValues.TabIndex = 8;

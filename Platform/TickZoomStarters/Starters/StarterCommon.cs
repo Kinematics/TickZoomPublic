@@ -158,6 +158,10 @@ namespace TickZoom.Starters
 		{
 			Factory.Parallel.SetMode( parallelMode);
 			engine = Factory.Engine.TickEngine;
+            if( ProjectProperties.Starter.SymbolProperties.Length == 0)
+            {
+                throw new TickZoomException("Please enter at least one symbol.");
+            }
 			ProjectProperties.Engine.CopyProperties(engine);
 			// Chaining of models.
 			engine.Model = model;
@@ -394,6 +398,10 @@ namespace TickZoom.Starters
 		}
 		
 		public TickEngine SetupEngine(bool quietMode) {
+            if( ProjectProperties.Starter.SymbolProperties.Length == 0)
+            {
+                throw new TickZoomException("Please enter at least one symbol.");
+            }
 			Factory.Parallel.SetMode( parallelMode);
 			TickEngine engine = Factory.Engine.TickEngine;
 			ProjectProperties.Engine.CopyProperties(engine);

@@ -241,7 +241,7 @@ namespace Orders
 		[Test]
 		public void Test04SyncLongTwoOrders() {
             SetActualSize(1000);
-            handler.SetActualPosition(0);
+            //handler.SetActualPosition(0);
             
             int sellLimitId = CreateLogicalExit(OrderType.SellLimit,334.12);
 			int sellStopId = CreateLogicalExit(OrderType.SellStop,134.12);
@@ -255,22 +255,22 @@ namespace Orders
 
             Assert.AreEqual(0, handler.Orders.CanceledOrders.Count);
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
-			Assert.AreEqual(3,handler.Orders.CreatedOrders.Count);
+			Assert.AreEqual(2,handler.Orders.CreatedOrders.Count);
 
-            PhysicalOrder order = handler.Orders.CreatedOrders[0];
-			Assert.AreEqual(OrderType.BuyMarket,order.Type);
-			Assert.AreEqual(1000,order.Size);
-			Assert.AreEqual(0,order.LogicalOrderId);
-			AssertBrokerOrder(order.BrokerOrder);
+            //PhysicalOrder order = handler.Orders.CreatedOrders[0];
+            //Assert.AreEqual(OrderType.BuyMarket,order.Type);
+            //Assert.AreEqual(1000,order.Size);
+            //Assert.AreEqual(0,order.LogicalOrderId);
+            //AssertBrokerOrder(order.BrokerOrder);
 
-			order = handler.Orders.CreatedOrders[1];
+            var order = handler.Orders.CreatedOrders[0];
 			Assert.AreEqual(OrderType.SellLimit,order.Type);
 			Assert.AreEqual(334.12,order.Price);
 			Assert.AreEqual(1000,order.Size);
 			Assert.AreEqual(sellLimitId,order.LogicalOrderId);
 			AssertBrokerOrder(order.BrokerOrder);
 			
-			order = handler.Orders.CreatedOrders[2];
+			order = handler.Orders.CreatedOrders[1];
 			Assert.AreEqual(OrderType.SellStop,order.Type);
 			Assert.AreEqual(134.12,order.Price);
 			Assert.AreEqual(1000,order.Size);

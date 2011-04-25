@@ -1143,10 +1143,11 @@ namespace TickZoom
 	    private TaskLock formatToolStripLocker = new TaskLock();
 	    private void FormatToolStripText()
 	    {
+            var myPane = dataGraph.GraphPane;
+            if (myPane == null) return;
             if (!formatToolStripLocker.TryLock()) return;
             try
             {
-                GraphPane myPane = dataGraph.GraphPane;
                 GraphPane.Default.NearestTol = 200.00f;
                 // find the point that was clicked, and make sure the point list is editable
                 // and that it's a primary Y axis (the first Y or Y2 axis)

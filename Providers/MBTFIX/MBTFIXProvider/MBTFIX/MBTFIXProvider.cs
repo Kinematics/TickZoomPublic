@@ -206,7 +206,7 @@ namespace TickZoom.MBTFIX
 
 		private void RequestPositions() {
 			var fixMsg = (FIXMessage4_4) FixFactory.Create();
-			fixMsg.SetSubscriptionRequestType(1);
+			fixMsg.SetSubscriptionRequestType(0);
 			fixMsg.SetAccount(AccountNumber);
 			fixMsg.SetPositionRequestId(1);
 			fixMsg.SetPositionRequestType(0);
@@ -416,19 +416,23 @@ namespace TickZoom.MBTFIX
 				isPositionUpdateComplete = true;
 				if(debug) log.Debug("PositionUpdate Complete.");
 				TryEndRecovery();
-			} else {
-                //var position = packetFIX.LongQuantity + packetFIX.ShortQuantity;
-                //SymbolInfo symbolInfo;
-                //try {
-                //    symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-                //} catch( ApplicationException ex) {
-                //    log.Error("Error looking up " + packetFIX.Symbol + ": " + ex.Message);
-                //    return;
-                //}
-                //if( debug) log.Debug("PositionUpdate: " + symbolInfo + "=" + position);
-                //var orderHandler = GetAlgorithm(symbolInfo.BinaryIdentifier);
-                //orderHandler.SetActualPosition( position);
-			}
+			} else if (!IsRecovered)
+            {
+                var position = packetFIX.LongQuantity + packetFIX.ShortQuantity;
+                SymbolInfo symbolInfo;
+                try
+                {
+                    symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+                }
+                catch (ApplicationException ex)
+                {
+                    log.Error("Error looking up " + packetFIX.Symbol + ": " + ex.Message);
+                    return;
+                }
+                if (debug) log.Debug("PositionUpdate: " + symbolInfo + "=" + position);
+                var orderHandler = GetAlgorithm(symbolInfo.BinaryIdentifier);
+                orderHandler.SetActualPosition(position);
+            }
 		}
 		
 		private void ExecutionReport( MessageFIX4_4 packetFIX) {
@@ -688,15 +692,18 @@ namespace TickZoom.MBTFIX
 			rejectReason = packetFIX.Text.Contains("No position to close") ? true : rejectReason;			
 			RemoveOrder( packetFIX.ClientOrderId);
 			RemoveOrder( packetFIX.OriginalClientOrderId);
-			if( !rejectReason && IsRecovered) {
-				var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
-				var ignore = "The reject error message '" + packetFIX.Text + "' was unrecognized. So it is being ignored. ";
-				var handle = "If this reject causes any other problems please report it to have it added and properly handled.";
-				log.Warn( message);
-				log.Error( ignore + handle);
-			} else {
-				log.Info( "RejectOrder(" + packetFIX.Text + ") Removed cancel order: " + packetFIX.ClientOrderId + " and original order: " + packetFIX.OriginalClientOrderId);
-			}
+            if( IsRecovered || LogRecovery)
+            {
+			    if( !rejectReason ) {
+				    var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
+				    var ignore = "The reject error message '" + packetFIX.Text + "' was unrecognized. So it is being ignored. ";
+				    var handle = "If this reject causes any other problems please report it to have it added and properly handled.";
+				    log.Warn( message);
+				    log.Error( ignore + handle);
+			    } else {
+				    log.Info( "RejectOrder(" + packetFIX.Text + ") Removed cancel order: " + packetFIX.ClientOrderId + " and original order: " + packetFIX.OriginalClientOrderId);
+			    }
+            }
 		}
 		
 		public PhysicalOrder GetOrderById( object brokerOrder) {
