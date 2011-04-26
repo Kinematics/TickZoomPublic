@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Threading;
 using TickZoom.Api;
 using TickZoom.Common;
+using TickZoom.Interceptors;
 
 namespace TickZoom.Examples
 {
@@ -19,14 +20,31 @@ namespace TickZoom.Examples
         int lotSize;
         double ask;
         double bid;
+        private int addDelaySeconds = 15;
+        private ExitCommon customExitOrders;
+        private ChangeCommon customChangeOrders;
+
+        public SimpleStrategy()
+        {
+            customExitOrders = new ExitCommon(this);
+            customChangeOrders = new ChangeCommon(this);
+        }
+
+        public override void OnConfigure()
+        {
+            customExitOrders.OnInitialize();
+            customChangeOrders.OnInitialize();
+            base.OnConfigure();
+        }
 
         public override void OnInitialize()
         {
+
             Performance.Equity.GraphEquity = true;
 
             minimumTick = Data.SymbolInfo.MinimumTick;
             lotSize = 1000;
-            spread = 20*minimumTick;
+            spread = 15*minimumTick;
 
             askLine = Formula.Indicator();
             askLine.Name = "Ask";
@@ -50,7 +68,9 @@ namespace TickZoom.Examples
         public override bool OnProcessTick(Tick tick)
         {
             Orders.SetAutoCancel();
-            if( !tick.IsQuote)
+            customExitOrders.CancelOrders();
+            customChangeOrders.CancelOrders();
+            if (!tick.IsQuote)
             {
                 throw new InvalidOperationException("This strategy requires bid/ask quote data to operate.");
             }
@@ -72,7 +92,7 @@ namespace TickZoom.Examples
             if( comboTrades.Count > 0)
             {
                 var comboTrade = comboTrades.Tail;
-                averagePrice[0] = comboTrade.AverageEntryPrice;
+                averagePrice[0] = CalcAveragePrice(comboTrade);
             }
             else
             {
@@ -105,43 +125,88 @@ namespace TickZoom.Examples
             }
         }
 
+        private double CalcAveragePrice(TransactionPairBinary comboTrade)
+        {
+            var sign = Math.Sign(comboTrade.CurrentPosition);
+            var position = comboTrade.CurrentPosition;
+            return comboTrade.AverageEntryPrice; //(comboTrade.AverageEntryPrice * position + sign * comboTrade.ClosedPoints) / position;
+        }
+
+        private bool waitingToAdd = true;
         private void OnProcessLong(Tick tick)
         {
             var comboTrade = Performance.ComboTrades.Tail;
-            var averageEntry = comboTrade.AverageEntryPrice;
-            if (averageEntry <= ask)
+            var averageEntry = CalcAveragePrice(comboTrade);
+            if (Math.Abs(comboTrade.CurrentPosition) <= lotSize)
             {
                 Orders.Reverse.ActiveNow.SellLimit(ask, lotSize);
             }
-            else
-            if( Math.Abs(comboTrade.CurrentPosition) <= lotSize)
+            else if( averageEntry < ask)
             {
-                Orders.Reverse.ActiveNow.SellLimit(ask,lotSize);
+                Orders.Reverse.ActiveNow.SellLimit(averageEntry, lotSize);
             }
             else
             {
                 Orders.Change.ActiveNow.SellLimit(ask, lotSize);
+                //if (fills.Count > 5)
+                //{
+                //    customExitOrders.SellLimit(averageEntry);
+                //}
+                //if (fills.Count > 10)
+                //{
+                //    var halfWay = (fills.First.Value.Price + averageEntry) / 2;
+                //    customChangeOrders.SellLimit(halfWay, Math.Abs(comboTrade.CurrentPosition / 2));
+                //}
             }
+            var price = fills.First.Value.Price - CalcIncreaseSpread(tick);
             Orders.Change.ActiveNow.BuyLimit(bid, lotSize);
         }
 
         private void OnProcessShort(Tick tick)
         {
             var comboTrade = Performance.ComboTrades.Tail;
-            var averageEntry = comboTrade.AverageEntryPrice;
-            Orders.Change.ActiveNow.SellLimit(ask, lotSize);
-            if (averageEntry >= bid)
-            {
-                Orders.Reverse.ActiveNow.BuyLimit(bid, lotSize);
-            }
-            else
+            var averageEntry = CalcAveragePrice(comboTrade);
+            var price = fills.First.Value.Price + CalcIncreaseSpread(tick);
+            askLine[0] = price;
+            Orders.Change.ActiveNow.SellLimit(price, lotSize);
             if (Math.Abs(comboTrade.CurrentPosition) <= lotSize)
             {
                 Orders.Reverse.ActiveNow.BuyLimit(bid, lotSize);
-            } else
+            }
+            else if( averageEntry > bid)
+            {
+                Orders.Reverse.ActiveNow.BuyLimit(averageEntry, lotSize);
+            }
+            else
             {
                 Orders.Change.ActiveNow.BuyLimit(bid, lotSize);
+                //if (fills.Count > 5)
+                //{
+                //    customExitOrders.BuyLimit(averageEntry);
+                //}
+                //if( fills.Count > 10)
+                //{
+                //    var halfWay = (fills.First.Value.Price + averageEntry)/2;
+                //    customChangeOrders.BuyLimit(halfWay, Math.Abs(comboTrade.CurrentPosition/2));
+                //}
             }
+        }
+
+        private double CalcIncreaseSpread(Tick tick)
+        {
+            var lastFill = fills.First.Value;
+            var elapsed = tick.Time - lastFill.Time;
+            var scale = elapsed.TotalSeconds;
+            var spread = fills.Count == 1 ? this.spread : (fills.First.Value.Price - fills.First.Next.Value.Price) * 2;
+            if (scale < 10)
+            {
+                spread = (spread / 10) * (10 - scale);
+            }
+            else
+            {
+                spread = this.spread;
+            }
+            return spread;
         }
 
         public override void OnEndHistorical()
@@ -153,15 +218,18 @@ namespace TickZoom.Examples
         {
             public int Size;
             public double Price;
+            public TimeStamp Time;
             public LocalFill( LogicalFill fill)
             {
                 Size = Math.Abs(fill.Position);
                 Price = fill.Price;
+                Time = fill.Time;
             }
-            public LocalFill(int size, double price)
+            public LocalFill(int size, double price, TimeStamp time)
             {
                 Size = size;
                 Price = price;
+                Time = time;
             }
             public override string ToString()
             {
@@ -173,6 +241,7 @@ namespace TickZoom.Examples
 
         private void SetupBidAsk()
         {
+            waitingToAdd = true;
             var tick = Ticks[0];
             var currentFill = fills.First.Value;
             var myAsk = currentFill.Price + spread / 2;
@@ -205,7 +274,7 @@ namespace TickZoom.Examples
                 }
                 else
                 {
-                    fills.AddFirst(new LocalFill(change, fill.Price));
+                    fills.AddFirst(new LocalFill(change, fill.Price, fill.Time));
                     SetupBidAsk();
                 }
             }
@@ -265,7 +334,6 @@ namespace TickZoom.Examples
                 throw new InvalidOperationException("Trade must be completed.");
             }
             totalVolume += comboTrade.Volume;
-            SetFlatBidAsk();
         }
     }
 }

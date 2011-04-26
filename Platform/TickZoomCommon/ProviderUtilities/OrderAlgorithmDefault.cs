@@ -890,7 +890,7 @@ namespace TickZoom.Common
 			              actualPosition + " actual " +
 			              desiredPosition + " desired.");
 			}
-			
+				
             originalPhysicals.Clear();
             originalPhysicals.AddLast(physicalOrderHandler.GetActiveOrders(symbol));
 
@@ -993,9 +993,25 @@ namespace TickZoom.Common
 			get { return actualPosition; }
 		}
 
-		public void SetActualPosition( int position) {
-			actualPosition = position;
+		public void SetActualPosition( int position)
+		{
+		    Interlocked.Exchange(ref actualPosition, position);
 		}
+
+        public void IncreaseActualPosition( int position)
+        {
+            var count = Math.Abs(position);
+            for( var i=0; i<count; i++)
+            {
+                if (position > 0)
+                {
+                    Interlocked.Increment(ref actualPosition);
+                } else
+                {
+                    Interlocked.Decrement(ref actualPosition);
+                }
+            }
+        }
 
 		public PhysicalOrderHandler PhysicalOrderHandler {
 			get { return physicalOrderHandler; }

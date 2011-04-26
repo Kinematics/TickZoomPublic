@@ -126,6 +126,7 @@
     <Compile Include="Statistics\BaseStats.cs" />
     <Compile Include="Statistics\DataHasher.cs" />
     <Compile Include="Statistics\Equity.cs" />
+    <Compile Include="Statistics\ProfitLossCallback2.cs" />
     <Compile Include="Statistics\ProfitLossEquity.cs" />
     <Compile Include="Statistics\EquityStats.cs" />
     <Compile Include="Statistics\Performance.cs" />

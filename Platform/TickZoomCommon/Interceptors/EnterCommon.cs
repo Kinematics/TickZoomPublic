@@ -43,15 +43,7 @@ namespace TickZoom.Interceptors
             this.strategy = strategy;
             this.direction = direction;
         }
-        public void OnInitialize()
-        {
-            //var order = BuyMarket;
-            //order = BuyLimit;
-            //order = BuyStop;
-            //order = SellLimit;
-            //order = SellMarket;
-            //order = SellStop;
-        }
+
         private LogicalOrder buyMarket;
         public LogicalOrder BuyMarket
         {
@@ -171,7 +163,6 @@ namespace TickZoom.Interceptors
 		{
 			if( IsDebug) Log.Debug("OnInitialize()");
 			Strategy.Drawing.Color = Color.Black;
-            orders.OnInitialize();
 		}
 		
         public void CancelOrders()

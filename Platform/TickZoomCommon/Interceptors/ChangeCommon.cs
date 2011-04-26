@@ -51,7 +51,6 @@ namespace TickZoom.Interceptors
 		{
 			if( IsDebug) Log.Debug("OnInitialize()");
 			Strategy.Drawing.Color = Color.Black;
-            orders.OnInitialize();
         }
 		
 	        public void CancelOrders()

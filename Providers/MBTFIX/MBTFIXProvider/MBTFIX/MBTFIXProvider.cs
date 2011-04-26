@@ -627,12 +627,13 @@ namespace TickZoom.MBTFIX
 			if( debug ) log.Debug("SendFill( " + packetFIX.ClientOrderId + ")");
 			var symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
 			var timeZone = new SymbolTimeZone(symbolInfo);
-			if( GetSymbolStatus(symbolInfo)) {
-				var algorithm = GetAlgorithm(symbolInfo.BinaryIdentifier);
+            var algorithm = GetAlgorithm(symbolInfo.BinaryIdentifier);
+            var fillPosition = packetFIX.LastQuantity * SideToSign(packetFIX.Side);
+            if (GetSymbolStatus(symbolInfo))
+            {
                 try
                 {
 				    var order = GetPhysicalOrder( packetFIX.ClientOrderId);
-				    var fillPosition = packetFIX.LastQuantity * SideToSign(packetFIX.Side);
 				    TimeStamp executionTime;
 				    if( UseLocalFillTime) {
 					    executionTime = TimeStamp.UtcNow;
@@ -646,7 +647,8 @@ namespace TickZoom.MBTFIX
 	                algorithm.ProcessFill( fill,packetFIX.OrderQuantity,packetFIX.CumulativeQuantity,packetFIX.LeavesQuantity);
                 } catch( PhysicalOrderNotFoundException )
                 {
-                    log.Notice("Fill id " + packetFIX.ClientOrderId + " not found. Must have been a manual trade. Note, TickZoom will likely replace the position of this trade.");
+                    algorithm.IncreaseActualPosition( fillPosition);
+                    log.Notice("Fill id " + packetFIX.ClientOrderId + " not found. Must have been a manual trade.");
                 }
 			}
 		}

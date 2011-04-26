@@ -54,7 +54,6 @@ namespace TickZoom.Interceptors
 			if( IsTrace) Log.Trace(Strategy.FullName+".Initialize()");
 			Strategy.Drawing.Color = Color.Black;
 			position = Strategy.Position;
-            orders.OnInitialize();
         }
 
 		private void FlattenSignal(double price) {

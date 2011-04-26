@@ -226,7 +226,7 @@ namespace TickZoom.Statistics
 		    double pnl = 0D;
             if( profitLoss2 == null)
             {
-                pnl = profitLoss.CalculateProfit(comboTrade.CurrentPosition, comboTrade.AverageEntryPrice, comboTrade.ExitPrice);
+                pnl = profitLoss.CalculateProfit(comboTrade.Direction, comboTrade.AverageEntryPrice, comboTrade.ExitPrice);
             }
             else
             {
