@@ -144,13 +144,19 @@ namespace TickZoom.Common
 		
 		private void TryCreateBrokerOrder(PhysicalOrder physical) {
 			if( debug) log.Debug("Create Broker Order " + physical);
-			sentPhysicalOrders++;
-			TryAddPhysicalOrder(physical);
-			if( physical.Size <= 0) {
-				throw new ApplicationException("Sorry, order size must be greater than or equal to zero.");
-			}
-			physicalOrderHandler.OnCreateBrokerOrder(physical);
-		}
+            if( physicalOrderHandler.HasBrokerOrder(physical))
+            {
+                if( debug) log.Debug("Ignoring broker order as physical order handler has it already pending.");
+                return;
+            }
+            sentPhysicalOrders++;
+            TryAddPhysicalOrder(physical);
+            if (physical.Size <= 0)
+            {
+                throw new ApplicationException("Sorry, order size must be greater than or equal to zero.");
+            }
+            physicalOrderHandler.OnCreateBrokerOrder(physical);
+        }
 		
 		private void ProcessMatchPhysicalEntry( LogicalOrder logical, PhysicalOrder physical) {
 			log.Trace("ProcessMatchPhysicalEntry()");
@@ -1040,6 +1046,11 @@ namespace TickZoom.Common
 				tickSync.RemovePhysicalOrder( order);
 			}
 		}
+
+        public bool HasBrokerOrder( PhysicalOrder order)
+        {
+            return false;
+        }
 		
 		public void OnCreateBrokerOrder(PhysicalOrder order)
 		{

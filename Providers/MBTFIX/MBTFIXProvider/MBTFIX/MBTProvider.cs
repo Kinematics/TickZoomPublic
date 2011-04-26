@@ -119,5 +119,10 @@ namespace TickZoom.MBTFIX
 		{
 			return fixProvider.GetActiveOrders(symbol);
 		}
+
+        public bool HasBrokerOrder( PhysicalOrder order)
+        {
+            return fixProvider.HasBrokerOrder(order);
+        }
 	}
 }

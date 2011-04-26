@@ -1260,6 +1260,11 @@ namespace Orders
 				this.symbol = symbol;
 			}
 
+            public bool HasBrokerOrder( PhysicalOrder order)
+            {
+                return false;
+            }
+
             public int ProcessOrders()
             {
                 return 1;

@@ -173,6 +173,47 @@ namespace TickZoom.Interceptors
             }
         }
 
+        public bool HasBrokerOrder( PhysicalOrder order)
+        {
+            for (var current = createOrderQueue.First; current != null; current = current.Next)
+            {
+                var queueOrder = current.Value;
+                if (order.LogicalSerialNumber == queueOrder.LogicalSerialNumber)
+                {
+                    if (debug) log.Debug("Create ignored because order was already on create order queue.");
+                    return true;
+                }
+            }
+            var list = increaseOrders;
+            switch (order.Type)
+            {
+                case OrderType.BuyLimit:
+                case OrderType.SellStop:
+                    list = decreaseOrders;
+                    break;
+                case OrderType.SellLimit:
+                case OrderType.BuyStop:
+                    list = increaseOrders;
+                    break;
+                case OrderType.BuyMarket:
+                case OrderType.SellMarket:
+                    list = marketOrders;
+                    break;
+                default:
+                    throw new ApplicationException("Unexpected order type: " + order.Type);
+            }
+            for (var current = list.First; current != null; current = current.Next)
+            {
+                var queueOrder = current.Value;
+                if (order.LogicalSerialNumber == queueOrder.LogicalSerialNumber)
+                {
+                    if (debug) log.Debug("Create ignored because order was already on active order queue.");
+                    return true;
+                }
+            }
+            return false;
+        }
+
 		public void OnCreateBrokerOrder(PhysicalOrder order)
 		{
 			if( debug) log.Debug("OnCreateBrokerOrder( " + order + ")");
@@ -284,7 +325,7 @@ namespace TickZoom.Interceptors
 				}
 			}
 		}
-		
+
 		private void SortAdjust(PhysicalOrder order) {
 			switch( order.Type) {
 				case OrderType.BuyLimit:					
