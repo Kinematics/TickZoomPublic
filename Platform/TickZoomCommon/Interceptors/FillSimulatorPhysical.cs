@@ -179,6 +179,15 @@ namespace TickZoom.Interceptors
 			if( order.Size <= 0) {
 				throw new ApplicationException("Sorry, Size of order must be greater than zero: " + order);
 			}
+            for( var current = createOrderQueue.First; current != null; current = current.Next)
+            {
+                var queueOrder = current.Value;
+                if( order.LogicalSerialNumber == queueOrder.LogicalSerialNumber)
+                {
+                    if (debug) log.Debug("Create ignored because order was already on create order queue.");
+                    return;
+                }
+            }
 		    createOrderQueue.AddLast(order);
 			if( confirmOrders != null) confirmOrders.OnCreateBrokerOrder(order);
 		}
@@ -527,7 +536,8 @@ namespace TickZoom.Interceptors
                     throw new InvalidOperationException("Unknown limit order quote simulation: " + limitOrderQuoteSimulation);
             }
             if (result) {
-				CreatePhysicalFillHelper(order.Size, fillPrice, tick.Time, tick.UtcTime, order);
+                if (debug) log.Debug("Filling " + order.Type + " with " + limitOrderQuoteSimulation + " at ask " + tick.Ask + " / bid " + tick.Bid + " at " + tick.Time);
+                CreatePhysicalFillHelper(order.Size, fillPrice, tick.Time, tick.UtcTime, order);
 			}
 			return result;
 		}
@@ -602,6 +612,7 @@ namespace TickZoom.Interceptors
                     throw new InvalidOperationException("Unknown limit order quote simulation: " + limitOrderQuoteSimulation);
             }
             if( result) {
+                if (debug) log.Debug("Filling " + order.Type + " with " + limitOrderQuoteSimulation + " at ask " + tick.Ask + " / bid " + tick.Bid + " at " + tick.Time);
                 CreatePhysicalFillHelper(-order.Size, fillPrice, tick.Time, tick.UtcTime, order);
                 result = true;
             }
