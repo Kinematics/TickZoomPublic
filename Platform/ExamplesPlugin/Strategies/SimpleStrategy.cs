@@ -21,20 +21,13 @@ namespace TickZoom.Examples
         double ask;
         double bid;
         private int addDelaySeconds = 15;
-        private ExitCommon customExitOrders;
-        private ChangeCommon customChangeOrders;
-        private bool unload = false;
 
         public SimpleStrategy()
         {
-            customExitOrders = new ExitCommon(this);
-            customChangeOrders = new ChangeCommon(this);
         }
 
         public override void OnConfigure()
         {
-            customExitOrders.OnInitialize();
-            customChangeOrders.OnInitialize();
             base.OnConfigure();
         }
 
@@ -69,8 +62,6 @@ namespace TickZoom.Examples
         public override bool OnProcessTick(Tick tick)
         {
             Orders.SetAutoCancel();
-            customExitOrders.CancelOrders();
-            customChangeOrders.CancelOrders();
             if (!tick.IsQuote)
             {
                 throw new InvalidOperationException("This strategy requires bid/ask quote data to operate.");
@@ -133,29 +124,23 @@ namespace TickZoom.Examples
             return comboTrade.AverageEntryPrice; //(comboTrade.AverageEntryPrice * position + sign * comboTrade.ClosedPoints) / position;
         }
 
-        private bool waitingToAdd = true;
         private void OnProcessLong(Tick tick)
         {
             var comboTrade = Performance.ComboTrades.Tail;
             var averageEntry = CalcAveragePrice(comboTrade);
             bid = fills.First.Value.Price - CalcIncreaseSpread(tick);
             bidLine[0] = bid;
-            if( bid > ask)
-            {
-                int x = 0;
-            }
             if (Math.Abs(comboTrade.CurrentPosition) <= lotSize)
             {
                 Orders.Reverse.ActiveNow.SellLimit(ask, lotSize);
             }
             else if( averageEntry < ask)
             {
-                Orders.Reverse.ActiveNow.SellLimit(averageEntry, lotSize);
+                Orders.Reverse.ActiveNow.SellLimit(ask, lotSize);
             }
             else
             {
-                var reduceSize = unload ? lotSize * 2 : lotSize;
-                Orders.Change.ActiveNow.SellLimit(ask, reduceSize);
+                Orders.Change.ActiveNow.SellLimit(ask, lotSize);
             }
             Orders.Change.ActiveNow.BuyLimit(bid, lotSize);
         }
@@ -173,17 +158,11 @@ namespace TickZoom.Examples
             }
             else if( averageEntry > bid)
             {
-                Orders.Reverse.ActiveNow.BuyLimit(averageEntry, lotSize);
+                Orders.Reverse.ActiveNow.BuyLimit(bid, lotSize);
             }
             else
             {
-                var lots = Position.Size/lotSize;
-                if( lots > 5)
-                {
-                    int x = 0;
-                }
-                var reduceSize = unload ? lotSize * 2 : lotSize;
-                Orders.Change.ActiveNow.BuyLimit(bid, reduceSize);
+                Orders.Change.ActiveNow.BuyLimit(bid, lotSize);
             }
         }
 
@@ -191,33 +170,18 @@ namespace TickZoom.Examples
         {
             var lastFill = fills.First.Value;
             var lots = Position.Size / lotSize;
-            if( lots == 1)
+            var elapsed = tick.Time - lastFill.Time;
+            var scale = elapsed.TotalSeconds;
+            var spread = fills.Count == 1 ? this.spread : Math.Abs(fills.First.Value.Price - fills.First.Next.Value.Price) * 2;
+            if (scale < 10)
             {
-                unload = false;
-            }
-            if( lots > 5)
-            {
-                unload = true;
-            }
-            if (unload)
-            {
-                return spread * 2;
+                spread = (spread / 10) * (10 - scale);
             }
             else
             {
-                var elapsed = tick.Time - lastFill.Time;
-                var scale = elapsed.TotalSeconds;
-                var spread = fills.Count == 1 ? this.spread : Math.Abs(fills.First.Value.Price - fills.First.Next.Value.Price) * 2;
-                if (scale < 10)
-                {
-                    spread = (spread / 10) * (10 - scale);
-                }
-                else
-                {
-                    spread = this.spread;
-                }
-                return spread;
+                spread = this.spread;
             }
+            return spread;
         }
 
         public override void OnEndHistorical()
@@ -252,7 +216,6 @@ namespace TickZoom.Examples
 
         private void SetupBidAsk()
         {
-            waitingToAdd = true;
             var tick = Ticks[0];
             var currentFill = fills.First.Value;
             var myAsk = currentFill.Price + spread / 2;
@@ -292,42 +255,32 @@ namespace TickZoom.Examples
             else
             {
                 change = Math.Abs(change);
-                if (fills.First != null && fill.Price == fills.First.Value.Price)
+                for (var current = fills.First; current != null; current = current.Next)
                 {
-                    fills.First.Value.Size += change;
+                    var prevFill = current.Value;
+                    if (change > prevFill.Size)
+                    {
+                        change -= prevFill.Size;
+                        fills.Remove(current);
+                        if (fills.Count > 0)
+                        {
+                            SetupBidAsk();
+                        }
+                    }
+                    else
+                    {
+                        prevFill.Size -= change;
+                        if (prevFill.Size == 0)
+                        {
+                            fills.Remove(current);
+                            if( fills.Count > 0)
+                            {
+                                SetupBidAsk();
+                            }
+                        }
+                        break;
+                    }
                 }
-                else
-                {
-                    fills.AddFirst(new LocalFill(change, fill.Price, fill.Time));
-                    SetupBidAsk();
-                }
-                //change = Math.Abs(change);
-                //for (var current = fills.First; current != null; current = current.Next)
-                //{
-                //    var prevFill = current.Value;
-                //    if (change > prevFill.Size)
-                //    {
-                //        change -= prevFill.Size;
-                //        fills.Remove(current);
-                //        if (fills.Count > 0)
-                //        {
-                //            SetupBidAsk();
-                //        }
-                //    }
-                //    else
-                //    {
-                //        prevFill.Size -= change;
-                //        if (prevFill.Size == 0)
-                //        {
-                //            fills.Remove(current);
-                //            if( fills.Count > 0)
-                //            {
-                //                SetupBidAsk();
-                //            }
-                //        }
-                //        break;
-                //    }
-                //}
             }
         }
 
