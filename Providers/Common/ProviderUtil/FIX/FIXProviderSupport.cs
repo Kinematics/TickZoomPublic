@@ -323,7 +323,7 @@ namespace TickZoom.FIX
 							retryDelay += retryIncrease;
 							retryDelay = Math.Min(retryDelay,retryMaximum);
 							return Yield.NoWork.Repeat;
-						case Status.PendingRetry:
+                        case Status.PendingRetry:
 							if( Factory.Parallel.TickCount >= retryTimeout) {
 								log.Warn("Retry Time Elapsed");
 								OnRetry();
@@ -338,7 +338,8 @@ namespace TickZoom.FIX
                             Dispose();
                             return Yield.NoWork.Repeat;
                         default:
-                            throw new InvalidOperationException("Unknown connection status: " + connectionStatus);
+                            log.Warn("Unexpected connection status: " + connectionStatus + ". Continuing anyway.");
+					        return Yield.NoWork.Repeat;
 					}
                 case SocketState.Closing:
                     return Yield.NoWork.Repeat;
