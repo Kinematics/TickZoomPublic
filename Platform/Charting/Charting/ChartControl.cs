@@ -429,19 +429,23 @@ namespace TickZoom
             }
             else
             {
+                var orderPrice = order.Price;
+                var orderPosition = order.Position;
+                var orderSerial = order.SerialNumber;
                 arrow.Tag = new TradeInfo( () =>
                 {
                     StringBuilder sb = new StringBuilder();
                     sb.Append(order.TradeDirection);
                     sb.Append(" ");
                     sb.AppendLine(order.Type.ToString());
+                    sb.AppendLine(orderSerial.ToString());
                     if (order.Price > 0)
                     {
                         sb.Append("at ");
-                        sb.AppendLine(order.Price.ToString());
+                        sb.AppendLine(orderPrice.ToString());
                     }
                     sb.Append("size ");
-                    sb.AppendLine(order.Position.ToString());
+                    sb.AppendLine(orderPosition.ToString());
                     sb.Append("filled ");
                     sb.AppendLine(fillPrice.ToString());
                     sb.Append("new positions ");

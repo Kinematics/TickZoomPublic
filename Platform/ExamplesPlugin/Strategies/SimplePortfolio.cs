@@ -17,16 +17,19 @@ namespace TickZoom.Examples
             start.Name = "Short Strategy";
             start.OnDirectionChange = OnDirectionChange;
             start.IsActive = true;
-            start.IsVisible = false;
-            start.Direction = Direction.Both;
+            start.IsVisible = true;
+            start.Direction = Direction.Short;
             next = Strategies[1] as SimpleStrategy;
             next.Name = "Next Strategy";
-            next.IsVisible = false;
+            next.Direction = Direction.Long;
+            next.IsVisible = true;
+            next.IsActive = true;
 
         }
 
         public void OnDirectionChange(SimpleStrategy strategy)
         {
+            return;
             switch( strategy.Direction)
             {
                 case Direction.Short:

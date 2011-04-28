@@ -25,10 +25,10 @@ namespace TickZoom.Examples
         double minimumTick;
         double spread;
         int lotSize;
-        double ask;
-        double bid;
+        double ask, marketAsk;
+        double bid, marketBid;
         private int addDelaySeconds = 15;
-        private int thresholdLots = 5;
+        private int thresholdLots = int.MaxValue;
         private Direction direction = Direction.Both;
         private Action<SimpleStrategy> onDirectionChange;
         private bool isVisible = false;
@@ -67,7 +67,7 @@ namespace TickZoom.Examples
             Performance.GraphTrades = isVisible;
             minimumTick = Data.SymbolInfo.MinimumTick;
             lotSize = 1000;
-            spread = 15*minimumTick;
+            spread = 10*minimumTick;
 
             askLine = Formula.Indicator();
             askLine.Name = "Ask";
@@ -194,7 +194,7 @@ namespace TickZoom.Examples
             var comboTrade = Performance.ComboTrades.Tail;
             var averageEntry = CalcAveragePrice(comboTrade);
             var lots = Position.Size / lotSize;
-            bid = fills.First.Value.Price - CalcIncreaseSpread(tick);
+            bid = Math.Min(marketBid,fills.First.Value.Price - CalcIncreaseSpread(tick));
             bidLine[0] = bid;
             Orders.Change.ActiveNow.BuyLimit(bid, lotSize);
             if (lots > thresholdLots)
@@ -231,7 +231,7 @@ namespace TickZoom.Examples
             var comboTrade = Performance.ComboTrades.Tail;
             var averageEntry = CalcAveragePrice(comboTrade);
             var lots = Position.Size/lotSize;
-            ask = fills.First.Value.Price + CalcIncreaseSpread(tick);
+            ask = Math.Max(marketAsk,fills.First.Value.Price + CalcIncreaseSpread(tick));
             askLine[0] = ask;
             Orders.Change.ActiveNow.SellLimit(ask, lotSize);
             if( lots > thresholdLots)
@@ -262,7 +262,7 @@ namespace TickZoom.Examples
         private double CalcIncreaseSpread(Tick tick)
         {
             var lots = Position.Size / lotSize;
-            if( lots < thresholdLots) return spread;
+            if (lots <= thresholdLots || fills.Count < 2) return spread/2;
             var newDirection = Position.IsLong ? Direction.Long : Direction.Short;
             if( direction != newDirection)
             {
@@ -284,7 +284,6 @@ namespace TickZoom.Examples
             {
                 return lastSpread;
             }
-
         }
 
         public override void OnEndHistorical()
@@ -323,8 +322,8 @@ namespace TickZoom.Examples
             var currentFill = fills.First.Value;
             var myAsk = currentFill.Price + spread / 2;
             var myBid = currentFill.Price - spread / 2;
-            var marketAsk = Math.Max(tick.Ask, tick.Bid);
-            var marketBid = Math.Min(tick.Ask, tick.Bid);
+            marketAsk = Math.Max(tick.Ask, tick.Bid);
+            marketBid = Math.Min(tick.Ask, tick.Bid);
             ask = Math.Max(myAsk, marketAsk);
             bid = Math.Min(myBid, marketBid);
             bidLine[0] = bid;
@@ -407,7 +406,8 @@ namespace TickZoom.Examples
             var tick = Ticks[0];
             lastMidpoint = (tick.Ask + tick.Bid)/2;
             fills.Clear();
-            if( !comboTrade.Completed)
+            SetFlatBidAsk();
+            if (!comboTrade.Completed)
             {
                 throw new InvalidOperationException("Trade must be completed.");
             }

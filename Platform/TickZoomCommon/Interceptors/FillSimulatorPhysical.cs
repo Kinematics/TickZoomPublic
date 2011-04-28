@@ -543,14 +543,16 @@ namespace TickZoom.Interceptors
             switch (limitOrderQuoteSimulation)
             {
                 case LimitOrderQuoteSimulation.SameSideQuoteTouch:
-                    if (tick.lBid <= orderPrice)
+                    var bid = Math.Min(tick.lBid, tick.lAsk);
+                    if (bid <= orderPrice)
                     {
                         fillPrice = order.Price;
                         result = true;
                     }
                     break;
                 case LimitOrderQuoteSimulation.SameSideQuoteThrough:
-                    if (tick.lBid < orderPrice)
+                    bid = Math.Min(tick.lBid, tick.lAsk);
+                    if (bid < orderPrice)
                     {
                         fillPrice = order.Price;
                         result = true;
@@ -619,14 +621,16 @@ namespace TickZoom.Interceptors
             switch (limitOrderQuoteSimulation)
             {
                 case LimitOrderQuoteSimulation.SameSideQuoteTouch:
-                    if (tick.lAsk >= orderPrice)
+                    var ask = Math.Max(tick.lAsk, tick.lBid);
+                    if (ask >= orderPrice)
                     {
                         fillPrice = order.Price;
                         result = true;
                     }
                     break;
                 case LimitOrderQuoteSimulation.SameSideQuoteThrough:
-                    if (tick.lAsk > orderPrice)
+                    ask = Math.Max(tick.lAsk, tick.lBid);
+                    if (ask > orderPrice)
                     {
                         fillPrice = order.Price;
                         result = true;
