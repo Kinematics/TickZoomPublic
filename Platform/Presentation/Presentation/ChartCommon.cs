@@ -180,8 +180,10 @@ namespace TickZoom.Presentation
         /// <param name="fillPrice"></param>
         /// <param name="resultingPosition"></param>
         /// <returns></returns>
-        public int DrawTrade(LogicalOrder order, double fillPrice, double resultingPosition)
+        public int DrawTrade(LogicalOrder order, LogicalFill fill)
         {
+            double fillPrice = fill.Price;
+            double resultingPosition = fill.Position;
             Color color = Color.Empty;
             ArrowDirection direction = ArrowDirection.Up;
             switch (order.Type)

@@ -395,8 +395,10 @@ namespace TickZoom
 		/// <param name="fillPrice"></param>
 		/// <param name="resultingPosition"></param>
 		/// <returns></returns>
-		public int DrawTrade(LogicalOrder order, double fillPrice, double resultingPosition)
+		public int DrawTrade(LogicalOrder order, LogicalFill fill)
 		{
+            var fillPrice = fill.Price;
+		    var resultingPosition = fill.Position;
 			Color color = Color.Empty;
 			ArrowDirection direction = ArrowDirection.Up;
 			switch( order.Type) {
@@ -431,7 +433,7 @@ namespace TickZoom
             {
                 var orderPrice = order.Price;
                 var orderPosition = order.Position;
-                var orderSerial = order.SerialNumber;
+                var orderSerial = fill.OrderSerialNumber;
                 arrow.Tag = new TradeInfo( () =>
                 {
                     StringBuilder sb = new StringBuilder();

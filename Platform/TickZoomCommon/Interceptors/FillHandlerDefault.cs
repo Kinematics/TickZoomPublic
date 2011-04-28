@@ -38,7 +38,7 @@ namespace TickZoom.Interceptors
 		private readonly bool debug = Log.IsDebugEnabled;
 		private static readonly bool notice = Log.IsNoticeEnabled;
 		private Action<SymbolInfo, LogicalFill> changePosition;
-		private Func<LogicalOrder, double, double, int> drawTrade;
+		private Func<LogicalOrder, LogicalFill, int> drawTrade;
 		private SymbolInfo symbol;
 		private bool doStrategyOrders = true;
 		private bool doExitStrategyOrders = false;
@@ -53,10 +53,10 @@ namespace TickZoom.Interceptors
             this.strategy = (Strategy)strategyInterface;
         }
 	
-		private void TryDrawTrade(LogicalOrder order, double price, double position) {
+		private void TryDrawTrade(LogicalOrder order, LogicalFill fill) {
             if (drawTrade != null && strategy != null && strategy.Performance.GraphTrades)
             {
-				drawTrade(order, price, position);
+				drawTrade(order, fill);
 			}
 		}
 	
@@ -75,7 +75,7 @@ namespace TickZoom.Interceptors
 					if( debug) Log.Debug( "Skipping fill, exit strategy orders fills disabled.");
 					return;
 				}
-				TryDrawTrade(filledOrder, fill.Price, fill.Position);
+				TryDrawTrade(filledOrder, fill);
 				if( debug) Log.Debug( "Changed strategy position to " + fill.Position + " because of fill.");
 				changePosition(strategy.Data.SymbolInfo,fill);
                 if( fill.Recency > strategy.Recency)
@@ -88,7 +88,7 @@ namespace TickZoom.Interceptors
 			}
 		}
 
-		public Func<LogicalOrder, double, double, int> DrawTrade {
+		public Func<LogicalOrder, LogicalFill, int> DrawTrade {
 			get { return drawTrade; }
 			set { drawTrade = value; }
 		}

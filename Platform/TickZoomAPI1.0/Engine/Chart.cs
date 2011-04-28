@@ -50,7 +50,7 @@ namespace TickZoom.Api
 		/// different from the position size because the position sizing gets applied by
 		/// the PositionSize object which can be driven by various logic and usually by
 		/// portfolio asset allocation.</param>
-		int DrawTrade( LogicalOrder order, double fillPrice,  double resultingPosition);
+		int DrawTrade( LogicalOrder order, LogicalFill fill);
 		/// <summary>
 		/// Obsolete. Please use only ChartBars instead
 		/// </summary>
