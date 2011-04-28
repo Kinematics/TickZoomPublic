@@ -391,6 +391,7 @@ namespace TickZoom.Common
 		private void VerifySide( LogicalOrder logical, PhysicalOrder physical) {
 			var side = GetOrderSide(logical.Type);
 			if( physical.Side != side) {
+                if (debug) log.Debug("Canceling because " + physical.Side + " != " + side + ": " + physical);
 				TryCancelBrokerOrder(physical);
 				physical = new PhysicalOrderDefault(OrderState.Active,symbol,logical,side,physical.Size);
 				TryCreateBrokerOrder(physical);
@@ -497,6 +498,23 @@ namespace TickZoom.Common
 				}
 			}
 		}
+
+        private bool CheckFilledOrder(LogicalOrder logical, int position)
+        {
+            switch (logical.Type)
+            {
+                case OrderType.BuyLimit:
+                case OrderType.BuyMarket:
+                case OrderType.BuyStop:
+                    return position >= logical.Position;
+                case OrderType.SellLimit:
+                case OrderType.SellMarket:
+                case OrderType.SellStop:
+                    return position <= -logical.Position;
+                default:
+                    throw new ApplicationException("Unknown OrderType: " + logical.Type);
+            }
+        }
 		
 		private OrderSide GetOrderSide(OrderType type) {
 			switch( type) {
@@ -739,8 +757,10 @@ namespace TickZoom.Common
 			
 			var filledOrder = FindLogicalOrder( fill.OrderSerialNumber);
 			if( debug) log.Debug( "Matched fill with order: " + filledOrder);
-			var isCompleteLogicalFill = filledOrder.Position == Math.Abs(fill.Position);
-			if( filledOrder.TradeDirection == TradeDirection.Change) {
+
+            var isCompleteLogicalFill = CheckFilledOrder(filledOrder, fill.Position);
+            if (filledOrder.TradeDirection == TradeDirection.Change)
+            {
 				var strategyPosition = filledOrder.StrategyPosition;
 				var orderPosition = 
 					filledOrder.Type == OrderType.BuyLimit ||

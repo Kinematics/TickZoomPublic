@@ -98,6 +98,7 @@
     <Compile Include="Loaders\LimitBracketLoader.cs" />
     <Compile Include="Loaders\LimitChangeLoader.cs" />
     <Compile Include="Loaders\LimitReversalLoader.cs" />
+    <Compile Include="Loaders\SimpleLoader.cs" />
     <Compile Include="Loaders\Test5000Strategies.cs" />
     <Compile Include="Loaders\MarketOrderLoader.cs" />
     <Compile Include="Loaders\TestCancelReplaceLoader.cs" />
@@ -108,6 +109,7 @@
     <Compile Include="Strategies\LimitBracketStrategy.cs" />
     <Compile Include="Strategies\LimitChangeStrategy.cs" />
     <Compile Include="Strategies\LimitReversalStrategy.cs" />
+    <Compile Include="Strategies\SimplePortfolio.cs" />
     <Compile Include="Strategies\SimpleStrategy.cs" />
     <Compile Include="Strategies\TestCancelReplaceStrategy.cs" />
     <Compile Include="Strategies\TestStopStrategy.cs" />

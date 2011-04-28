@@ -297,18 +297,15 @@ namespace TickZoom.Interceptors
 			if( symbol == null) {
 				throw new ApplicationException("Please set the Symbol property for the " + GetType().Name + ".");
 			}
-            var next = marketOrders.First;
-			for( var node = next; node != null; node = node.Next) {
+			for( var node = marketOrders.First; node != null; node = node.Next) {
 				var order = node.Value;
 				OnProcessOrder(order, tick);
 			}
-			next = increaseOrders.First;
-			for( var node = next; node != null; node = node.Next) {
+			for( var node = increaseOrders.First; node != null; node = node.Next) {
 				var order = node.Value;
 				OnProcessOrder(order, tick);
 			}
-			next = decreaseOrders.First;
-			for( var node = next; node != null; node = node.Next) {
+			for( var node = decreaseOrders.First; node != null; node = node.Next) {
 				var order = node.Value;
 				OnProcessOrder(order, tick);
 			}

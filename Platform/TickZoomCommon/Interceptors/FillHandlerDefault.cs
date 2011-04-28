@@ -40,9 +40,9 @@ namespace TickZoom.Interceptors
 		private Action<SymbolInfo, LogicalFill> changePosition;
 		private Func<LogicalOrder, double, double, int> drawTrade;
 		private SymbolInfo symbol;
-		private bool graphTrades = false;
 		private bool doStrategyOrders = true;
 		private bool doExitStrategyOrders = false;
+	    private Strategy strategy;
 		
 		public FillHandlerDefault()
 		{
@@ -50,12 +50,12 @@ namespace TickZoom.Interceptors
 	
 		public FillHandlerDefault(StrategyInterface strategyInterface)
 		{
-			Strategy strategy = (Strategy) strategyInterface;
-			graphTrades = strategy.Performance.GraphTrades;
-		}
+            this.strategy = (Strategy)strategyInterface;
+        }
 	
 		private void TryDrawTrade(LogicalOrder order, double price, double position) {
-			if (drawTrade != null && graphTrades == true) {
+            if (drawTrade != null && strategy != null && strategy.Performance.GraphTrades)
+            {
 				drawTrade(order, price, position);
 			}
 		}
@@ -101,11 +101,6 @@ namespace TickZoom.Interceptors
 		public SymbolInfo Symbol {
 			get { return symbol; }
 			set { symbol = value; }
-		}
-		
-		public bool GraphTrades {
-			get { return graphTrades; }
-			set { graphTrades = value; }
 		}
 		
 		public bool DoStrategyOrders {
