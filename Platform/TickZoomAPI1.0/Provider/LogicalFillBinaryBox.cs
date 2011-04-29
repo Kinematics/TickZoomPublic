@@ -80,5 +80,10 @@ namespace TickZoom.Api
 		{
 			return LogicalFillBinary.ToString();
 		}
+
+	    public bool IsComplete
+	    {
+            get { return LogicalFillBinary.IsComplete; }
+	    }
 	}
 }

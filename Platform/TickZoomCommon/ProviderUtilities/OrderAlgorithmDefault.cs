@@ -506,11 +506,25 @@ namespace TickZoom.Common
                 case OrderType.BuyLimit:
                 case OrderType.BuyMarket:
                 case OrderType.BuyStop:
-                    return position >= logical.Position;
+                    if (logical.TradeDirection == TradeDirection.Change)
+                    {
+                        return position >= logical.Position + logical.StrategyPosition;
+                    }
+                    else
+                    {
+                        return position >= logical.Position;
+                    }
                 case OrderType.SellLimit:
                 case OrderType.SellMarket:
                 case OrderType.SellStop:
-                    return position <= -logical.Position;
+                    if (logical.TradeDirection == TradeDirection.Change)
+                    {
+                        return position <= -logical.Position + logical.StrategyPosition;
+                    }
+                    else
+                    {
+                        return position <= -logical.Position;
+                    }
                 default:
                     throw new ApplicationException("Unknown OrderType: " + logical.Type);
             }
@@ -758,7 +772,7 @@ namespace TickZoom.Common
 			var filledOrder = FindLogicalOrder( fill.OrderSerialNumber);
 			if( debug) log.Debug( "Matched fill with order: " + filledOrder);
 
-            var isCompleteLogicalFill = CheckFilledOrder(filledOrder, fill.Position);
+            fill.IsComplete = CheckFilledOrder(filledOrder, fill.Position);
             if (filledOrder.TradeDirection == TradeDirection.Change)
             {
 				var strategyPosition = filledOrder.StrategyPosition;
@@ -768,14 +782,14 @@ namespace TickZoom.Common
 					filledOrder.Type == OrderType.BuyStop ?
 					filledOrder.Position : - filledOrder.Position;
 				if( debug) log.Debug("Change order fill = " + orderPosition + ", strategy = " + strategyPosition + ", fill = " + fill.Position);
-				isCompleteLogicalFill = orderPosition + strategyPosition == fill.Position;
-				if( !isCompleteLogicalFill) {
+				fill.IsComplete = orderPosition + strategyPosition == fill.Position;
+				if( !fill.IsComplete) {
 					var change = fill.Position - filledOrder.StrategyPosition;
 					filledOrder.Position = Math.Abs(orderPosition - change);
 					if( debug) log.Debug( "Changing order to position: " + filledOrder.Position);
 				}
 			}
-			if( isCompleteLogicalFill) {
+			if( fill.IsComplete) {
 				try { 
 					if( debug) log.Debug("Marking order id " + filledOrder.Id + " as completely filled.");
 					filledOrders.Add(filledOrder.SerialNumber,TimeStamp.UtcNow.Internal);
@@ -793,7 +807,7 @@ namespace TickZoom.Common
 				if( debug) log.Debug("Sending logical fill for " + symbol + ": " + fill);
 				onProcessFill( symbol, fill);
 			}
-			if( isCompletePhysicalFill && !isCompleteLogicalFill) {
+			if( isCompletePhysicalFill && !fill.IsComplete) {
                 if (filledOrder.TradeDirection == TradeDirection.Entry && fill.Position == 0)
                 {
                     if (debug) log.Debug("Found a entry order which flattened the position. Likely due to bracketed entries that both get filled: " + filledOrder);
@@ -804,7 +818,7 @@ namespace TickZoom.Common
                     ProcessMissingPhysical(filledOrder);
                 }
 			}
-			if( isCompleteLogicalFill) {
+			if( fill.IsComplete) {
 				if( debug) log.Debug("Performing extra compare.");
 				PerformCompareProtected();
 			}

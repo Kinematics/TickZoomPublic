@@ -363,20 +363,14 @@ namespace TickZoom.Examples
 
         public override void OnChangeTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
         {
+            if (!fill.IsComplete) return;
             var size = Math.Abs(comboTrade.CurrentPosition);
             var change = size - lastSize;
             lastSize = size;
             if (change > 0)
             {
-                if (fills.First != null && fill.Price == fills.First.Value.Price)
-                {
-                    fills.First.Value.Size += change;
-                }
-                else
-                {
-                    fills.AddFirst(new LocalFill(change, fill.Price, fill.Time));
-                    SetupBidAsk(fill.Price);
-                }
+                fills.AddFirst(new LocalFill(change, fill.Price, fill.Time));
+                SetupBidAsk(fill.Price);
             }
             else
             {

@@ -42,5 +42,6 @@ namespace TickZoom.Api
 		int Position { get; }
 		bool IsSimulated { get; }
 	    long Recency { get; }
+	    bool IsComplete { get; }
 	}
 }
