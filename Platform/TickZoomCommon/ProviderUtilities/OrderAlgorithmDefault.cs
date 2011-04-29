@@ -599,13 +599,20 @@ namespace TickZoom.Common
 			return pendingAdjustments;
 		}
 		
-		private bool TrySyncPosition(int pendingAdjustments) {
-			var positionDelta = desiredPosition - actualPosition;
+		public bool TrySyncPosition() {
+            // Find any pending adjustments.
+            var pendingAdjustments = FindPendingAdjustments();
+            var positionDelta = desiredPosition - actualPosition;
 			var delta = positionDelta - pendingAdjustments;
 			PhysicalOrder physical;
+			orderCache.SyncPositions();
             if( delta != 0)
             {
-                log.Notice("Issuing adjustment order because expected position is " + desiredPosition + " but actual is " + actualPosition + " plus pending adjustments " + pendingAdjustments);
+                log.Notice("TrySyncPosition() Issuing adjustment order because expected position is " + desiredPosition + " but actual is " + actualPosition + " plus pending adjustments " + pendingAdjustments);
+            }
+            else
+            {
+                log.Notice("TrySyncPosition() found position already synced. With expected " + desiredPosition + " and actual " + actualPosition + " plus pending adjustments " + pendingAdjustments);
             }
 			if( delta > 0) {
 				physical = new PhysicalOrderDefault(OrderState.Active, symbol,OrderSide.Buy,OrderType.BuyMarket,0,delta,0,0,null,null);
@@ -626,7 +633,7 @@ namespace TickZoom.Common
                 TryCreateBrokerOrder(physical);
 				return true;
 			} else {
-				return false;
+                return false;
 			}
 		}
 		
@@ -720,7 +727,6 @@ namespace TickZoom.Common
 					position, strategyPosition.Recency+1, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber,logical.Position,physical.IsSimulated);
 			} catch( ApplicationException ex) {
                 log.Warn("Leaving symbol position at desired " + desiredPosition + ", since this appears to be an adjustment market order: " + physical.Order);
-                orderCache.SyncPositions();
                 if (debug) log.Debug("Skipping logical fill for an adjustment market order.");
 				if( debug) log.Debug("Performing extra compare.");
 				PerformCompareProtected();
@@ -998,8 +1004,6 @@ namespace TickZoom.Common
 				logicalOrders.Remove(logical);
 			}
 
-			// Find any pending adjustments.
-			int pendingAdjustments = FindPendingAdjustments();
 			
 			if( trace) log.Trace("Found " + physicalOrders.Count + " extra physicals.");
 			int cancelCount = 0;
@@ -1016,11 +1020,6 @@ namespace TickZoom.Common
 				return;
 			}
 
-			if( TrySyncPosition( pendingAdjustments)) {
-				// Wait for fill to process before creating any orders.
-				return;
-			}
-			
 			if( trace) log.Trace("Found " + extraLogicals.Count + " extra logicals.");
 			while( extraLogicals.Count > 0) {
 				var logical = extraLogicals[0];

@@ -34,11 +34,12 @@ namespace TickZoom.Api
 		void SetDesiredPosition(int position);
 		void SetLogicalOrders(Iterable<LogicalOrder> logicalOrders);
 		void ProcessFill( PhysicalFill fill, int totalSize, int cumulativeSize, int remainingSize);
-		bool HandleSimulatedExits { get; set; }
-		PhysicalOrderHandler PhysicalOrderHandler { get; }
-		Action<SymbolInfo,LogicalFillBinary> OnProcessFill { get; set; }
 		void SetActualPosition(int position);
         void IncreaseActualPosition(int position);
+        bool TrySyncPosition();
+        bool HandleSimulatedExits { get; set; }
+        PhysicalOrderHandler PhysicalOrderHandler { get; }
+        Action<SymbolInfo, LogicalFillBinary> OnProcessFill { get; set; }
         int ActualPosition { get; }
 	}
 }

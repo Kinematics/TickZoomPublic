@@ -52,6 +52,7 @@ namespace TickZoom.MBTFIX
 		private bool isPositionUpdateComplete = false;
 		private bool isOrderUpdateComplete = false;
 		private string fixDestination = "MBT";
+        private bool isPositionSynced = false;
 		
 		public MBTFIXProvider(string name)
 		{
@@ -167,6 +168,7 @@ namespace TickZoom.MBTFIX
 		{
 			isPositionUpdateComplete = false;
 			isOrderUpdateComplete = false;
+		    isPositionSynced = false;
 			if( !LogRecovery) {
 				MessageFIXT1_1.IsQuietRecovery = true;
 			}
@@ -956,10 +958,19 @@ namespace TickZoom.MBTFIX
 			if( debug) log.Debug( "PositionChange " + symbol + ", desired " + desiredPosition + ", order count " + count);
 			
 			var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-			algorithm.SetDesiredPosition(desiredPosition);
-			algorithm.SetLogicalOrders(inputOrders);
-
-			CompareLogicalOrders(symbol);
+            algorithm.SetDesiredPosition(desiredPosition);
+            algorithm.SetLogicalOrders(inputOrders);
+            lock (orderAlgorithmLocker)
+            {
+                if (!isPositionSynced && !algorithm.TrySyncPosition())
+                {
+                    isPositionSynced = true;
+                }
+                else
+                {
+                    algorithm.ProcessOrders();
+                }
+            }
 			
 			var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			if( SyncTicks.Enabled ) {
@@ -967,12 +978,6 @@ namespace TickZoom.MBTFIX
 			}				
 		}
 		
-		private void CompareLogicalOrders(SymbolInfo symbol) {
-			var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-			lock( orderAlgorithmLocker) {
-    			algorithm.ProcessOrders();
-			}
-		}
 		
 	    protected override void Dispose(bool disposing)
 	    {

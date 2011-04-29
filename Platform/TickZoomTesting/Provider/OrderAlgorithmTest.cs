@@ -679,6 +679,7 @@ namespace Orders
 
 			handler.SetDesiredPosition(position);
 			handler.SetLogicalOrders(null);
+            handler.TrySyncPosition();
 			handler.PerformCompare();
 			
 			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
@@ -703,6 +704,8 @@ namespace Orders
 
 			handler.SetDesiredPosition(position);
 			handler.SetLogicalOrders(null);
+            handler.TrySyncPosition();
+           
 			handler.PerformCompare();
 			
 			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
@@ -727,13 +730,14 @@ namespace Orders
 
 			handler.SetDesiredPosition(position);
 			handler.SetLogicalOrders(null);
-			handler.PerformCompare();
-			
-			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
+            handler.TrySyncPosition();
+            handler.FillCreatedOrders();
+
+            var order = handler.Orders.CreatedOrders[0];
+            Assert.AreEqual(0, handler.Orders.CanceledOrders.Count);
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
 			Assert.AreEqual(1,handler.Orders.CreatedOrders.Count);
 			
-			var order = handler.Orders.CreatedOrders[0];
 			Assert.AreEqual(OrderType.SellMarket,order.Type);
 			Assert.AreEqual(OrderSide.Sell,order.Side);
 			Assert.AreEqual(0,order.Price);
@@ -743,7 +747,8 @@ namespace Orders
 			
 			handler.Clear();
 			handler.SetActualPosition( 0);
-			handler.PerformCompare();
+            handler.TrySyncPosition();
+            handler.FillCreatedOrders();
 			
 			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
@@ -767,6 +772,7 @@ namespace Orders
 
 			handler.SetDesiredPosition(desiredPosition);
 			handler.SetLogicalOrders(null);
+            handler.TrySyncPosition();
 			handler.PerformCompare();
 			
 			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
@@ -792,6 +798,7 @@ namespace Orders
 
 			handler.SetDesiredPosition(position);
 			handler.SetLogicalOrders(null);
+            handler.TrySyncPosition();
 			handler.PerformCompare();
 			
 			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
@@ -973,6 +980,8 @@ namespace Orders
 
 			handler.SetDesiredPosition(position);
 			handler.SetLogicalOrders(null);
+            handler.TrySyncPosition();
+            handler.FillCreatedOrders();
 			handler.PerformCompare();
 			
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
@@ -993,6 +1002,8 @@ namespace Orders
 
 			handler.SetDesiredPosition(position);
 			handler.SetLogicalOrders(null);
+            handler.TrySyncPosition();
+            handler.FillCreatedOrders();
 			handler.PerformCompare();
 			
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
@@ -1209,6 +1220,8 @@ namespace Orders
 
 			handler.SetDesiredPosition(position);
 			handler.SetLogicalOrders(null);
+            handler.TrySyncPosition();
+            handler.FillCreatedOrders();
 			handler.PerformCompare();
 			
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
@@ -1366,6 +1379,11 @@ namespace Orders
 			public void SetLogicalOrders(Iterable<LogicalOrder> logicalOrders) {
 				orderAlgorithm.SetLogicalOrders(logicalOrders);
 			}
+
+            public void TrySyncPosition()
+            {
+                orderAlgorithm.TrySyncPosition();
+            }
 			public void PerformCompare()
 			{
 				orderAlgorithm.ProcessOrders();

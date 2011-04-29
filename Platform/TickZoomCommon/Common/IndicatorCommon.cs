@@ -97,7 +97,7 @@ namespace TickZoom.Common
 			base.OnBeforeIntervalOpen();
 			if( isStartValueSet) { Add(this[0]); }
 			else { Add(startValue); isStartValueSet = true; }
-			return true;
+            return true;
 		}
 		
 		public sealed override bool OnBeforeIntervalOpen(Interval interval) {
