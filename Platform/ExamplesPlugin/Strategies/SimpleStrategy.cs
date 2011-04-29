@@ -40,6 +40,7 @@ namespace TickZoom.Examples
         private double mantissa = 1.15;
         private SMA sma;
         private IndicatorCommon displacedSMA;
+        private Bars seconds;
 
         public SimpleStrategy()
         {
@@ -51,16 +52,17 @@ namespace TickZoom.Examples
             Performance.Equity.GraphEquity = false; // Graphed by portfolio.
             Performance.GraphTrades = isVisible;
 
-            var seconds = Data.Get(Intervals.Second1);
+            seconds = Data.Get(Intervals.Second1);
 
-            sma = Formula.SMA(seconds.Close, 30);
+            sma = Formula.SMA(Seconds.Close, 30);
             sma.Drawing.IsVisible = false;
             sma.IntervalDefault = Intervals.Second1;
 
             displacedSMA = Formula.Indicator();
-            displacedSMA.Name = "DiplacedSMA";
+            displacedSMA.Name = "DisplacedSMA";
             displacedSMA.Drawing.IsVisible = isVisible;
             displacedSMA.IntervalDefault = Intervals.Second1;
+            displacedSMA.Drawing.Color = Color.Blue;
 
             minimumTick = Data.SymbolInfo.MinimumTick;
             spread = 10*minimumTick;
@@ -329,17 +331,17 @@ namespace TickZoom.Examples
             var lots = Position.Size / lotSize;
             var myAsk = price + spread / 2;
             var myBid = price - spread / 2;
-            if( Position.IsShort && tradeDivergence > 50 * minimumTick && midpoint > displacedSMA[0])
+            if( Position.IsShort && midpoint > displacedSMA[0])
             {
                 reduceRisk = true;
-                myAsk = price + priceDivergence;
-                myBid = price - priceDivergence;
+                myAsk = price + Math.Max(spread/2,priceDivergence);
+                myBid = price - spread / 2;
             }
-            else if( Position.IsLong && tradeDivergence < - 50 * minimumTick && midpoint < displacedSMA[0])
+            else if( Position.IsLong && midpoint < displacedSMA[0])
             {
                 reduceRisk = true;
-                myAsk = price + Math.Abs(priceDivergence);
-                myBid = price - Math.Abs(priceDivergence);
+                myAsk = price + spread / 2;
+                myBid = price - Math.Max(spread/2, -priceDivergence);
             }
             else
             {
@@ -459,6 +461,11 @@ namespace TickZoom.Examples
         {
             get { return increaseLotSize; }
             set { increaseLotSize = value; }
+        }
+
+        public Bars Seconds
+        {
+            get { return seconds; }
         }
 
         public override void OnConfigure()

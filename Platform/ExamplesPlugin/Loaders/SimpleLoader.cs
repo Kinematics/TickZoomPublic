@@ -18,8 +18,13 @@ namespace TickZoom.Examples
         {
         }
 
-        public override void OnLoad(ProjectProperties model)
+        public override void OnLoad(ProjectProperties properties)
         {
+            foreach( var symbol in properties.Starter.SymbolProperties)
+            {
+                symbol.LimitOrderQuoteSimulation = LimitOrderQuoteSimulation.SameSideQuoteThrough;
+                symbol.LimitOrderTradeSimulation = LimitOrderTradeSimulation.None;
+            }
             var portfolio = new SimplePortfolio();
             var strategy = new SimpleStrategy();
             strategy.IsActive = false;
