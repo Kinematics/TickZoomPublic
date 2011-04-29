@@ -78,8 +78,8 @@ namespace TickZoom.Api
 	    			generics += ">";
 	    			typeName = typeName.Replace("`1",generics);
 	    		}
-	    		
-	    		return typeName + " used index of " + position; }
+	    	    return "Index " + position + " was out of bounds because this occurred during an event such as OnEnterTrade, OnExitTrade, or OnChangeTrade which the engine cannot delay in order to wait for sufficient data to become available. So either performn bounds checking or avoid placing orders until there is enough data.";
+	    	}
 		}
 	    
 		public override string ToString()

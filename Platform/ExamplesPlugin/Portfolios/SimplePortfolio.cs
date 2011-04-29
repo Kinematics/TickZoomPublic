@@ -19,14 +19,14 @@ namespace TickZoom.Examples
             shortSide.Name = "Short Strategy";
             shortSide.OnDirectionChange = OnDirectionChange;
             shortSide.IsActive = true;
-            shortSide.IsVisible = false;
-            shortSide.Direction = Direction.Short;
+            shortSide.IsVisible = true;
+            shortSide.Direction = Direction.Both;
             shortSide.MaxLots = maxLots;
             longSide = Strategies[1] as SimpleStrategy;
             longSide.Name = "Next Strategy";
             longSide.Direction = Direction.Long;
             longSide.IsVisible = true;
-            longSide.IsActive = true;
+            longSide.IsActive = false;
             longSide.MaxLots = maxLots;
         }
 
@@ -36,17 +36,17 @@ namespace TickZoom.Examples
             var longLots = longSide.Position.Size/lotSize;
             if( shortLots > 20 && longLots < 20)
             {
-                longSide.LotSize = 2 * lotSize;
-                shortSide.LotSize = lotSize;
+                longSide.IncreaseLotSize = 2 * lotSize;
+                shortSide.IncreaseLotSize = lotSize;
             }
             else if( shortLots < 20 && longLots > 20)
             {
-                shortSide.LotSize = 2 * lotSize;
-                longSide.LotSize = lotSize;
+                shortSide.IncreaseLotSize = 2 * lotSize;
+                longSide.IncreaseLotSize = lotSize;
             } else
             {
-                shortSide.LotSize = lotSize;
-                longSide.LotSize = lotSize;
+                shortSide.IncreaseLotSize = lotSize;
+                longSide.IncreaseLotSize = lotSize;
             }
             return true;
         }

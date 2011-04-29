@@ -54,7 +54,7 @@ namespace TickZoom.Common
 		}
 		
 		public override void Update() {
-			if (this[0]==0D) {
+			if (this.Count==1) {
 				this[0] = Input[0];
 			} else {
 				double last = this[1];
