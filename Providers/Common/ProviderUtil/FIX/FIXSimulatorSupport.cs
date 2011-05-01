@@ -370,13 +370,13 @@ namespace TickZoom.FIX
 			symbolHandler.CreateOrder(order);
 		}
 
-		public void ChangeOrder(PhysicalOrder order, object origBrokerOrder)
+		public void ChangeOrder(PhysicalOrder order, string origBrokerOrder)
 		{
 			var symbolHandler = symbolHandlers[order.Symbol.BinaryIdentifier];
 			symbolHandler.ChangeOrder(order, origBrokerOrder);
 		}
 
-		public void CancelOrder(SymbolInfo symbol, object origBrokerOrder)
+		public void CancelOrder(SymbolInfo symbol, string origBrokerOrder)
 		{
 			var symbolHandler = symbolHandlers[symbol.BinaryIdentifier];
 			symbolHandler.CancelOrder( origBrokerOrder);

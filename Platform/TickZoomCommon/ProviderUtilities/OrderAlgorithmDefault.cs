@@ -129,7 +129,7 @@ namespace TickZoom.Common
 			return result;
 		}
 		
-		private void TryChangeBrokerOrder(PhysicalOrder physical, object origBrokerOrder) {
+		private void TryChangeBrokerOrder(PhysicalOrder physical, string origBrokerOrder) {
 			if( physical.OrderState == OrderState.Active) {
 				if( debug) log.Debug("Change Broker Order: " + physical);
 				sentPhysicalOrders++;
@@ -1072,7 +1072,7 @@ namespace TickZoom.Common
 	    }
 
 	    // This is a callback to confirm order was properly placed.
-		public void OnChangeBrokerOrder(PhysicalOrder order, object origBrokerOrder)
+		public void OnChangeBrokerOrder(PhysicalOrder order, string origBrokerOrder)
 		{
 			PerformCompareProtected();
 			if( SyncTicks.Enabled) {
@@ -1093,7 +1093,7 @@ namespace TickZoom.Common
 			}
 		}
 		
-		public void OnCancelBrokerOrder(SymbolInfo symbol, object origBrokerOrder)
+		public void OnCancelBrokerOrder(SymbolInfo symbol, string origBrokerOrder)
 		{
 			PerformCompareProtected();
 			if( SyncTicks.Enabled) {

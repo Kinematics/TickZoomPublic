@@ -44,9 +44,9 @@ namespace TickZoom.Common
 		private OrderSide side;
 		private int logicalOrderId;
 		private long logicalSerialNumber;
-		private object brokerOrder;
+		private string brokerOrder;
 		private object tag;
-		private object reference;
+        private object reference;
 		private PhysicalOrder replace;
 		
 		public override string ToString()
@@ -95,7 +95,7 @@ namespace TickZoom.Common
 			this.brokerOrder = CreateBrokerOrderId(logicalOrderId);
 		}
 		
-		public PhysicalOrderDefault(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, object brokerOrder, object tag) {
+		public PhysicalOrderDefault(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, object tag) {
 			this.orderState = orderState;
 			this.symbol = symbol;
 			this.side = side;
@@ -132,7 +132,7 @@ namespace TickZoom.Common
 			set { size = value; }
 		}
 		
-		public object BrokerOrder {
+		public string BrokerOrder {
 			get { return brokerOrder; }
 			set { brokerOrder = value; }
 		}

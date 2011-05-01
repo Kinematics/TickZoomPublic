@@ -108,7 +108,7 @@ namespace TickZoom.Interceptors
 			return activeOrders;
 		}
 	
-		public void OnChangeBrokerOrder(PhysicalOrder order, object origBrokerOrder)
+		public void OnChangeBrokerOrder(PhysicalOrder order, string origBrokerOrder)
 		{
 			if( debug) log.Debug("OnChangeBrokerOrder( " + order + ")");
             CancelBrokerOrder((string) origBrokerOrder);
@@ -233,7 +233,7 @@ namespace TickZoom.Interceptors
 			if( confirmOrders != null) confirmOrders.OnCreateBrokerOrder(order);
 		}
 		
-		public void OnCancelBrokerOrder(SymbolInfo symbol, object origBrokerOrder)
+		public void OnCancelBrokerOrder(SymbolInfo symbol, string origBrokerOrder)
 		{
 			if( debug) log.Debug("OnCancelBrokerOrder( " + origBrokerOrder + ")");
             CancelBrokerOrder((string) origBrokerOrder);

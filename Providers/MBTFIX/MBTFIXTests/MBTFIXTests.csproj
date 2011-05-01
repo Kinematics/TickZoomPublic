@@ -57,6 +57,7 @@
     <Compile Include="ForexLevel1Test.cs" />
     <Compile Include="FuturesLevel1AndTrades.cs" />
     <Compile Include="FIXSimulatorTest.cs" />
+    <Compile Include="OrderStoreTest.cs" />
     <Compile Include="QuotesAPI.cs" />
     <Compile Include="TimeAndSales.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -80,6 +81,5 @@
       <Project>{6D1A9B7C-00EB-4F5F-AB65-A50E161AD84A}</Project>
       <Name>MBTFIXProvider</Name>
     </ProjectReference>
-    <Folder Include="Lib" />
   </ItemGroup>
 </Project>

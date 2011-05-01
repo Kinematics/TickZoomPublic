@@ -109,12 +109,13 @@ namespace TickZoom.FIX
             fillSimulator.ProcessOrders();
 		}
 		
-		public void ChangeOrder(PhysicalOrder order, object origBrokerOrder) {
+		public void ChangeOrder(PhysicalOrder order, string origBrokerOrder) {
 			fillSimulator.OnChangeBrokerOrder( order, origBrokerOrder);
             fillSimulator.ProcessOrders();
         }
-		
-		public void CancelOrder(object origBrokerOrder) {
+
+        public void CancelOrder(string origBrokerOrder)
+        {
 			fillSimulator.OnCancelBrokerOrder( symbol, origBrokerOrder);
             fillSimulator.ProcessOrders();
         }

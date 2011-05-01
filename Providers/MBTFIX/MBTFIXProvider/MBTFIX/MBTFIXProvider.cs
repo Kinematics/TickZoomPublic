@@ -46,7 +46,7 @@ namespace TickZoom.MBTFIX
 		private static long nextConnectTime = 0L;
 		private readonly object orderAlgorithmLocker = new object();
         private Dictionary<long,OrderAlgorithm> orderAlgorithms = new Dictionary<long,OrderAlgorithm>();
-        private PhysicalOrderStore orderStore = new PhysicalOrderStore();
+        private PhysicalOrderStore orderStore;
         long lastLoginTry = long.MinValue;
 		long loginRetryTime = 10000; //milliseconds = 10 seconds.
 		private bool isPositionUpdateComplete = false;
@@ -58,6 +58,7 @@ namespace TickZoom.MBTFIX
 		{
 			log.Notice("Using config file name: " + name);
 			ProviderName = "MBTFIXProvider";
+            orderStore = new PhysicalOrderStore(ProviderName);
 			if( name.Contains(".config")) {
 				throw new ApplicationException("Please remove .config from config section name.");
 			}
@@ -1098,7 +1099,7 @@ namespace TickZoom.MBTFIX
 			return TimeStamp.UtcNow.Internal;
 		}
 		
-		public void OnCancelBrokerOrder(SymbolInfo symbol, object origBrokerOrder)
+		public void OnCancelBrokerOrder(SymbolInfo symbol, string origBrokerOrder)
 		{
 			PhysicalOrder physicalOrder;
 			try {
@@ -1126,7 +1127,7 @@ namespace TickZoom.MBTFIX
 			SendMessage(fixMsg);
 		}
 		
-		public void OnChangeBrokerOrder(PhysicalOrder physicalOrder, object origBrokerOrder)
+		public void OnChangeBrokerOrder(PhysicalOrder physicalOrder, string origBrokerOrder)
 		{
 			physicalOrder.OrderState = OrderState.Pending;
 			if( debug) log.Debug( "OnChangeBrokerOrder( " + physicalOrder + ")");

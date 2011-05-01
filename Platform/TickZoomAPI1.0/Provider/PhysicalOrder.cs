@@ -70,7 +70,7 @@ namespace TickZoom.Api
 			get;
 		}
 
-		object BrokerOrder {
+		string BrokerOrder {
 			get;
 			set;
 		}
@@ -85,7 +85,8 @@ namespace TickZoom.Api
 		}
 		
 		object Reference {
-			get; set;
+			get;
+            set;
 		}
 	}
 }

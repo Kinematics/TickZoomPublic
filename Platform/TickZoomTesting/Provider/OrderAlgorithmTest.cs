@@ -124,7 +124,7 @@ namespace Orders
 			AssertBrokerOrder(order.BrokerOrder);
 		}
 		
-		private void AssertBrokerOrder( object brokerOrder) {
+		private void AssertBrokerOrder( string brokerOrder) {
 			Assert.True( brokerOrder is string, "is string");
 			var brokerOrderId = (string) brokerOrder;
 			Assert.True( brokerOrderId.Contains("."));
@@ -141,9 +141,9 @@ namespace Orders
 			CreateLogicalExit(OrderType.BuyLimit,124.12);
 			CreateLogicalExit(OrderType.BuyStop,194.12);
 			
-			object buyOrder = new object();
+			string buyOrder = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,234.12,1000,buyLimitId,buyOrder);
-			object sellOrder = new object();
+			string sellOrder = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellStop,154.12,1000,sellStopId,sellOrder);
 			
 			var position = 0;
@@ -186,7 +186,7 @@ namespace Orders
 			CreateLogicalExit(OrderType.BuyLimit,124.12);
 			CreateLogicalExit(OrderType.BuyStop,194.12);
 			
-			object sellOrder = new object();
+			string sellOrder = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellStop,154.12,1000,sellStopId,sellOrder);
 			handler.SetLogicalOrders(orders);
 			handler.PerformCompare();
@@ -224,10 +224,10 @@ namespace Orders
 			int sellStopId = CreateLogicalExit(OrderType.SellStop,134.12);
 			CreateLogicalExit(OrderType.BuyLimit,124.12);
 			CreateLogicalExit(OrderType.BuyStop,194.12);
-			
-			object sellOrder1 = new object();
+
+		    string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellStop,134.12,1000,sellStopId,sellOrder1);
-			object sellOrder2 = new object();
+		    string sellOrder2 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellLimit,334.12,1000,sellLimitId,sellOrder2);
 			
 			handler.SetLogicalOrders(orders);
@@ -292,10 +292,10 @@ namespace Orders
 			int sellStop2Id = CreateLogicalExit(OrderType.SellStop,134.12);
 			CreateLogicalExit(OrderType.BuyLimit,124.12);
 			CreateLogicalExit(OrderType.BuyStop,194.12);
-			
-			object buyOrder = new object();
+
+		    string buyOrder = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,234.12,500,buyLimitId,buyOrder);
-			object sellOrder = new object();
+		    string sellOrder = "xyz";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellStop,154.12,1000,sellStopId,sellOrder);
 			
 			handler.SetLogicalOrders(orders);
@@ -331,10 +331,10 @@ namespace Orders
 			int sellStopId = CreateLogicalExit(OrderType.SellStop,134.12);
 			CreateLogicalExit(OrderType.BuyLimit,124.12);
 			CreateLogicalExit(OrderType.BuyStop,194.12);
-			
-			object sellOrder1 = new object();
+
+		    string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellStop,134.12,1000,sellStopId,sellOrder1);
-			object sellOrder2 = new object();
+		    string sellOrder2 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellLimit,334.12,500,sellLimitId,sellOrder2);
 			
 			handler.SetLogicalOrders(orders);
@@ -363,7 +363,7 @@ namespace Orders
 			int buyLimit2Id = CreateLogicalExit(OrderType.BuyLimit,124.12);
 			int buyStopId = CreateLogicalExit(OrderType.BuyStop,194.12);
 			
-			object buyOrder = new object();
+			string buyOrder = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,234.12,1000,buyLimitId,buyOrder);
 			
 			handler.SetLogicalOrders(orders);
@@ -403,9 +403,9 @@ namespace Orders
 			int buyLimitId = CreateLogicalExit(OrderType.BuyLimit,124.12);
 			int buyStopId = CreateLogicalExit(OrderType.BuyStop,194.12);
 			
-			object buyOrder1 = new object();
+			string buyOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,124.12,1000,buyLimitId,buyOrder1);
-			object buyOrder2 = new object();
+			string buyOrder2 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyStop,194.12,1000,buyStopId,buyOrder2);
 			
 			handler.SetLogicalOrders(orders);
@@ -431,9 +431,9 @@ namespace Orders
 			int buyLimit2Id = CreateLogicalExit(OrderType.BuyLimit,124.12);
 			int buyStopId = CreateLogicalExit(OrderType.BuyStop,194.12);
 			
-			object buyOrder = new object();
+			string buyOrder = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,234.12,1000,buyLimitId,buyOrder);
-			object sellOrder = new object();
+			string sellOrder = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellStop,154.12,500,sellStopId,sellOrder);
 			
 			handler.SetLogicalOrders(orders);
@@ -471,9 +471,9 @@ namespace Orders
 			int buyLimitId = CreateLogicalExit(OrderType.BuyLimit,124.12);
 			int buyStopId = CreateLogicalExit(OrderType.BuyStop,194.12);
 			
-			object buyOrder1 = new object();
+			string buyOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,124.12,1000,buyLimitId,buyOrder1);
-			object buyOrder2 = new object();
+			string buyOrder2 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyStop,194.12,1000,buyStopId,buyOrder2);
 			
 			handler.SetLogicalOrders(orders);
@@ -509,9 +509,9 @@ namespace Orders
 			CreateLogicalExit(OrderType.BuyLimit,124.12);
 			CreateLogicalExit(OrderType.BuyStop,194.12);
 			
-			object buyOrder = new object();
+			string buyOrder = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,234.12,1000,buyLimitId,buyOrder);
-			object sellOrder = new object();
+			string sellOrder = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellStop,154.12,1000,sellStopId,sellOrder);
 			
 			var position = 0; // Pretend we're flat.
@@ -552,9 +552,9 @@ namespace Orders
 			CreateLogicalExit(OrderType.BuyLimit,194.12);
 			CreateLogicalExit(OrderType.BuyStop,104.12);
 			
-			object buyOrder = new object();
+			string buyOrder = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,234.12,1000,buyLimitId,buyOrder);
-			object sellOrder = new object();
+			string sellOrder = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellStop,154.12,1000,sellStopId,sellOrder);
 			
 			var position = 0;
@@ -598,9 +598,9 @@ namespace Orders
 			CreateLogicalExit(OrderType.BuyStop,104.12);
 
 
-            object sellOrder1 = new object();
+            string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellStop,134.12,1000,sellStopId,sellOrder1);
-			object sellOrder2 = new object();
+			string sellOrder2 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellLimit,334.12,1000,sellLimitId,sellOrder2);
 			
 
@@ -641,9 +641,9 @@ namespace Orders
 			CreateLogicalExit(OrderType.BuyLimit,194.12);
 			CreateLogicalExit(OrderType.BuyStop,104.12);
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellStop,184.12,700,sellStopId,sellOrder1);
-			object sellOrder2 = new object();
+			string sellOrder2 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellLimit,374.12,800,sellLimitId,sellOrder2);
 			
 			handler.SetDesiredPosition(position);
@@ -821,7 +821,7 @@ namespace Orders
 			var position = -10;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellMarket,134.12,10,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -840,7 +840,7 @@ namespace Orders
 			var position = 10;
 			handler.SetActualPosition(-5); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyMarket,134.12,15,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -859,7 +859,7 @@ namespace Orders
 			var position = 10;
 			handler.SetActualPosition(-5); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyMarket,134.12,15,0,sellOrder1);
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyMarket,134.12,15,0,sellOrder1);
 
@@ -879,7 +879,7 @@ namespace Orders
 			var position = -10;
 			handler.SetActualPosition(5); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellMarket,134.12,15,0,sellOrder1);
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellMarket,134.12,15,0,sellOrder1);
 
@@ -899,7 +899,7 @@ namespace Orders
 			var position = 0;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellMarket,134.12,15,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -918,7 +918,7 @@ namespace Orders
 			var position = 0;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyMarket,134.12,15,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -937,7 +937,7 @@ namespace Orders
 			var position = 10;
 			handler.SetActualPosition(-5); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellMarket,134.12,15,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -956,7 +956,7 @@ namespace Orders
 			var position = -10;
 			handler.SetActualPosition(5); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyMarket,134.12,15,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -975,7 +975,7 @@ namespace Orders
 			var position = 10;
 			handler.SetActualPosition(-5);
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,134.12,15,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -997,7 +997,7 @@ namespace Orders
 			var position = -10;
 			handler.SetActualPosition(5); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellLimit,134.12,15,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -1021,8 +1021,8 @@ namespace Orders
 			var position = 0;
 			handler.SetActualPosition(0);
 			
-			object sellOrder1 = new object();
-			object buyOrder1 = new object();
+			string sellOrder1 = "abc";
+			string buyOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,15.12,3,0,buyOrder1);
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellLimit,34.12,3,0,sellOrder1);
 
@@ -1042,7 +1042,7 @@ namespace Orders
 			var position = -10;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Pending,OrderSide.SellShort,OrderType.SellMarket,134.12,10,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -1061,7 +1061,7 @@ namespace Orders
 			var position = 10;
 			handler.SetActualPosition(-5); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Pending,OrderSide.Buy,OrderType.BuyMarket,134.12,15,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -1080,7 +1080,7 @@ namespace Orders
 			var position = 10;
 			handler.SetActualPosition(-5); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Pending,OrderSide.Buy,OrderType.BuyMarket,134.12,15,0,sellOrder1);
 			handler.Orders.AddPhysicalOrder(OrderState.Pending,OrderSide.Buy,OrderType.BuyMarket,134.12,15,0,sellOrder1);
 
@@ -1100,7 +1100,7 @@ namespace Orders
 			var position = -10;
 			handler.SetActualPosition(5); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Pending,OrderSide.SellShort,OrderType.SellMarket,134.12,15,0,sellOrder1);
 			handler.Orders.AddPhysicalOrder(OrderState.Pending,OrderSide.SellShort,OrderType.SellMarket,134.12,15,0,sellOrder1);
 
@@ -1120,7 +1120,7 @@ namespace Orders
 			var position = 0;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Pending,OrderSide.SellShort,OrderType.SellMarket,134.12,15,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -1139,7 +1139,7 @@ namespace Orders
 			var position = 0;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Pending,OrderSide.Buy,OrderType.BuyMarket,134.12,15,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -1158,7 +1158,7 @@ namespace Orders
 			var position = 10;
 			handler.SetActualPosition(-5); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Pending,OrderSide.SellShort,OrderType.SellMarket,134.12,15,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -1177,7 +1177,7 @@ namespace Orders
 			var position = -10;
 			handler.SetActualPosition(5); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Pending,OrderSide.Buy,OrderType.BuyMarket,134.12,15,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -1196,7 +1196,7 @@ namespace Orders
 			var position = 10;
 			handler.SetActualPosition(-5);
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Pending,OrderSide.Buy,OrderType.BuyLimit,134.12,15,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -1215,7 +1215,7 @@ namespace Orders
 			var position = -10;
 			handler.SetActualPosition(5); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
+			string sellOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellLimit,134.12,15,0,sellOrder1);
 
 			handler.SetDesiredPosition(position);
@@ -1238,8 +1238,8 @@ namespace Orders
 			var position = 0;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
 			
-			object sellOrder1 = new object();
-			object buyOrder1 = new object();
+			string sellOrder1 = "abc";
+			string buyOrder1 = "abc";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,15.12,3,0,buyOrder1);
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellLimit,34.12,3,0,sellOrder1);
 
@@ -1254,8 +1254,8 @@ namespace Orders
 		
 		public class Change {
 			public PhysicalOrder Order;
-			public object OrigBrokerOrder;
-			public Change( PhysicalOrder order, object origBrokerOrder) {
+			public string OrigBrokerOrder;
+			public Change( PhysicalOrder order, string origBrokerOrder) {
 				this.Order = order;
 				this.OrigBrokerOrder = origBrokerOrder;
 			}
@@ -1283,7 +1283,7 @@ namespace Orders
                 return 1;
             }
 
-			public void OnCancelBrokerOrder(SymbolInfo symbol, object brokerOrder)
+			public void OnCancelBrokerOrder(SymbolInfo symbol, string brokerOrder)
 			{
 				CanceledOrders.Add(brokerOrder);
 				RemoveByBrokerOrder(brokerOrder);
@@ -1291,7 +1291,7 @@ namespace Orders
 					confirmOrders.OnCancelBrokerOrder(symbol, brokerOrder);
 				}
 			}
-			private void RemoveByBrokerOrder(object brokerOrder) {
+			private void RemoveByBrokerOrder(string brokerOrder) {
 				for( int i=0; i<inputOrders.Count; i++) {
 					var order = inputOrders[i];
 					if( order.BrokerOrder == brokerOrder) {
@@ -1299,7 +1299,7 @@ namespace Orders
 					}
 				}
 			}
-			public void OnChangeBrokerOrder(PhysicalOrder order, object origBrokerOrder)
+			public void OnChangeBrokerOrder(PhysicalOrder order, string origBrokerOrder)
 			{
 				ChangedOrders.Add(new Change( order, origBrokerOrder));
 				RemoveByBrokerOrder(origBrokerOrder);
@@ -1328,7 +1328,7 @@ namespace Orders
 				inputOrders.Add(order);
 			}
 			
-			public void AddPhysicalOrder(OrderState orderState, OrderSide side, OrderType type, double price, int size, int logicalOrderId, object brokerOrder)
+			public void AddPhysicalOrder(OrderState orderState, OrderSide side, OrderType type, double price, int size, int logicalOrderId, string brokerOrder)
 			{
 				var order = Factory.Utility.PhysicalOrder( orderState, symbol, side, type, price, size, logicalOrderId, 0, brokerOrder, null);
 				inputOrders.Add(order);

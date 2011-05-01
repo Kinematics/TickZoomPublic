@@ -89,7 +89,7 @@ namespace TickZoom.Api
 			get;
 		}
 		
-		object Tag {
+		string Tag {
 			get;
 			set;
 		}
