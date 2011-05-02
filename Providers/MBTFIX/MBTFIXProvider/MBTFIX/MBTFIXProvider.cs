@@ -524,21 +524,21 @@ namespace TickZoom.MBTFIX
 
 		private void TryHandlePiggyBackFill(MessageFIX4_4 packetFIX) {
 			if( packetFIX.LastQuantity > 0 && IsRecovered) {
-				SendFill( packetFIX);
+                if (debug) log.Debug("TryHandlePiggyBackFill triggering fill because LastQuantity = " + packetFIX.LastQuantity);
+                SendFill(packetFIX);
 			}
 			if( packetFIX.LeavesQuantity == 0) {
+                if (debug) log.Debug("TryHandlePiggyBackFill found completely filled so removing " + packetFIX.ClientOrderId);
                 var order = orderStore.RemoveOrder(packetFIX.ClientOrderId);
-                if (order != null)
+                if (order != null && order.Replace != null)
                 {
-                    if (packetFIX.OriginalClientOrderId != null)
-                    {
-                        order = orderStore.RemoveOrder(packetFIX.OriginalClientOrderId);
-                    }
-                    if (IsRecovered)
-                    {
-                        var algorithm = GetAlgorithm(order.Symbol.BinaryIdentifier);
-                        algorithm.ProcessOrders();
-                    }
+                    if (debug) log.Debug("Found this order in the replace property. Removing it also: " + order.Replace);
+                    orderStore.RemoveOrder(order.Replace.BrokerOrder.ToString());
+                }
+                if (IsRecovered)
+                {
+                    var algorithm = GetAlgorithm(order.Symbol.BinaryIdentifier);
+                    algorithm.ProcessOrders();
                 }
 			}
 		}
