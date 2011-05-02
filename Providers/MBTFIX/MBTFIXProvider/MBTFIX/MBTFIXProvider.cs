@@ -509,7 +509,13 @@ namespace TickZoom.MBTFIX
 						UpdateOrder( packetFIX, OrderState.Active, null);
 						break;
 					case "E": // Pending Replace
-						UpdateOrder( packetFIX, OrderState.Pending, "PendingReplace");
+                        var clientOrderId = packetFIX.ClientOrderId;
+                        var orderState = OrderState.Pending;
+                        if (debug && (LogRecovery || !IsRecovery))
+                        {
+                            log.Debug("PendingReplace( " + clientOrderId + ", state = " + orderState + ")");
+                        }
+                        UpdateOrReplaceOrder(packetFIX, packetFIX.OriginalClientOrderId, clientOrderId, orderState, null);
 						TryHandlePiggyBackFill(packetFIX);
 						break;
 					case "R": // Resumed.
@@ -786,13 +792,10 @@ namespace TickZoom.MBTFIX
         public PhysicalOrder UpdateOrder(MessageFIX4_4 packetFIX, OrderState orderState, object note)
         {
 			var clientOrderId = packetFIX.ClientOrderId;
-			if( !string.IsNullOrEmpty(packetFIX.OriginalClientOrderId)) {
-			   	clientOrderId = packetFIX.OriginalClientOrderId;
-			}
 			if( debug && (LogRecovery || !IsRecovery) ) {
 				log.Debug("UpdateOrder( " + clientOrderId + ", state = " + orderState + ")");
 			}
-			return UpdateOrReplaceOrder( packetFIX, clientOrderId, clientOrderId, orderState, note);
+			return UpdateOrReplaceOrder( packetFIX, packetFIX.OriginalClientOrderId, clientOrderId, orderState, note);
 		}
 		
 		public PhysicalOrder ReplaceOrder( MessageFIX4_4 packetFIX) {
@@ -829,12 +832,6 @@ namespace TickZoom.MBTFIX
                 throw new InvalidOperationException("client order id mismatch with broker order property.");
             }
             orderStore.AssignById((string)order.BrokerOrder,order);
-		    var temp = orderStore.GetOrderBySerial(order.LogicalSerialNumber);
-            if( !object.ReferenceEquals(temp,order))
-            {
-                throw new InvalidOperationException(
-                    "Mismatch of logical order serial number order with order by broker id.");
-            }
 			if( trace) {
 				log.Trace("Updated order list:");
 			    var logOrders = orderStore.LogOrders();
@@ -844,7 +841,7 @@ namespace TickZoom.MBTFIX
 			return order;
 		}
 		
-		public PhysicalOrder UpdateOrReplaceOrder( MessageFIX4_4 packetFIX, string clientOrderId, string newClientOrderId, OrderState orderState, object note) {
+		public PhysicalOrder UpdateOrReplaceOrder( MessageFIX4_4 packetFIX, string oldClientOrderId, string newClientOrderId, OrderState orderState, object note) {
 			SymbolInfo symbolInfo;
 			try {
 				symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
@@ -852,30 +849,43 @@ namespace TickZoom.MBTFIX
 				log.Error("Error looking up " + packetFIX.Symbol + ": " + ex.Message);
 				return null;
 			}
-			PhysicalOrder oldOrder = null;
-			long logicalSerialNumber = 0;
-			try {
-				oldOrder = orderStore.GetOrderById( clientOrderId);
-				logicalSerialNumber = oldOrder.LogicalSerialNumber;
-			} catch( ApplicationException) {
+            PhysicalOrder order;
+            long logicalSerialNumber = 0;
+		    if( orderStore.TryGetOrderById( newClientOrderId, out order)) {
+				logicalSerialNumber = order.LogicalSerialNumber;
+			} else {
 				if( !IsRecovery ) {
-					log.Warn("Order ID# " + clientOrderId + " was not found for update or replace.");
+					log.Warn("Client Order ID# " + newClientOrderId + " was not found for update or replace.");
 					return null;
 				}			
 			}
-			int quantity = packetFIX.LeavesQuantity;
-			PhysicalOrder order;
+            PhysicalOrder oldOrder;
+            if ( !orderStore.TryGetOrderById(oldClientOrderId, out oldOrder))
+            {
+                if (!IsRecovery)
+                {
+                    log.Warn("Original Order ID# " + oldClientOrderId + " was not found for update or replace.");
+                }
+            }
+            int quantity = packetFIX.LeavesQuantity;
 			var type = GetOrderType( packetFIX);
 			var side = GetOrderSide( packetFIX);
 			var logicalId = GetLogicalOrderId( packetFIX);
+		    var replace = order != null ? order.Replace : null;
 			order = Factory.Utility.PhysicalOrder(orderState, symbolInfo, side, type, packetFIX.Price, packetFIX.LeavesQuantity, logicalId, logicalSerialNumber, newClientOrderId, null);
-			if( quantity > 0) {
+		    order.Replace = replace;
+            if( oldOrder != null)
+            {
+                if( debug && (LogRecovery || !IsRecovery)) log.Debug("Setting replace property of " + oldOrder.BrokerOrder + " to be replaced by " + order.BrokerOrder);
+                oldOrder.Replace = order;
+            }
+		    if( quantity > 0) {
 				if( info && (LogRecovery || !IsRecovery) ) {
 					if( debug) log.Debug("Updated order: " + order + ".  Executed: " + packetFIX.CumulativeQuantity + " Remaining: " + packetFIX.LeavesQuantity);
 				}
 			} else {
 				if( info && (LogRecovery || !IsRecovery) ) {
-					if( debug) log.Debug("Order Completely Filled. Id: " + packetFIX.ClientOrderId + ".  Executed: " + packetFIX.CumulativeQuantity);
+					if( debug) log.Debug("Order completely filled or canceled. Id: " + packetFIX.ClientOrderId + ".  Executed: " + packetFIX.CumulativeQuantity);
 				}
 			}
 		    orderStore.AssignById(newClientOrderId, order);

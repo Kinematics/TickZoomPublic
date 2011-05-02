@@ -43,6 +43,11 @@ namespace TickZoom.MBTFIX
 
         public bool TryGetOrderById(string brokerOrder, out PhysicalOrder order)
         {
+            if( brokerOrder == null)
+            {
+                order = null;
+                return false;
+            }
             using (ordersLocker.Using())
             {
                 return ordersByBrokerId.TryGetValue((string) brokerOrder, out order);
