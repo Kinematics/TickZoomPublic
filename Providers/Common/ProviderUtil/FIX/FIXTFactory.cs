@@ -32,7 +32,8 @@ namespace TickZoom.FIX
 {
 	public interface FIXTFactory {
 		FIXTMessage1_1 Create();
-		void AddHistory( FIXTMessage1_1 message);
+        FIXTMessage1_1 Create(int previousSequence);
+        void AddHistory(FIXTMessage1_1 message);
 		FIXTMessage1_1 GetHistory(int sequence);
 		int LastSequence { get; }
 	}

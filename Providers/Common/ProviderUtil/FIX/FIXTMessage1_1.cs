@@ -56,6 +56,14 @@ namespace TickZoom.FIX
 		public void SetEndSeqNum(int value) {
 			Append(16,value);  
 		}
+        /// <summary>
+        /// 36 NewSeqNumber used to skip messages.
+        /// </summary>
+        /// <param name="value"></param>
+        public void SetNewSeqNum(int value)
+        {
+            Append(36,value);
+        }
 		/// <summary>
 		/// 43 Possible Duplicate
 		/// </summary>
@@ -68,7 +76,14 @@ namespace TickZoom.FIX
 		public void SetHeartBeatInterval(int value) {
 			Append(108,value); 
 		}
-		/// <summary>
+        /// <summary>
+        /// 123=Y Means this is a gap fill message.
+        /// </summary>
+        public void SetGapFill()
+        {
+            Append(123, "Y");
+        }
+        /// <summary>
 		/// 141 Reset sequence number
 		/// </summary>
 		public void ResetSequence() {

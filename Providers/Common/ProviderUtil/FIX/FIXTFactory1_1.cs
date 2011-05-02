@@ -50,7 +50,18 @@ namespace TickZoom.FIX
 			message.Sequence = GetNextSequence();
 			return message;
 		}
-		public string Sender {
+        public virtual FIXTMessage1_1 Create(int previousSequence)
+        {
+            if( previousSequence > nextSequence)
+            {
+                throw new InvalidOperationException("Cannot create new fix message with sequence in the future.");
+            }
+            var message = new FIXTMessage1_1("FIXT1.1", sender, destination);
+            message.Sequence = previousSequence;
+            return message;
+        }
+        public string Sender
+        {
 			get { return sender; }
 		}
 		public string Destination {

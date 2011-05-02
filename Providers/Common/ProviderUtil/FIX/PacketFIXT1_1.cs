@@ -24,7 +24,6 @@
  */
 #endregion
 
-using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -33,7 +32,8 @@ using TickZoom.Api;
 
 namespace TickZoom.FIX
 {
-	public unsafe class MessageFIXT1_1 : Message {
+    public unsafe class MessageFIXT1_1 : Message
+    {
 		private const byte EndOfField = 1;
 		private const byte NegativeSign = (byte) '-';
 		private const byte DecimalPoint = 46;
@@ -64,12 +64,15 @@ namespace TickZoom.FIX
 		private string timeStamp = null;
 		private int checkSum = 0;
 		private bool isPossibleDuplicate = false;
-		public static bool IsQuietRecovery = false;		
+		public static bool IsQuietRecovery = false;
+        private int newSeqNum;
+        private bool isGapFill;
 		
-		public MessageFIXT1_1() {
+		public MessageFIXT1_1()
+		{
 			dataIn = new BinaryReader(data, Encoding.ASCII);
 			dataOut = new BinaryWriter(data, Encoding.ASCII);
-			Clear();
+            Clear();
 		}
 
         public virtual void Clear()
@@ -119,9 +122,12 @@ namespace TickZoom.FIX
 		
 		public override string ToString()
 		{
+		    var position = data.Position;
 			data.Position = 0;
 			string response = new string(dataIn.ReadChars((int)data.Length));
-			return response.Replace(FIXTBuffer.EndFieldStr,"  ");
+			var result = response.Replace(FIXTBuffer.EndFieldStr,"  ");
+		    data.Position = position;
+		    return result;
 		} 
 		
 		public int Remaining {
@@ -141,7 +147,7 @@ namespace TickZoom.FIX
 		
 		private int FindSplitAt() {
 			if( trace) log.Trace("Processing Keys: " + this);
-			data.Position = 0;
+		    data.Position = 0;
 			handle = GCHandle.Alloc(data.GetBuffer(), GCHandleType.Pinned);
 			ptr = (byte*)handle.AddrOfPinnedObject();	
 			end = ptr + data.Length;
@@ -260,7 +266,8 @@ namespace TickZoom.FIX
 		protected unsafe bool GetString(out string result) {
 			byte *sptr = ptr;
 			result = null;
-			while (*(++ptr) != EndOfField) {
+			while (*ptr != EndOfField) {
+                ptr++;
 	        	if( ptr >= end) return false;
 			}
 	        int length = (int) (ptr - sptr);
@@ -310,7 +317,10 @@ namespace TickZoom.FIX
 				case 35:
 					result = GetString(out messageType);
 					break;
-				case 49:
+                case 36:
+                    result = GetInt(out newSeqNum);
+                    break;
+                case 49:
 					result = GetString(out sender);
 					break;
 				case 43:
@@ -330,7 +340,11 @@ namespace TickZoom.FIX
 						sendUtcTime = new TimeStamp(timeStamp).Internal;
 					}
 					break;
-				case 10:
+                case 123:
+                    result = GetString(out value);
+                    isGapFill = value == "Y";
+                    break;
+                case 10:
 					result = GetInt(out checkSum);
 					break;
 				default:
@@ -410,5 +424,20 @@ namespace TickZoom.FIX
 	        get { return recvUtcTime; }
 	        set { recvUtcTime = value; }
 	    }
-	}
+
+        public bool IsPossibleDuplicate
+        {
+            get { return isPossibleDuplicate; }
+        }
+
+        public int NewSeqNum
+        {
+            get { return newSeqNum; }
+        }
+
+        public bool IsGapFill
+        {
+            get { return isGapFill; }
+        }
+    }
 }

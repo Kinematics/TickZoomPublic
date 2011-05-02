@@ -277,17 +277,20 @@ namespace Loaders
 			var appDataFolder = Factory.Settings["AppDataFolder"];
 			var providersFolder = Path.Combine(appDataFolder,"Providers");
 			var mbtfixFolder = Path.Combine(providersFolder,"MBTFIXProvider");
-			var filePath = Path.Combine(mbtfixFolder,"LoginFailed.txt");
+            var databaseFolder = Path.Combine(appDataFolder, "Database");
+            var filePath = Path.Combine(databaseFolder, "MBTFIXProvider.dat");
+            File.Delete(filePath);
+            filePath = Path.Combine(mbtfixFolder, "LoginFailed.txt");
 			File.Delete(filePath);
-			filePath = Factory.SysLog.LogFolder + @"\Trades.log";
+		    filePath = Path.Combine(Factory.SysLog.LogFolder,"Trades.log");
+            File.Delete(filePath);
+		    filePath = Path.Combine(Factory.SysLog.LogFolder,"BarData.log");
 			File.Delete(filePath);
-			filePath = Factory.SysLog.LogFolder + @"\BarData.log";
+		    filePath = Path.Combine(Factory.SysLog.LogFolder,"Stats.log");
 			File.Delete(filePath);
-			filePath = Factory.SysLog.LogFolder + @"\Stats.log";
+		    filePath = Path.Combine(Factory.SysLog.LogFolder,"Transactions.log");
 			File.Delete(filePath);
-			filePath = Factory.SysLog.LogFolder + @"\Transactions.log";
-			File.Delete(filePath);
-			filePath = Factory.SysLog.LogFolder + @"\MockProviderTransactions.log";
+		    filePath = Path.Combine(Factory.SysLog.LogFolder,"MockProviderTransactions.log");
 			File.Delete(filePath);
 		}
 		

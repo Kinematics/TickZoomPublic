@@ -46,8 +46,8 @@ namespace TickZoom.MBTFIX
 		public MBTFIXSimulator(string mode) : base( mode, 6489, 6488, new MessageFactoryFix44(), new MessageFactoryMbtQuotes()) {
 		    
 		}
-		
-		protected override void OnConnectFIX(Socket socket)
+
+        protected override void OnConnectFIX(Socket socket)
 		{
 			fixState = ServerState.Startup;
 			quoteState = ServerState.Startup;
@@ -119,26 +119,20 @@ namespace TickZoom.MBTFIX
 		
 		private void FIXOrderList(MessageFIX4_4 packet)
 		{
-		    var writePacket = fixSocket.MessageFactory.Create();
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetText("END");
 			mbtMsg.AddHeader("8");
-			string message = mbtMsg.ToString();
-			writePacket.DataOut.Write(message.ToCharArray());
-            SendPacket(writePacket);
-            if (debug) log.Debug("Sending end of order list: " + message);
-		}
-		
+            if (debug) log.Debug("Sending end of order list: " + mbtMsg);
+            SendMessage(mbtMsg);
+        }
+
 		private void FIXPositionList(MessageFIX4_4 packet)
 		{
-		    var writePacket = fixSocket.MessageFactory.Create();	
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetText("DONE");
 			mbtMsg.AddHeader("AO");
-			string message = mbtMsg.ToString();
-			writePacket.DataOut.Write(message.ToCharArray());
-            SendPacket(writePacket);			
-			if(debug) log.Debug("Sending end of position list: " + message);
+            if (debug) log.Debug("Sending end of position list: " + mbtMsg);
+            SendMessage(mbtMsg);
 		}
 		
 		private void FIXChangeOrder(MessageFIX4_4 packet) {
@@ -269,21 +263,25 @@ namespace TickZoom.MBTFIX
 		private string sender;
 		private void FIXLogin(MessageFIX4_4 packet) {
 			if( fixState != ServerState.Startup) {
-				CloseWithFixError(packet, "Invalid login request. Already logged in.");
+                if( packet.IsPossibleDuplicate)
+                {
+                    return;
+                }
+                else
+                {
+                    CloseWithFixError(packet, "Invalid login request. Already logged in.");
+                }
 			}
 			fixState = ServerState.LoggedIn;
-		    var writePacket = fixSocket.MessageFactory.Create();
 			target = packet.Target;
 			sender = packet.Sender;
 			FixFactory = new FIXFactory4_4(1,packet.Target,packet.Sender);
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetEncryption(0);
-			mbtMsg.SetHeartBeatInterval(30);
+			mbtMsg.SetHeartBeatInterval(HeartbeatDelay);
 			mbtMsg.AddHeader("A");
-			string login = mbtMsg.ToString();
-			writePacket.DataOut.Write(login.ToCharArray());
-            SendPacket(writePacket);			
-			if(debug) log.Debug("Sending login response: " + login);
+            if (debug) log.Debug("Sending login response: " + mbtMsg);
+            SendMessage(mbtMsg);
 		}
 		
 		private void QuotesLogin(MessageMbtQuotes message) {
@@ -311,22 +309,18 @@ namespace TickZoom.MBTFIX
 
 		private void OnRejectOrder( PhysicalOrder order, string error)
 		{
-		    var writePacket = fixSocket.MessageFactory.Create();
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetAccount( "33006566");
 			mbtMsg.SetClientOrderId( order.BrokerOrder.ToString());
 			mbtMsg.SetOrderStatus("8");
 			mbtMsg.SetText(error);
 			mbtMsg.AddHeader("8");
-			string message = mbtMsg.ToString();
-			writePacket.DataOut.Write(message.ToCharArray());
-			if(debug) log.Debug("Sending position update: " + message);
-            SendPacket(writePacket);
+            if (debug) log.Debug("Sending position update: " + mbtMsg);
+            SendMessage(mbtMsg);
         }	
 		
 		private void SendPositionUpdate(SymbolInfo symbol, int position)
 		{
-		    var writePacket = fixSocket.MessageFactory.Create();
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetAccount( "33006566");
 			mbtMsg.SetSymbol( symbol.Symbol);
@@ -336,10 +330,8 @@ namespace TickZoom.MBTFIX
 				mbtMsg.SetLongQty( position);
 			}
 			mbtMsg.AddHeader("AP");
-			string message = mbtMsg.ToString();
-			writePacket.DataOut.Write(message.ToCharArray());
-			if(debug) log.Debug("Sending position update: " + message);
-            SendPacket(writePacket);
+            SendMessage(mbtMsg);
+			if(debug) log.Debug("Sending position update: " + mbtMsg);
         }	
 
 		private void SendExecutionReport(PhysicalOrder order, string status, double price, int orderQty, int cumQty, int lastQty, int leavesQty, TimeStamp time, MessageFIX4_4 packet)
@@ -375,7 +367,6 @@ namespace TickZoom.MBTFIX
 					orderSide = 5;
 					break;
 			}
-		    var writePacket = fixSocket.MessageFactory.Create();
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetAccount( "33006566");
 			mbtMsg.SetDestination("MBTX");
@@ -404,22 +395,10 @@ namespace TickZoom.MBTFIX
 			mbtMsg.SetTransactTime( time);
 			mbtMsg.SetLeavesQuantity( Math.Abs(leavesQty));
 			mbtMsg.AddHeader("8");
-			string message = mbtMsg.ToString();
-			writePacket.DataOut.Write(message.ToCharArray());
-			if(debug) log.Debug("Sending execution report: " + message);
-            SendPacket(writePacket);
+            SendMessage(mbtMsg);
+			if(debug) log.Debug("Sending execution report: " + mbtMsg);
 		}
 
-        private void SendPacket( Message writeMessage)
-        {
-            while (!fixPacketQueue.EnqueueStruct(ref writeMessage, writeMessage.SendUtcTime))
-            {
-                if (fixPacketQueue.IsFull)
-                {
-                    throw new ApplicationException("Fix Queue is full.");
-                }
-            }
-        }
 		
 		private unsafe Yield SymbolRequest(MessageMbtQuotes message) {
 			var symbolInfo = Factory.Symbol.LookupSymbol(message.Symbol);
@@ -453,8 +432,9 @@ namespace TickZoom.MBTFIX
 			}
 			return Yield.DidWork.Repeat;
 		}
-		
-        private Dictionary<long,TickIO> lastTicks = new Dictionary<long,TickIO>();
+
+        private StringBuilder quoteBuilder = new StringBuilder(256);
+        private Dictionary<long, TickIO> lastTicks = new Dictionary<long, TickIO>();
 		private void OnTick( Message quoteMessage, SymbolInfo symbol, Tick tick) {
 			if( trace) log.Trace("Sending tick: " + tick);
 			TickIO lastTick;
@@ -462,76 +442,76 @@ namespace TickZoom.MBTFIX
 			   	lastTick = Factory.TickUtil.TickIO();
 			   	lastTicks[symbol.BinaryIdentifier] = lastTick;
 			}
-			var sb = new StringBuilder();
-			if( tick.IsTrade) {
-				sb.Append("3|"); // Trade
+			quoteBuilder.Length = 0;
+            if( tick.IsTrade) {
+				quoteBuilder.Append("3|"); // Trade
 			} else {
-				sb.Append("1|"); // Level 1
+				quoteBuilder.Append("1|"); // Level 1
 			}
-			sb.Append("2026=USD;"); //Currency
-			sb.Append("1003="); //Symbol
-			sb.Append(symbol.Symbol);
-			sb.Append(';');
-			sb.Append("2037=0;"); //Open Interest
-			sb.Append("2085=.144;"); //Unknown
-			sb.Append("2048=00/00/2009;"); //Unknown
-			sb.Append("2049=00/00/2009;"); //Unknown
+			quoteBuilder.Append("2026=USD;"); //Currency
+			quoteBuilder.Append("1003="); //Symbol
+			quoteBuilder.Append(symbol.Symbol);
+			quoteBuilder.Append(';');
+			quoteBuilder.Append("2037=0;"); //Open Interest
+			quoteBuilder.Append("2085=.144;"); //Unknown
+			quoteBuilder.Append("2048=00/00/2009;"); //Unknown
+			quoteBuilder.Append("2049=00/00/2009;"); //Unknown
 			if( tick.IsTrade) {
-				sb.Append("2002="); //Last Trade.
-				sb.Append(tick.Price);
-				sb.Append(';');
-				sb.Append("2007=");
-				sb.Append(tick.Size);
-				sb.Append(';');
+				quoteBuilder.Append("2002="); //Last Trade.
+				quoteBuilder.Append(tick.Price);
+				quoteBuilder.Append(';');
+				quoteBuilder.Append("2007=");
+				quoteBuilder.Append(tick.Size);
+				quoteBuilder.Append(';');
 			}
-			sb.Append("2050=0;"); //Unknown
+			quoteBuilder.Append("2050=0;"); //Unknown
 			if( tick.lBid != lastTick.lBid) {
-				sb.Append("2003="); // Last Bid
-				sb.Append(tick.Bid);
-				sb.Append(';');
+				quoteBuilder.Append("2003="); // Last Bid
+				quoteBuilder.Append(tick.Bid);
+				quoteBuilder.Append(';');
 			}
-			sb.Append("2051=0;"); //Unknown
+			quoteBuilder.Append("2051=0;"); //Unknown
 			if( tick.lAsk != lastTick.lAsk) {
-				sb.Append("2004="); //Last Ask 
-				sb.Append(tick.Ask);
-				sb.Append(';');
+				quoteBuilder.Append("2004="); //Last Ask 
+				quoteBuilder.Append(tick.Ask);
+				quoteBuilder.Append(';');
 			}
-			sb.Append("2052=00/00/2010;"); //Unknown
+			quoteBuilder.Append("2052=00/00/2010;"); //Unknown
 			var askSize = Math.Max((int)tick.AskLevel(0),1);
 			if( askSize != lastTick.AskLevel(0)) {
-				sb.Append("2005="); 
-				sb.Append(askSize);
-				sb.Append(';');
+				quoteBuilder.Append("2005="); 
+				quoteBuilder.Append(askSize);
+				quoteBuilder.Append(';');
 			}
 			var bidSize = Math.Max((int)tick.BidLevel(0),1);
-			sb.Append("2053=00/00/2010;"); //Unknown
+			quoteBuilder.Append("2053=00/00/2010;"); //Unknown
 			if( bidSize != lastTick.BidLevel(0)) {
-				sb.Append("2006=");
-				sb.Append(bidSize);
-				sb.Append(';');
+				quoteBuilder.Append("2006=");
+				quoteBuilder.Append(bidSize);
+				quoteBuilder.Append(';');
 			}
-			sb.Append("2008=0.0;"); // Yesterday Close
-			sb.Append("2056=0.0;"); // Unknown
-			sb.Append("2009=0.0;"); // High today
-			sb.Append("2057=0;"); // Unknown
-			sb.Append("2010=0.0"); // Low today
-			sb.Append("2058=1;"); // Unknown
-			sb.Append("2011=0.0;"); // Open Today
-			sb.Append("2012=6828928;"); // Volume Today
-			sb.Append("2013=20021;"); // Up/Down Tick
-			sb.Append("2014="); // Time
-			sb.Append(tick.UtcTime.TimeOfDay);
-			sb.Append(".");
-			sb.Append(tick.UtcTime.Microsecond);
-			sb.Append(';');
-			sb.Append("2015=");
-			sb.Append(tick.UtcTime.Month.ToString("00"));
-			sb.Append('/');
-			sb.Append(tick.UtcTime.Day.ToString("00"));
-			sb.Append('/');
-			sb.Append(tick.UtcTime.Year);
-			sb.Append('\n');
-			var message = sb.ToString();
+			quoteBuilder.Append("2008=0.0;"); // Yesterday Close
+			quoteBuilder.Append("2056=0.0;"); // Unknown
+			quoteBuilder.Append("2009=0.0;"); // High today
+			quoteBuilder.Append("2057=0;"); // Unknown
+			quoteBuilder.Append("2010=0.0"); // Low today
+			quoteBuilder.Append("2058=1;"); // Unknown
+			quoteBuilder.Append("2011=0.0;"); // Open Today
+			quoteBuilder.Append("2012=6828928;"); // Volume Today
+			quoteBuilder.Append("2013=20021;"); // Up/Down Tick
+			quoteBuilder.Append("2014="); // Time
+			quoteBuilder.Append(tick.UtcTime.TimeOfDay);
+			quoteBuilder.Append(".");
+			quoteBuilder.Append(tick.UtcTime.Microsecond);
+			quoteBuilder.Append(';');
+			quoteBuilder.Append("2015=");
+			quoteBuilder.Append(tick.UtcTime.Month.ToString("00"));
+			quoteBuilder.Append('/');
+			quoteBuilder.Append(tick.UtcTime.Day.ToString("00"));
+			quoteBuilder.Append('/');
+			quoteBuilder.Append(tick.UtcTime.Year);
+			quoteBuilder.Append('\n');
+			var message = quoteBuilder.ToString();
 			if( trace) log.Trace("Tick message: " + message);
 			quoteMessage.DataOut.Write(message.ToCharArray());
 			lastTick.Inject(tick.Extract());
@@ -542,15 +522,12 @@ namespace TickZoom.MBTFIX
 		
 		private void CloseWithFixError(MessageFIX4_4 packet, string textMessage)
 		{
-		    var writePacket = fixSocket.MessageFactory.Create();
 			var fixMsg = (FIXMessage4_4) FixFactory.Create();
 			TimeStamp timeStamp = TimeStamp.UtcNow;
 			fixMsg.SetAccount(packet.Account);
 			fixMsg.SetText( textMessage);
 			fixMsg.AddHeader("j");
-			string errorMessage = fixMsg.ToString();
-			writePacket.DataOut.Write(errorMessage.ToCharArray());
-            SendPacket(writePacket);
+		    SendMessage(fixMsg);
         }
 		
 		protected override void Dispose(bool disposing)

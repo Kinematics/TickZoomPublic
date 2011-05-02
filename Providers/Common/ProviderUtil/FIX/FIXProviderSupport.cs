@@ -42,7 +42,6 @@ namespace TickZoom.FIX
 		private readonly Log log;
 		private readonly bool debug;
 		private readonly bool trace;
-		private static long nextConnectTime = 0L;
 		protected readonly object symbolsRequestedLocker = new object();
 		protected Dictionary<long,SymbolInfo> symbolsRequested = new Dictionary<long, SymbolInfo>();
 		private Socket socket;
@@ -73,12 +72,30 @@ namespace TickZoom.FIX
         private bool useLocalFillTime = true;
 		private FIXTFactory fixFactory;
 	    private string appDataFolder;
+        private TimeStamp lastMessage;
+        private int remoteSequence = 1;
         
 		public bool UseLocalFillTime {
 			get { return useLocalFillTime; }
 		}
-        
-		public bool HasFirstRecovery {
+
+        public void DumpHistory()
+        {
+            for( var i = 0; i<=fixFactory.LastSequence; i++)
+            {
+                try
+                {
+                    var message = fixFactory.GetHistory(i);
+                    log.Info(message.ToString());
+                } catch( ApplicationException)
+                {
+                    
+                }
+            }
+        }
+
+        public bool HasFirstRecovery
+        {
 			get { return hasFirstRecovery; }
 		}
 		
@@ -244,7 +261,7 @@ namespace TickZoom.FIX
                     {
                         return Yield.Terminate;
                     }
-					if( receiver != null && Factory.Parallel.TickCount > nextConnectTime) {
+					if( receiver != null) {
 						Initialize();
 						retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
 						log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
@@ -270,18 +287,23 @@ namespace TickZoom.FIX
 					}
 					switch( connectionStatus) {
 						case Status.Connected:
-							connectionStatus = Status.PendingLogin;
-							if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
-							IncreaseRetryTimeout();
-                            if( !OnLogin())
+                            if( OnLogin())
+                            {
+                                connectionStatus = Status.PendingLogin;
+                                if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+                                IncreaseRetryTimeout();
+                            }
+                            else
                             {
                                 RegenerateSocket();
-            	            	nextConnectTime = Factory.Parallel.TickCount + 30000;
                             }
-							return Yield.DidWork.Repeat;
-						case Status.PendingRecovery:
+                            return Yield.DidWork.Repeat;
+                        case Status.PendingLogin:
+                        case Status.PendingLogOut:
+                        case Status.PendingRecovery:
 						case Status.Recovered:
-							if( retryDelay != retryStart) {
+                            if (retryDelay != retryStart)
+                            {
 								retryDelay = retryStart;
 								log.Info("(RetryDelay reset to " + retryDelay + " seconds.)");
 							}
@@ -298,18 +320,32 @@ namespace TickZoom.FIX
 								if( debug && (LogRecovery || !IsRecovery)) {
 									log.Debug( "Received FIX Message: " + message);
 								}
-								if( !CheckForResend(message)) {
-									ReceiveMessage(message);
-								}
+                                var messageFIX = (MessageFIXT1_1)message;
+                                if( messageFIX.MessageType == "2")
+                                {
+                                    HandleResend(messageFIX);
+                                }
+                                if (!CheckForMissingMessages(message))
+							    {
+                                    switch( messageFIX.MessageType)
+                                    {
+                                        case "2":
+                                            // Already handled and sequence incremented.
+                                            break;
+                                        case "4":
+                                            HandleGapFill(messageFIX);
+                                            break;
+                                        default:
+                                            ReceiveMessage(messageFIX);
+                                            break;
+                                    }
+							    }
 							    Socket.MessageFactory.Release(message);
 								IncreaseRetryTimeout();
 								return Yield.DidWork.Repeat;
 							} else {
 								return Yield.NoWork.Repeat;
 							}
-                        case Status.PendingLogOut:
-						case Status.PendingLogin:
-							return Yield.NoWork.Repeat;
                         default:
                             throw new InvalidOperationException("Unknown connection status: " + connectionStatus);
                     }
@@ -350,28 +386,92 @@ namespace TickZoom.FIX
 			}
 		}
 
-	    private bool CheckFailedLoginFile()
+        private void HandleGapFill(MessageFIXT1_1 packetFIX)
+        {
+            if (!packetFIX.IsGapFill)
+            {
+                throw new InvalidOperationException("Only gap fill sequence reset supportted: \n" + packetFIX);
+            }
+            if (packetFIX.NewSeqNum < remoteSequence)  // ResetSeqNo
+            {
+                throw new InvalidOperationException("Reset new sequence number must be greater than or equal to the next sequence: " + remoteSequence + ".\n" + packetFIX);
+            }
+            remoteSequence = packetFIX.NewSeqNum;
+            if (debug) log.Debug("Received gap fill. Setting next sequence = " + remoteSequence);
+        }
+
+        private bool CheckFailedLoginFile()
 	    {
             return File.Exists(failedFile);
         }
 
-	    private TimeStamp lastMessage;
-		
-		private bool CheckForResend(Message message) {
+        private bool CheckForMissingMessages(Message message)
+        {
+            var messageFIX = (MessageFIXT1_1) message;
+            if (messageFIX.Sequence > remoteSequence)
+            {
+                var mbtMsg = fixFactory.Create();
+                mbtMsg.AddHeader("2");
+                mbtMsg.SetBeginSeqNum(RemoteSequence);
+                mbtMsg.SetEndSeqNum(0);
+                if (debug) log.Debug("Sequence is " + messageFIX.Sequence + " but expected sequence is " + RemoteSequence + ". Sending resend request: " + mbtMsg);
+                // Clean out the queue of messages.
+                Message throwaway;
+                while (Socket.TryGetMessage(out throwaway)) ;
+                SendMessage(mbtMsg);
+                return true;
+            }
+            else if( messageFIX.Sequence < remoteSequence)
+            {
+                if (debug) log.Debug("Already received sequence " + messageFIX.Sequence + ". Ignoring.");
+                return true;
+            }
+            else
+            {
+                RemoteSequence = messageFIX.Sequence + 1;
+                return false;
+            }
+        }
+
+        private FIXTMessage1_1 GapFillMessage(FIXTMessage1_1 origMessage)
+        {
+            var message = fixFactory.Create(origMessage.Sequence);
+            message.Sequence = origMessage.Sequence;
+            message.SetGapFill();
+            message.SetNewSeqNum(message.Sequence + 1);
+            message.AddHeader("4");
+            return message;
+        }
+
+        private bool HandleResend(Message message)
+        {
 			var messageFIX = (MessageFIXT1_1) message;
 			var result = false;
-			if( messageFIX.MessageType == "2") {
-				int end = messageFIX.EndSeqNum == 0 ? fixFactory.LastSequence : messageFIX.EndSeqNum;
-				if( debug) log.Debug( "Found resend request for " + messageFIX.BegSeqNum + " to " + end + ": " + messageFIX);
-				for( int i = messageFIX.BegSeqNum; i <= end; i++) {
-					if( debug) log.Debug("Resending message " + i + "...");
-					var textMessage = fixFactory.GetHistory(i);
-					textMessage.SetDuplicate(true);
-			    	SendMessageInternal( textMessage );
-				}
-				result = true;
+			int end = messageFIX.EndSeqNum == 0 ? fixFactory.LastSequence : messageFIX.EndSeqNum;
+			if( debug) log.Debug( "Found resend request for " + messageFIX.BegSeqNum + " to " + end + ": " + messageFIX);
+			for( int i = messageFIX.BegSeqNum; i <= end; i++) {
+				var textMessage = fixFactory.GetHistory(i);
+                var gapFill = false;
+                switch (textMessage.Type)
+                {
+                    case "A": // Logoff
+                    case "5": // Logoff
+                    case "0": // Heartbeat
+                    case "1": // Heartbeat
+                    case "2": // Resend request.
+                    case "4": // Reset sequence.
+                        textMessage = GapFillMessage(textMessage);
+                        if (debug) log.Debug("Sending gap fill message " + i + "...");
+                        gapFill = true;
+                        break;
+                    default:
+                        textMessage.SetDuplicate(true);
+                        if (debug) log.Debug("Resending message " + i + "...");
+                        break;
+                }
+                SendMessageInternal(textMessage);
 			}
-			return result;
+			return true;
 		}
 
 		protected void IncreaseRetryTimeout() {
@@ -570,7 +670,6 @@ namespace TickZoom.FIX
                     {
                         fixFilterController.Dispose();
                     }
-	            	nextConnectTime = Factory.Parallel.TickCount + 10000;
 	            }
     		}
 	    }    
@@ -619,7 +718,7 @@ namespace TickZoom.FIX
 			while( !Socket.TrySendMessage(packet)) {
 				if( IsInterrupted) return;
 				if( Factory.Parallel.TickCount > end) {
-					throw new ApplicationException("Timeout while sending heartbeat.");
+					throw new ApplicationException("Timeout while sending message.");
 				}
 				Factory.Parallel.Yield();
 			}
@@ -629,13 +728,19 @@ namespace TickZoom.FIX
         {
             if( connectionStatus == Status.Recovered)
             {
-                OnLogout();
-                connectionStatus = Status.PendingLogOut;
-                while( socket != null && socket.State == SocketState.Connected)
+                while (socket != null && socket.State == SocketState.Connected)
                 {
-                    Factory.Parallel.Yield();
+                    OnLogout();
+                    connectionStatus = Status.PendingLogOut;
+                    var end = Factory.TickCount + 1000;
+                    while (socket != null && socket.State == SocketState.Connected && Factory.TickCount < end)
+                    {
+                        Factory.Parallel.Yield();
+                    }
                 }
-            } else
+                Dispose();
+            }
+            else
             {
                 Dispose();
             }
@@ -720,5 +825,10 @@ namespace TickZoom.FIX
 			set { fixFactory = value; }
 		}
 
+	    public int RemoteSequence
+	    {
+	        get { return remoteSequence; }
+	        set { remoteSequence = value; }
+	    }
 	}
 }

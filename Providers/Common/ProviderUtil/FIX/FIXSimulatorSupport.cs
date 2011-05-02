@@ -42,6 +42,7 @@ namespace TickZoom.FIX
 		private long realTimeOffset;
 		private object realTimeOffsetLocker = new object();
 		private YieldMethod MainLoopMethod;
+	    private int heartbeatDelay = 1;
 
 		// FIX fields.
 		private ushort fixPort = 0;
@@ -61,7 +62,7 @@ namespace TickZoom.FIX
 		private Message _quoteWriteMessage;
 		private bool isQuoteSimulationStarted = false;
 		private MessageFactory _quoteMessageFactory;
-		protected FastQueue<Message> fixPacketQueue = Factory.TickUtil.FastQueue<Message>("SimulatorFIX");
+		private FastQueue<Message> fixPacketQueue = Factory.TickUtil.FastQueue<Message>("SimulatorFIX");
 		protected FastQueue<Message> quotePacketQueue = Factory.TickUtil.FastQueue<Message>("SimulatorQuote");
 		private Dictionary<long, FIXServerSymbolHandler> symbolHandlers = new Dictionary<long, FIXServerSymbolHandler>();
 		private bool isPlayBack = false;
@@ -76,7 +77,23 @@ namespace TickZoom.FIX
 			MainLoopMethod = MainLoop;
 		}
 
-		private void ListenToFIX(ushort fixPort)
+        public void DumpHistory()
+        {
+            for (var i = 0; i <= fixFactory.LastSequence; i++)
+            {
+                try
+                {
+                    var message = fixFactory.GetHistory(i);
+                    log.Info(message.ToString());
+                }
+                catch (ApplicationException)
+                {
+
+                }
+            }
+        }
+
+        private void ListenToFIX(ushort fixPort)
 		{
 			this.fixPort = fixPort;
 			fixListener = Factory.Provider.Socket(typeof(FIXSimulatorSupport).Name);
@@ -258,13 +275,70 @@ namespace TickZoom.FIX
 			}
 			if( trace) log.Trace("ProcessFIXPackets( " + fixPacketQueue.Count + " packets in queue.)");
 			if( fixPacketQueue.DequeueStruct(ref _fixWriteMessage)) {
-				fixPacketQueue.RemoveStruct();
+                fixPacketQueue.RemoveStruct();
 				return true;
 			} else {
 				return false;
 			}
 		}
-		private bool ProcessQuotePackets() {
+
+        private FIXTMessage1_1 GapFillMessage(FIXTMessage1_1 origMessage)
+        {
+            var message = fixFactory.Create(origMessage.Sequence);
+            message.SetGapFill();
+            message.SetNewSeqNum( message.Sequence + 1);
+            message.AddHeader("4");
+            return message;
+        }
+
+        private bool HandleResend(MessageFIXT1_1 messageFIX)
+        {
+            var result = false;
+            int end = messageFIX.EndSeqNum == 0 ? fixFactory.LastSequence : messageFIX.EndSeqNum;
+            if (debug) log.Debug("Found resend request for " + messageFIX.BegSeqNum + " to " + end + ": " + messageFIX);
+            for (int i = messageFIX.BegSeqNum; i <= end; i++)
+            {
+                var textMessage = fixFactory.GetHistory(i);
+                var gapFill = false;
+                switch( textMessage.Type)
+                {
+                    case "A": // Logon
+                    case "5": // Logoff
+                    case "0": // Heartbeat
+                    case "1": // Heartbeat
+                    case "2": // Resend request.
+                    case "4": // Reset sequence.
+                        textMessage = GapFillMessage(textMessage);
+                        gapFill = true;
+                        break;
+                    default:
+                        textMessage.SetDuplicate(true);
+                        break;
+                }
+
+                var fixString = textMessage.ToString();
+		        if( debug) {
+                    string view = fixString.Replace(FIXTBuffer.EndFieldStr, "  ");
+                    if (gapFill)
+                    {
+                        log.Debug("Send Gap Fill message " + i + ": \n" + view);
+                    }
+                    else
+                    {
+                        log.Debug("Resend FIX message " + i + ": \n" + view);
+                    }
+		        }
+                var packet = fixSocket.MessageFactory.Create();
+                packet.SendUtcTime = TimeStamp.UtcNow.Internal;
+		        packet.DataOut.Write(fixString.ToCharArray());
+                SendMessageInternal(packet);
+                result = true;
+            }
+            return result;
+        }
+
+        private bool ProcessQuotePackets()
+        {
 			if( _quoteWriteMessage == null && quotePacketQueue.Count == 0) {
 				return false;
 			}
@@ -278,50 +352,54 @@ namespace TickZoom.FIX
 		}
 		private bool Resend(MessageFIXT1_1 messageFix)
 		{
-		    var writePacket = fixSocket.MessageFactory.Create();
 			var mbtMsg = fixFactory.Create();
 			mbtMsg.AddHeader("2");
-			mbtMsg.SetBeginSeqNum(sequenceCounter);
+			mbtMsg.SetBeginSeqNum(remoteSequence);
 			mbtMsg.SetEndSeqNum(0);
-			string message = mbtMsg.ToString();
-			if( debug) log.Debug("Sending resend request: " + message);
-			writePacket.DataOut.Write(message.ToCharArray());
-			writePacket.SendUtcTime = TimeStamp.UtcNow.Internal;
-			return fixPacketQueue.EnqueueStruct(ref writePacket, writePacket.SendUtcTime);
+			if( debug) log.Debug("Sending resend request: " + mbtMsg);
+            SendMessage(mbtMsg);
+		    return true;
 		}
 		private Random random = new Random(1234);
-		private int sequenceCounter = 1;
+		private int remoteSequence = 1;
 		private bool FIXReadLoop()
 		{
 			if (isFIXSimulationStarted) {
-				if (fixSocket.TryGetMessage(out _fixReadMessage)) {
+				if (fixSocket.TryGetMessage(out _fixReadMessage))
+				{
                     try
                     {
                         var packetFIX = (MessageFIXT1_1)_fixReadMessage;
-                        if (fixFactory != null && packetFIX.MessageType != "5" && random.Next(10) == 1)
+                        if( packetFIX.MessageType == "2")
                         {
-                            // Ignore this message. Pretend we never received it.
-                            // This will test the message recovery.
-                            if (debug) log.Debug("Ignoring fix message sequence " + packetFIX.Sequence);
+                            HandleResend(packetFIX);
+                        }
+                        if (packetFIX.Sequence > remoteSequence)
+                        {
+                            if (debug) log.Debug("packet sequence " + packetFIX.Sequence + " mismatch with counter " + remoteSequence);
                             return Resend(packetFIX);
                         }
-                        if (trace) log.Trace("Local Read: " + _fixReadMessage);
-                        if (packetFIX.Sequence > sequenceCounter)
-                        {
-                            if (debug) log.Debug("packet sequence " + packetFIX.Sequence + " mismatch with counter " + sequenceCounter);
-                            return Resend(packetFIX);
-                        }
-                        else if (packetFIX.Sequence < sequenceCounter)
+                        if (packetFIX.Sequence < remoteSequence)
                         {
                             if (debug) log.Debug("Already received packet sequence " + packetFIX.Sequence + ". Ignoring.");
+                            return true;
                         }
                         else
                         {
-                            sequenceCounter++;
-                            ParseFIXMessage(_fixReadMessage);
-                            return true;
+                            switch (packetFIX.MessageType)
+                            {
+                                case "2": // resend request
+                                    // already handled prior to sequence checking.
+                                    remoteSequence = packetFIX.Sequence + 1;
+                                    break;
+                                case "4":
+                                    return HandleGapFill(packetFIX); 
+                                default:
+                                    return ProcessMessage(packetFIX);
+                            }
                         }
-                    } finally
+                    }
+                    finally
                     {
                         fixSocket.MessageFactory.Release(_fixReadMessage);
                     }
@@ -329,8 +407,39 @@ namespace TickZoom.FIX
 			}
 			return false;
 		}
-		
-		public long GetRealTimeOffset( long utcTime) {
+
+        private bool HandleGapFill( MessageFIXT1_1 packetFIX)
+        {
+            if (!packetFIX.IsGapFill)
+            {
+                throw new InvalidOperationException("Only gap fill sequence reset supportted: \n" + packetFIX);
+            }
+            if (packetFIX.NewSeqNum <= remoteSequence)  // ResetSeqNo
+            {
+                throw new InvalidOperationException("Reset new sequence number must be greater than current sequence: " + remoteSequence + ".\n" + packetFIX);
+            }
+            remoteSequence = packetFIX.NewSeqNum;
+            if (debug) log.Debug("Received gap fill. Setting next sequence = " + remoteSequence);
+            return true;
+        }
+
+        private bool ProcessMessage(MessageFIXT1_1 packetFIX)
+        {
+            if (fixFactory != null && random.Next(10) == 1)
+            {
+                // Ignore this message. Pretend we never received it.
+                // This will test the message recovery.
+                if (debug) log.Debug("Ignoring fix message sequence " + packetFIX.Sequence);
+                return Resend(packetFIX);
+            }
+            remoteSequence = packetFIX.Sequence + 1;
+            if (debug) log.Debug("Received FIX message: " + _fixReadMessage);
+            ParseFIXMessage(_fixReadMessage);
+            return true;
+        }
+
+
+	    public long GetRealTimeOffset( long utcTime) {
 			lock( realTimeOffsetLocker) {
 				if( realTimeOffset == 0L) {
 					var currentTime = TimeStamp.UtcNow;
@@ -402,7 +511,6 @@ namespace TickZoom.FIX
 
 		public virtual void ParseFIXMessage(Message message)
 		{
-			if (debug) log.Debug("Received FIX message: " + message);
 		}
 
 		public virtual void ParseQuotesMessage(Message message)
@@ -413,14 +521,26 @@ namespace TickZoom.FIX
 		public bool WriteToFIX()
 		{
 			if (!isFIXSimulationStarted || _fixWriteMessage == null) return true;
-			if( fixSocket.TrySendMessage(_fixWriteMessage)) {
-				if (trace) log.Trace("Local Write: " + _fixWriteMessage);
-				_fixWriteMessage = null;
-				return true;
-			} else {
-				return false;
-			}
+		    var result = SendMessageInternal(_fixWriteMessage);
+            if( result)
+            {
+                _fixWriteMessage = null;
+            }
+		    return result;
 		}
+
+        private bool SendMessageInternal( Message message)
+        {
+            if (fixSocket.TrySendMessage(message))
+            {
+                if (trace) log.Trace("Local Write: " + message);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
 
 		public bool WriteToQuotes()
 		{
@@ -438,7 +558,7 @@ namespace TickZoom.FIX
 		private bool firstHeartbeat = true;
 		private void IncreaseHeartbeat(long currentTime) {
 			heartbeatTimer = currentTime;
-		    heartbeatTimer += 30*1000; // 30 seconds.
+		    heartbeatTimer += heartbeatDelay*1000; // 30 seconds.
 		}		
 
 		private void TryRequestHeartbeat(long currentTime) {
@@ -452,22 +572,37 @@ namespace TickZoom.FIX
 				OnHeartbeat();
 			}
 		}
-		
-		protected virtual Yield OnHeartbeat() {
+
+        public void SendMessage(FIXTMessage1_1 fixMessage)
+        {
+            FixFactory.AddHistory(fixMessage);
+            if (random.Next(20) == 4)
+            {
+                if (debug) log.Debug("Skipping send of sequence # " + fixMessage.Sequence + " to simulate lost message.");
+                return;
+            }
+            var writePacket = fixSocket.MessageFactory.Create();
+            var message = fixMessage.ToString();
+            writePacket.DataOut.Write(message.ToCharArray());
+            writePacket.SendUtcTime = TimeStamp.UtcNow.Internal;
+            while (!fixPacketQueue.EnqueueStruct(ref writePacket, writePacket.SendUtcTime))
+            {
+                if (fixPacketQueue.IsFull)
+                {
+                    throw new ApplicationException("Fix Queue is full.");
+                }
+            }
+        }
+
+        protected virtual Yield OnHeartbeat()
+        {
 			if( fixSocket != null && FixFactory != null)
 			{
-			    var writePacket = fixSocket.MessageFactory.Create();
 				var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 				mbtMsg.AddHeader("1");
 				string message = mbtMsg.ToString();
-				writePacket.DataOut.Write(message.ToCharArray());
-				writePacket.SendUtcTime = TimeStamp.UtcNow.Internal;
-				if( trace) log.Trace("Requesting heartbeat: " + message);
-				while( !fixPacketQueue.EnqueueStruct(ref writePacket,writePacket.SendUtcTime)) {
-					if( fixPacketQueue.IsFull) {
-						throw new ApplicationException("Fix Queue is full.");
-					}
-				}
+				if( trace) log.Trace("Requesting heartbeat: " + mbtMsg);
+                SendMessage(mbtMsg);
 			}
 			return Yield.DidWork.Return;
 		}
@@ -553,5 +688,10 @@ namespace TickZoom.FIX
 		public FastQueue<Message> QuotePacketQueue {
 			get { return quotePacketQueue; }
 		}
+
+	    public int HeartbeatDelay
+	    {
+	        get { return heartbeatDelay; }
+	    }
 	}
 }

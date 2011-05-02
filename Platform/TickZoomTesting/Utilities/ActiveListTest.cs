@@ -2,6 +2,7 @@
 using System.Threading;
 using NUnit.Framework;
 using TickZoom.Api;
+using System.IO;
 
 namespace TickZoom.Utilities
 {
@@ -45,6 +46,15 @@ namespace TickZoom.Utilities
             Assert.AreEqual(4, list.Count);
             AddToList();
             Assert.AreEqual(5, list.Count);
+        }
+
+        [Test]
+        public void MemoryStreamExperiment()
+        {
+            var memory = new MemoryStream();
+            memory.SetLength(181);
+            memory.Position = 0;
+            var pos = memory.Position;
         }
 
         [Test]

@@ -72,7 +72,8 @@ namespace TickZoom.MBTFIX
 		}
 		
 		public override void OnDisconnect() {
-            if( ConnectionStatus == Status.Recovered)
+            orderStore.ForceSnapShot();
+            if (ConnectionStatus == Status.Recovered)
             {
                 log.Error("Logging out -- Sending EndBroker event.");
                 SendEndBroker();
@@ -119,15 +120,18 @@ namespace TickZoom.MBTFIX
 			}
 		}
 
-        private void SendLogin()
+        private void SendLogin(int localSequence)
         {
             lastLoginTry = Factory.Parallel.TickCount;
 
-            FixFactory = new FIXFactory4_4(1, UserName, fixDestination);
+            FixFactory = new FIXFactory4_4(localSequence+1, UserName, fixDestination);
             var mbtMsg = FixFactory.Create();
             mbtMsg.SetEncryption(0);
             mbtMsg.SetHeartBeatInterval(30);
-            mbtMsg.ResetSequence();
+            if( localSequence == 0)
+            {
+                mbtMsg.ResetSequence();
+            }
             mbtMsg.SetEncoding("554_H1");
             mbtMsg.SetPassword(Password);
             mbtMsg.AddHeader("A");
@@ -137,21 +141,27 @@ namespace TickZoom.MBTFIX
             }
             SendMessage(mbtMsg);
         }
-		
 
-		public override bool OnLogin() {
-			if( debug) log.Debug("Login()");
+        public override bool OnLogin()
+        {
+            if (debug) log.Debug("Login()");
+            isPositionUpdateComplete = false;
+            isOrderUpdateComplete = false;
+            isPositionSynced = false;
 
-            SendLogin();
-
-		    string errorMessage;
-            if( !LookForLoginAck(out errorMessage))
+            if (orderStore.Recover())
             {
-                return false;
+                if (debug) log.Debug("Recovered orders from snapshot: \n" + orderStore.LogOrders());
+                RemoteSequence = orderStore.RemoteSequence;
+                SendLogin(orderStore.LocalSequence);
+                isOrderUpdateComplete = true;
             }
-			
-			StartRecovery();
-			
+            else
+            {
+                if( debug) log.Debug("Unable to recover from snapshot. Beginning full recovery.");
+                RemoteSequence = 1;
+                SendLogin(0);
+            }
             return true;
         }
 
@@ -167,14 +177,17 @@ namespace TickZoom.MBTFIX
 		
 		protected override void OnStartRecovery()
 		{
-			isPositionUpdateComplete = false;
-			isOrderUpdateComplete = false;
-		    isPositionSynced = false;
 			if( !LogRecovery) {
 				MessageFIXT1_1.IsQuietRecovery = true;
 			}
-
-			RequestOrders();
+            if( isOrderUpdateComplete )
+            {
+                RequestPositions();
+            }
+            else
+            {
+                RequestOrders();
+            }
 		}
 		
 		public override void OnStartSymbol(SymbolInfo symbol)
@@ -230,7 +243,7 @@ namespace TickZoom.MBTFIX
 			SendMessage( fixMsg);
 		}
 
-        private unsafe bool LookForLoginAck(out string errorMessage)
+        private unsafe bool LookForLoginAck()
         {
             var timeout = 30;
             var end = Factory.Parallel.TickCount + timeout * 1000;
@@ -239,13 +252,11 @@ namespace TickZoom.MBTFIX
             {
                 if (IsInterrupted)
                 {
-                    errorMessage = "Wait on socket interrupting. Shutting down.";
                     return false;
                 }
                 Factory.Parallel.Yield();
                 if (Factory.Parallel.TickCount > end)
                 {
-                    errorMessage = "Timeout of " + timeout + " seconds while waiting for login acknowledgment.";
                     return false;
                 }
             }
@@ -253,7 +264,7 @@ namespace TickZoom.MBTFIX
             if (debug) log.Debug("Received FIX message: " + message);
             try
             {
-                if (VerifyLoginAck(message, out errorMessage))
+                if (VerifyLoginAck(message))
                 {
                     return true;
                 } else
@@ -267,7 +278,7 @@ namespace TickZoom.MBTFIX
             return false;
         }
 
-        private unsafe bool VerifyLoginAck(Message message, out string errorMessage)
+        private unsafe bool VerifyLoginAck(Message message)
 		{
 		    var result = false;
 		    MessageFIX4_4 packetFIX = (MessageFIX4_4) message;
@@ -275,20 +286,10 @@ namespace TickZoom.MBTFIX
 		        "FIX.4.4" == packetFIX.Version &&
 		        "MBT" == packetFIX.Sender &&
 		        UserName == packetFIX.Target &&
-		        "0" == packetFIX.Encryption &&
-		        30 == packetFIX.HeartBeatInterval)
+		        "0" == packetFIX.Encryption)
 		    {
-		        errorMessage = null;
                 return 1 == packetFIX.Sequence;
             }
-            //if ("1" == packetFIX.MessageType)
-            //{
-            //    return true;
-            //}
-            //if ("0" == packetFIX.MessageType)
-            //{
-            //    return true;
-            //}
             var textMessage = new StringBuilder();
             textMessage.AppendLine("Invalid login response:");
             textMessage.AppendLine("  message type = " + packetFIX.MessageType);
@@ -299,11 +300,24 @@ namespace TickZoom.MBTFIX
             textMessage.AppendLine("  sequence = " + packetFIX.Sequence);
             textMessage.AppendLine("  heartbeat interval = " + packetFIX.HeartBeatInterval);
             textMessage.AppendLine(packetFIX.ToString());
-            errorMessage = textMessage.ToString();
+            log.Error(textMessage.ToString());
             return false;
 		}
 		
 		protected override void ReceiveMessage(Message message) {
+            if( ConnectionStatus == Status.PendingLogin)
+            {
+                if( VerifyLoginAck(message))
+                {
+                    StartRecovery();
+                    return;
+                }
+                else
+                {
+                    RegenerateSocket();
+                    return;
+                }
+            }
 			var packetFIX = (MessageFIX4_4) message;
 			switch( packetFIX.MessageType) {
 				case "AP":
@@ -358,30 +372,30 @@ namespace TickZoom.MBTFIX
 			if( isPositionUpdateComplete && isOrderUpdateComplete) {
 				isPositionUpdateComplete = false;
 				isOrderUpdateComplete = false;
-				if( !TryCancelRejectedOrders() ) {
+                //if( !TryCancelRejectedOrders() ) {
 					ReportRecovery();
 					EndRecovery();
-				}
+                //}
 			}
 		}
 		
 		private bool isCancelingPendingOrders = false;
 		
-		private bool TryCancelRejectedOrders() {
-			var pending = orderStore.GetOrders((o) => o.OrderState == OrderState.Pending && "ReplaceRejected".Equals(o.Tag));
-			if( pending.Count == 0) {
-				isCancelingPendingOrders = false;
-				return false;
-			} else if( !isCancelingPendingOrders) {
-				isCancelingPendingOrders = true;
-				log.Info("Recovery completed with pending orders. Canceling them now..");
-				foreach( var order in pending) {
-					log.Info("Canceling Pending Order: " + order);
-					OnCancelBrokerOrder(order.Symbol, order.BrokerOrder);
-				}
-			}
-			return isCancelingPendingOrders;
-		}
+        //private bool TryCancelRejectedOrders() {
+        //    var pending = orderStore.GetOrders((o) => o.OrderState == OrderState.Pending && "ReplaceRejected".Equals(o.Tag));
+        //    if( pending.Count == 0) {
+        //        isCancelingPendingOrders = false;
+        //        return false;
+        //    } else if( !isCancelingPendingOrders) {
+        //        isCancelingPendingOrders = true;
+        //        log.Info("Recovery completed with pending orders. Canceling them now..");
+        //        foreach( var order in pending) {
+        //            log.Info("Canceling Pending Order: " + order);
+        //            OnCancelBrokerOrder(order.Symbol, order.BrokerOrder);
+        //        }
+        //    }
+        //    return isCancelingPendingOrders;
+        //}
 
 		private void ReportRecovery() {
 			StringBuilder sb = new StringBuilder();
@@ -844,7 +858,7 @@ namespace TickZoom.MBTFIX
             {
                 throw new InvalidOperationException("client order id mismatch with broker order property.");
             }
-            orderStore.AssignById((string)order.BrokerOrder,order);
+            orderStore.AssignById(order,RemoteSequence,FixFactory.LastSequence);
 			if( trace) {
 				log.Trace("Updated order list:");
 			    var logOrders = orderStore.LogOrders();
@@ -867,8 +881,8 @@ namespace TickZoom.MBTFIX
 		    if( orderStore.TryGetOrderById( newClientOrderId, out order)) {
 				logicalSerialNumber = order.LogicalSerialNumber;
 			} else {
-				if( !IsRecovery ) {
-					log.Warn("Client Order ID# " + newClientOrderId + " was not found for update or replace.");
+				if( debug && (LogRecovery || IsRecovered)) {
+					log.Debug("Client Order ID# " + newClientOrderId + " was not found. Recreating physical order.");
 					return null;
 				}			
 			}
@@ -904,7 +918,7 @@ namespace TickZoom.MBTFIX
 					if( debug) log.Debug("Order completely filled or canceled. Id: " + packetFIX.ClientOrderId + ".  Executed: " + packetFIX.CumulativeQuantity);
 				}
 			}
-		    orderStore.AssignById(newClientOrderId, order);
+            orderStore.AssignById(order, RemoteSequence, FixFactory.LastSequence);
 			if( trace) {
 				log.Trace("Updated order list:");
 			    var logOrders = orderStore.LogOrders();
@@ -1008,7 +1022,8 @@ namespace TickZoom.MBTFIX
 		
 	    protected override void Dispose(bool disposing)
 	    {
-	    	base.Dispose(disposing);
+            orderStore.Dispose();
+            base.Dispose(disposing);
            	nextConnectTime = Factory.Parallel.TickCount + 10000;
 	    }    
 	        
@@ -1032,7 +1047,7 @@ namespace TickZoom.MBTFIX
 		private void OnCreateOrChangeBrokerOrder(PhysicalOrder physicalOrder, object origBrokerOrder, bool isChange)
 		{
 			var fixMsg = (FIXMessage4_4) FixFactory.Create();
-		    orderStore.AssignById((string) physicalOrder.BrokerOrder, physicalOrder);
+            orderStore.AssignById(physicalOrder, RemoteSequence, FixFactory.LastSequence);
 			
 			if( debug) log.Debug( "Adding Order to open order list: " + physicalOrder);
 			if( isChange) {

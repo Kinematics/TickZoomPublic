@@ -102,6 +102,7 @@ namespace TickZoom.FIX
             longQuantity = 0;
             shortQuantity = 0;
         }
+
 		protected override bool HandleKey(int key)
 		{
 			//			1=33117308

@@ -153,18 +153,16 @@ namespace TickZoom.MBTFIX
 				if(debug) log.Debug("PositionUpdate Complete.");
 				TryEndRecovery();
 			} else {
-//				if( isRecovered) {
 				double position = packet.LongQuantity + packet.ShortQuantity;
 				SymbolInfo symbolInfo;
 				try {
 					symbolInfo = Factory.Symbol.LookupSymbol(packet.Symbol);
-				} catch( ApplicationException ex) {
+				} catch( Exception ex) {
 					log.Error("Error looking up " + packet.Symbol + ": " + ex.Message);
 					return;
 				}
 				if(debug) log.Debug("PositionUpdate: " + symbolInfo + "=" + position);
 				symbolPositionMap[symbolInfo.BinaryIdentifier] = position;
-//				}
 			}
 		}
 		

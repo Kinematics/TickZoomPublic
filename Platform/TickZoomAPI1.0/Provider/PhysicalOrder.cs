@@ -79,14 +79,16 @@ namespace TickZoom.Api
 			get;
 			set;
 		}
+
+        string Tag
+        {
+            get;
+        }
 		
-		object Tag {
-			get;
-		}
-		
-		object Reference {
-			get;
+        object Reference
+        {
+            get;
             set;
-		}
+        }
 	}
 }

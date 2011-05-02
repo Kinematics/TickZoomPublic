@@ -83,9 +83,6 @@ namespace TickZoom.Api
         {
             if( isInitialized) return;
             string appData = Factory.Settings["AppDataFolder"];
-            // Forces the provider factory to load, thereby copying
-            // from AutoUpdate to the ShadowCopy Folder.
-            var providerFactory = Factory.Provider;
             if (appData == null)
             {
                 throw new ApplicationException("AppDataFolder was not set in app.config.");
@@ -154,6 +151,10 @@ namespace TickZoom.Api
             var serializer = SearchSerializers(eventType);
             if (serializer == null)
             {
+                // Forces the provider factory to load, thereby copying
+                // from AutoUpdate to the ShadowCopy Folder since it includes
+                // some serializers.
+                var providerFactory = Factory.Provider;
                 Initialize();
                 serializer = SearchSerializers(eventType);
             }

@@ -1201,13 +1201,19 @@ namespace TickZoom
             {
                 var format = "N" + symbol.MinimumTickPrecision;
                 toolStripString.Length = 0;
-                toolStripString.Append(time.ToString() + " " +
-                    "O:" + startPair.Open.ToString(format) + ", " +
-                    "H:" + startPair.High.ToString(format) + ", " +
-                    "L:" + startPair.Low.ToString(format) + ", " +
-                    "C:" + startPair.Close.ToString(format) + ", " +
-                    "Bar: " + (dragIndex + 1) + ", " +
-                    intervalChartBar);
+                toolStripString.Append(time.ToString());
+                toolStripString.Append(" O:");
+                toolStripString.Append(startPair.Open.ToString(format));
+                toolStripString.Append(", H:");
+                toolStripString.Append(startPair.High.ToString(format));
+                toolStripString.Append(", L:");
+                toolStripString.Append(startPair.Low.ToString(format));
+                toolStripString.Append(", C:");
+                toolStripString.Append(startPair.Close.ToString(format));
+                toolStripString.Append(", Bar: ");
+                toolStripString.Append((dragIndex + 1).ToString());
+                toolStripString.Append(", ");
+                toolStripString.Append(intervalChartBar);
                 var text = toolStripString.ToString();
                 execute.OnUIThread(() => toolStripStatusXY.Text = text);
 
