@@ -20,12 +20,10 @@ namespace TickZoom.Examples
             shortSide.OnDirectionChange = OnDirectionChange;
             shortSide.IsActive = true;
             shortSide.IsVisible = true;
-            shortSide.MaxLots = maxLots;
             longSide = Strategies[1] as SimpleStrategy;
             longSide.Name = "Next Strategy";
             longSide.IsVisible = true;
             longSide.IsActive = false;
-            longSide.MaxLots = maxLots;
         }
 
         public override bool OnProcessTick(TickZoom.Api.Tick tick)

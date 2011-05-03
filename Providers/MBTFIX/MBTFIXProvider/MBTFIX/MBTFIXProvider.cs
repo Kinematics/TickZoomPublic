@@ -175,8 +175,6 @@ namespace TickZoom.MBTFIX
 			}
 
 			RequestOrders();
-			
-			RequestPositions();
 		}
 		
 		public override void OnStartSymbol(SymbolInfo symbol)
@@ -428,7 +426,7 @@ namespace TickZoom.MBTFIX
 			if( packetFIX.Text == "END") {
 				isOrderUpdateComplete = true;
 				if(debug) log.Debug("ExecutionReport Complete.");
-				TryEndRecovery();
+                RequestPositions();
 			} else {
 				if( debug && (LogRecovery || !IsRecovery) ) {
 					log.Debug("ExecutionReport: " + packetFIX);
@@ -644,9 +642,8 @@ namespace TickZoom.MBTFIX
             var fillPosition = packetFIX.LastQuantity * SideToSign(packetFIX.Side);
             if (GetSymbolStatus(symbolInfo))
             {
-                try
-                {
-				    var order = orderStore.GetOrderById( packetFIX.ClientOrderId);
+                PhysicalOrder order;
+                if( orderStore.TryGetOrderById( packetFIX.ClientOrderId, out order)) {
                     order.OrderState = OrderState.Filled;
 				    TimeStamp executionTime;
 				    if( UseLocalFillTime) {
@@ -659,7 +656,8 @@ namespace TickZoom.MBTFIX
 				    var fill = Factory.Utility.PhysicalFill(fillPosition,packetFIX.LastPrice,configTime,executionTime,order,false);
 				    if( debug) log.Debug( "Sending physical fill: " + fill);
 	                algorithm.ProcessFill( fill,packetFIX.OrderQuantity,packetFIX.CumulativeQuantity,packetFIX.LeavesQuantity);
-                } catch( PhysicalOrderNotFoundException )
+                }
+                else
                 {
                     algorithm.IncreaseActualPosition( fillPosition);
                     log.Notice("Fill id " + packetFIX.ClientOrderId + " not found. Must have been a manual trade.");

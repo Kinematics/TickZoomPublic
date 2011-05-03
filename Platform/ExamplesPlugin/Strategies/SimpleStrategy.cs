@@ -10,16 +10,18 @@ namespace TickZoom.Examples
 {
     public enum Direction
     {
-        Long,
-        Short,
-        Both
+        UpTrend,
+        DownTrend,
+        Sideways,
     }
 
     public class SimpleStrategy: Strategy
     {
+        private Direction direction = Direction.Sideways;
         IndicatorCommon bidLine;
         IndicatorCommon askLine;
         IndicatorCommon position;
+        IndicatorCommon movement;
         IndicatorCommon averagePrice;
         private int displaceSMA = 10;
         bool isFirstTick = true;
@@ -76,13 +78,21 @@ namespace TickZoom.Examples
 
             averagePrice = Formula.Indicator();
             averagePrice.Name = "BE";
-            averagePrice.Drawing.IsVisible = isVisible;
+            averagePrice.Drawing.IsVisible = false;
             averagePrice.Drawing.Color = Color.Black;
 
             position = Formula.Indicator();
             position.Name = "Position";
             position.Drawing.PaneType = PaneType.Secondary;
+            position.Drawing.GroupName = "Position";
             position.Drawing.IsVisible = isVisible;
+
+            movement = Formula.Indicator();
+            movement.Name = "Movement";
+            movement.Drawing.PaneType = PaneType.Secondary;
+            movement.Drawing.IsVisible = isVisible;
+            movement.Drawing.GroupName = "Movement";
+            movement.Drawing.Color = Color.Blue;
         }
 
         private void UpdateIndicators(Tick tick)
@@ -92,7 +102,16 @@ namespace TickZoom.Examples
             if (comboTrades.Count > 0)
             {
                 var comboTrade = comboTrades.Tail;
-                averagePrice[0] = Position.IsFlat ? double.NaN : CalcAveragePrice(comboTrade);
+                var averageEntry = CalcAveragePrice(comboTrade);
+                var avgDivergence = Math.Abs(tick.Bid - averageEntry)/minimumTick;
+                if( avgDivergence > 150 || Position.IsFlat)
+                {
+                    averagePrice[0] = double.NaN;
+                }
+                else
+                {
+                    averagePrice[0] = averageEntry;
+                }
             }
             else
             {
@@ -102,6 +121,19 @@ namespace TickZoom.Examples
             if (bidLine.Count > 0)
             {
                 position[0] = Position.Current / lotSize;
+            }
+
+            switch( direction)
+            {
+                case Direction.Sideways:
+                    movement[0] = 0;
+                    break;
+                case Direction.UpTrend:
+                    movement[0] = 1;
+                    break;
+                case Direction.DownTrend:
+                    movement[0] = -1;
+                    break;
             }
         }
 
@@ -116,6 +148,53 @@ namespace TickZoom.Examples
 
             UpdateIndicators(tick);
 
+            CheckForDirectionChange(tick);
+
+            switch (direction)
+            {
+                case Direction.DownTrend:
+                    OnProcessDownTrend(tick);
+                    break;
+                case Direction.UpTrend:
+                    OnProcessUpTrend(tick);
+                    break;
+                case Direction.Sideways:
+                    ProcessSideways(tick);
+                    break;
+            }
+            return true;
+        }
+
+        private void CheckForDirectionChange(Tick tick)
+        {
+            var midpoint = (tick.Ask + tick.Bid) / 2;
+            // Check for switch to trend.
+            switch (direction)
+            {
+                case Direction.Sideways:
+                    var lots = Position.Size / lotSize;
+                    if (lots >= maxLots)
+                    {
+                        direction = midpoint < displacedSMA[0] ? Direction.DownTrend : Direction.UpTrend;
+                    }
+                    break;
+                case Direction.DownTrend:
+                    if (midpoint > displacedSMA[0] && Position.IsLong)
+                    {
+                        direction = Direction.Sideways;
+                    }
+                    break;
+                case Direction.UpTrend:
+                    if (midpoint < displacedSMA[0] && Position.IsShort)
+                    {
+                        direction = Direction.Sideways;
+                    }
+                    break;
+            }
+        }
+
+        private void ProcessSideways(Tick tick)
+        {
             if (Position.IsFlat)
             {
                 OnProcessFlat(tick);
@@ -129,7 +208,6 @@ namespace TickZoom.Examples
                 OnProcessShort(tick);
             }
 
-            return true;
         }
 
         private double lastMidpoint;
@@ -157,33 +235,83 @@ namespace TickZoom.Examples
 
         private double CalcAveragePrice(TransactionPairBinary comboTrade)
         {
+            var lots = Position.Current/lotSize;
+            if( lots > 5)
+            {
+                int x = 0;
+            }
             var size = Math.Abs(comboTrade.CurrentPosition);
             var sign = -Math.Sign(comboTrade.CurrentPosition);
             var openPnL = comboTrade.AverageEntryPrice*size;
             var closedPnl = sign * comboTrade.ClosedPoints;
 
             var result = ( openPnL + closedPnl) / size;
-            result = comboTrade.AverageEntryPrice;
             return result;
+        }
+
+        private void OnProcessUpTrend(Tick tick)
+        {
+            var midpoint = (tick.Ask + tick.Bid) / 2;
+            if( midpoint > displacedSMA[0])
+            {
+                PegBidToMidPoint(midpoint);
+            }
+            else
+            {
+                PegAskToMidPoint(midpoint);
+            }
+        }
+
+        private void OnProcessDownTrend(Tick tick)
+        {
+            var midpoint = (tick.Ask + tick.Bid) / 2;
+            if (midpoint < displacedSMA[0])
+            {
+                PegAskToMidPoint(midpoint);
+            }
+            else
+            {
+                PegBidToMidPoint(midpoint);
+            }
+        }
+
+        private void PegBidToMidPoint(double midpoint)
+        {
+            // Peg to the midpoint
+            if (midpoint > lastMidpoint || double.IsNaN(lastMidpoint))
+            {
+                lastMidpoint = midpoint;
+                bid = midpoint - minimumTick;
+                bidLine[0] = bid;
+            }
+            var lots = Position.Current / lotSize;
+            if (lots < maxLots)
+            {
+                Orders.Change.ActiveNow.BuyLimit(bid, increaseLotSize);
+            }
+        }
+
+        private void PegAskToMidPoint(double midpoint)
+        {
+            if (midpoint < lastMidpoint || double.IsNaN(lastMidpoint))
+            {
+                lastMidpoint = midpoint;
+                ask = midpoint + minimumTick;
+                askLine[0] = ask;
+            }
+            var lots = Position.Current / lotSize;
+            if (lots > -maxLots)
+            {
+                Orders.Change.ActiveNow.SellLimit(ask, increaseLotSize);
+            }
         }
 
         private void OnProcessLong(Tick tick)
         {
-            var midpoint = (tick.Ask + tick.Bid) / 2;
-            if (reduceRisk && midpoint > displacedSMA[0])
-            {
-                reduceRisk = false;
-                SetupBidAsk(lastFillPrice);
-            }
-            var comboTrade = Performance.ComboTrades.Tail;
-            var averageEntry = CalcAveragePrice(comboTrade);
             var lots = Position.Size / lotSize;
             var lastTrade = fills.First.Value;
-            if( lots < MaxLots)
-            {
-                Orders.Change.ActiveNow.BuyLimit(bid, increaseLotSize);
-            }
-            if (lots == 1 || ask > displacedSMA[0])
+            Orders.Change.ActiveNow.BuyLimit(bid, increaseLotSize);
+            if (lots == 1)
             {
                 Orders.Reverse.ActiveNow.SellLimit(ask, increaseLotSize);
             }
@@ -195,24 +323,15 @@ namespace TickZoom.Examples
 
         private void OnProcessShort(Tick tick)
         {
-            var midpoint = (tick.Ask + tick.Bid)/2;
-            if (reduceRisk && midpoint < displacedSMA[0])
-            {
-                reduceRisk = false;
-                SetupBidAsk(lastFillPrice);
-            }
-            var comboTrade = Performance.ComboTrades.Tail;
-            var averageEntry = CalcAveragePrice(comboTrade);
             var lots = Position.Size/lotSize;
             var lastTrade = fills.First.Value;
-            if( lots < MaxLots)
-            {
-                Orders.Change.ActiveNow.SellLimit(ask, increaseLotSize);
-            }
-            if (lots == 1 || bid < displacedSMA[0])
+            Orders.Change.ActiveNow.SellLimit(ask, increaseLotSize);
+            if (lots == 1)
             {
                 Orders.Reverse.ActiveNow.BuyLimit(bid, increaseLotSize);
-            } else {
+            }
+            else
+            {
                 Orders.Change.ActiveNow.BuyLimit(bid, lastTrade.Size);
             }
         }
@@ -245,36 +364,19 @@ namespace TickZoom.Examples
             }
         }
 
-        private bool reduceRisk = true;
-        private double lastFillPrice;
         private void SetupBidAsk(double price)
         {
-            lastFillPrice = price;
-            var originalTrade = fills.Last.Value.Price;
             var tick = Ticks[0];
+            CheckForDirectionChange(tick);
+            if (direction != Direction.Sideways) return;
+            //price = fills.First.Value.Price;
             var midpoint = (tick.Ask + tick.Bid) / 2;
-            var tradeDivergence = midpoint - originalTrade;
             var priceDivergence = midpoint - displacedSMA[0];
             var lots = Position.Size / lotSize;
             var myAsk = price + spread / 2;
             var myBid = price - spread / 2;
-            if( Position.IsShort && midpoint > displacedSMA[0] && lots >= breaksThresholdLots)
-            {
-                reduceRisk = true;
-                myAsk = price + Math.Max(spread/2,priceDivergence);
-                myBid = price - spread / 2;
-            }
-            else if( Position.IsLong && midpoint < displacedSMA[0] && lots >= breaksThresholdLots)
-            {
-                reduceRisk = true;
-                myAsk = price + spread / 2;
-                myBid = price - Math.Max(spread/2, -priceDivergence);
-            }
-            else
-            {
-                myAsk = price + spread / 2;
-                myBid = price - spread / 2;
-            }
+            myAsk = price + spread / 2;
+            myBid = price - spread / 2;
             marketAsk = Math.Max(tick.Ask, tick.Bid);
             marketBid = Math.Min(tick.Ask, tick.Bid);
             ask = Math.Max(myAsk, marketAsk);
@@ -292,6 +394,7 @@ namespace TickZoom.Examples
 
         public override void OnChangeTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
         {
+            lastMidpoint = double.NaN;
             if (!fill.IsComplete) return;
             var size = Math.Abs(comboTrade.CurrentPosition);
             var change = size - lastSize;
@@ -347,11 +450,10 @@ namespace TickZoom.Examples
             askLine[0] = ask;
         }
 
-
         public override void OnExitTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
         {
-            var tick = Ticks[0];
-            lastMidpoint = (tick.Ask + tick.Bid)/2;
+            lastMidpoint = double.NaN;
+            direction = Direction.Sideways;
             fills.Clear();
             SetFlatBidAsk();
             if (!comboTrade.Completed)
@@ -372,12 +474,6 @@ namespace TickZoom.Examples
             set { isVisible = value; }
         }
 
-        public int MaxLots
-        {
-            get { return maxLots; }
-            set { maxLots = value; }
-        }
-
         public int IncreaseLotSize
         {
             get { return increaseLotSize; }
@@ -388,11 +484,5 @@ namespace TickZoom.Examples
         {
             get { return seconds; }
         }
-
-        public override void OnConfigure()
-        {
-            base.OnConfigure();
-        }
-
     }
 }
