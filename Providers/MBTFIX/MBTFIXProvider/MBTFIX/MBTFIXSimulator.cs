@@ -302,12 +302,11 @@ namespace TickZoom.MBTFIX
 			}
 		}
 		
-		
 		private void OnPhysicalFill( PhysicalFill fill, int totalSize, int cumulativeSize, int remainingSize) {
 			if( debug) log.Debug("Converting physical fill to FIX: " + fill);
 			SendPositionUpdate(fill.Order.Symbol, GetPosition(fill.Order.Symbol));
 			var orderStatus = cumulativeSize == totalSize ? "2" : "1";
-			SendExecutionReport( fill.Order, orderStatus, fill.Price, totalSize, cumulativeSize, fill.Size, remainingSize, fill.UtcTime, null);
+			SendExecutionReport( fill.Order, orderStatus, "F", fill.Price, totalSize, cumulativeSize, fill.Size, remainingSize, fill.UtcTime, null);
 		}
 
 		private void OnRejectOrder( PhysicalOrder order, string error)
@@ -342,8 +341,13 @@ namespace TickZoom.MBTFIX
 			if(debug) log.Debug("Sending position update: " + message);
             SendPacket(writePacket);
         }	
-		
-		private void SendExecutionReport(PhysicalOrder order, string status, double price, int orderQty, int cumQty, int lastQty, int leavesQty, TimeStamp time, MessageFIX4_4 packet) {
+
+		private void SendExecutionReport(PhysicalOrder order, string status, double price, int orderQty, int cumQty, int lastQty, int leavesQty, TimeStamp time, MessageFIX4_4 packet)
+		{
+		    SendExecutionReport(order, status, status, price, orderQty, cumQty, lastQty, leavesQty, time, packet);
+		}
+
+	    private void SendExecutionReport(PhysicalOrder order, string status, string executionType, double price, int orderQty, int cumQty, int lastQty, int leavesQty, TimeStamp time, MessageFIX4_4 packet) {
 			int orderType = 0;
 			switch( order.Type) {
 				case OrderType.BuyMarket:
@@ -396,7 +400,7 @@ namespace TickZoom.MBTFIX
 			mbtMsg.SetPrice( order.Price);
 			mbtMsg.SetSymbol( order.Symbol.Symbol);
 			mbtMsg.SetTimeInForce( 0);
-			mbtMsg.SetExecutionType( status);
+			mbtMsg.SetExecutionType( executionType);
 			mbtMsg.SetTransactTime( time);
 			mbtMsg.SetLeavesQuantity( Math.Abs(leavesQty));
 			mbtMsg.AddHeader("8");

@@ -20,11 +20,9 @@ namespace TickZoom.Examples
             shortSide.OnDirectionChange = OnDirectionChange;
             shortSide.IsActive = true;
             shortSide.IsVisible = true;
-            shortSide.Direction = Direction.Both;
             shortSide.MaxLots = maxLots;
             longSide = Strategies[1] as SimpleStrategy;
             longSide.Name = "Next Strategy";
-            longSide.Direction = Direction.Long;
             longSide.IsVisible = true;
             longSide.IsActive = false;
             longSide.MaxLots = maxLots;

@@ -458,6 +458,11 @@ namespace TickZoom.MBTFIX
 						}
 						break;
 					case "2":  // Filled 
+                        if( packetFIX.CumulativeQuantity < packetFIX.LastQuantity)
+                        {
+                            log.Warn("Ignoring message due to CumQty " + packetFIX.CumulativeQuantity + " less than " + packetFIX.LastQuantity);
+                            break;
+                        }
 						if( IsRecovered) {
 							SendFill( packetFIX);
 						}
@@ -495,8 +500,21 @@ namespace TickZoom.MBTFIX
 						}
 						break;
 					case "6": // Pending Cancel
-						UpdateOrder( packetFIX, OrderState.Pending, "PendingCancel");
-						TryHandlePiggyBackFill(packetFIX);
+                        if (!string.IsNullOrEmpty(packetFIX.Text) && packetFIX.Text.Contains("multifunction order"))
+                        {
+                            if( debug && (LogRecovery || IsRecovered))
+                            {
+                                log.Debug("Pending cancel of multifunction order, so removing " + packetFIX.ClientOrderId + " and " + packetFIX.OriginalClientOrderId);
+                            }
+                            order = orderStore.RemoveOrder(packetFIX.ClientOrderId);
+                            orderStore.RemoveOrder(packetFIX.OriginalClientOrderId);
+                            break;
+                        }
+                        else
+                        {
+                            UpdateOrder(packetFIX, OrderState.Pending, "PendingCancel");
+                            TryHandlePiggyBackFill(packetFIX);
+                        }
 						break;
 					case "8": // Rejected
 						RejectOrder( packetFIX);
@@ -685,18 +703,15 @@ namespace TickZoom.MBTFIX
 			rejectReason = packetFIX.Text.Contains("No position to close") ? true : rejectReason;			
 			orderStore.RemoveOrder( packetFIX.ClientOrderId);
 			orderStore.RemoveOrder( packetFIX.OriginalClientOrderId);
-            if( IsRecovered || LogRecovery)
-            {
-			    if( !rejectReason ) {
-				    var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
-				    var ignore = "The reject error message '" + packetFIX.Text + "' was unrecognized. So it is being ignored. ";
-				    var handle = "If this reject causes any other problems please report it to have it added and properly handled.";
-				    log.Warn( message);
-				    log.Error( ignore + handle);
-			    } else {
-				    log.Info( "RejectOrder(" + packetFIX.Text + ") Removed cancel order: " + packetFIX.ClientOrderId + " and original order: " + packetFIX.OriginalClientOrderId);
-			    }
-            }
+		    if( IsRecovered && !rejectReason ) {
+			    var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
+			    var ignore = "The reject error message '" + packetFIX.Text + "' was unrecognized. So it is being ignored. ";
+			    var handle = "If this reject causes any other problems please report it to have it added and properly handled.";
+			    log.Warn( message);
+			    log.Error( ignore + handle);
+		    } else if( LogRecovery || IsRecovered) {
+			    log.Info( "RejectOrder(" + packetFIX.Text + ") Removed cancel order: " + packetFIX.ClientOrderId + " and original order: " + packetFIX.OriginalClientOrderId);
+		    }
 		}
 		
 		private static readonly char[] DOT_SEPARATOR = new char[] { '.' };
@@ -862,7 +877,7 @@ namespace TickZoom.MBTFIX
             PhysicalOrder oldOrder;
             if ( !orderStore.TryGetOrderById(oldClientOrderId, out oldOrder))
             {
-                if (!IsRecovery)
+                if (debug && (LogRecovery || !IsRecovery))
                 {
                     if (debug && (LogRecovery || !IsRecovery))
                     {
