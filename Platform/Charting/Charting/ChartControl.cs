@@ -1187,6 +1187,7 @@ namespace TickZoom
             }
         }
 
+	    private StringBuilder toolStripString = new StringBuilder();
 	    private void FormatToolStripText(int dragIndex)
 	    {
             var startPair = (StockPt)stockPointList[dragIndex];
@@ -1199,18 +1200,18 @@ namespace TickZoom
             else
             {
                 var format = "N" + symbol.MinimumTickPrecision;
-                var sb = new StringBuilder();
-                sb.Append(time.ToString() + " " +
+                toolStripString.Length = 0;
+                toolStripString.Append(time.ToString() + " " +
                     "O:" + startPair.Open.ToString(format) + ", " +
                     "H:" + startPair.High.ToString(format) + ", " +
                     "L:" + startPair.Low.ToString(format) + ", " +
                     "C:" + startPair.Close.ToString(format) + ", " +
                     "Bar: " + (dragIndex + 1) + ", " +
                     intervalChartBar);
-                var text = sb.ToString();
+                var text = toolStripString.ToString();
                 execute.OnUIThread(() => toolStripStatusXY.Text = text);
 
-                sb.Length = 0;
+                toolStripString.Length = 0;
                 var count = 0;
                 for (var i = 0; i < indicators.Count; i++)
                 {
@@ -1221,19 +1222,19 @@ namespace TickZoom
                         var value = line[dragIndex].Y;
                         if (!double.IsNaN(value))
                         {
-                            if (count != 0) sb.Append(", ");
+                            if (count != 0) toolStripString.Append(", ");
                             var typeName = indicator.GetType().Name;
                             var name = indicator.Name == typeName ? "" : indicator.Name + " ";
-                            sb.Append(name + value);
+                            toolStripString.Append(name + value);
                             count++;
                         }
                     }
                 }
-                if (sb.Length > 0)
+                if (toolStripString.Length > 0)
                 {
-                    sb.Insert(0, "Indicators: ");
+                    toolStripString.Insert(0, "Indicators: ");
                 }
-                var text2 = sb.ToString();
+                var text2 = toolStripString.ToString();
                 execute.OnUIThread(() => indicatorValues.Text = text2);
             }
         }

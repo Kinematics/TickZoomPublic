@@ -864,7 +864,10 @@ namespace TickZoom.MBTFIX
             {
                 if (!IsRecovery)
                 {
-                    log.Warn("Original Order ID# " + oldClientOrderId + " was not found for update or replace.");
+                    if (debug && (LogRecovery || !IsRecovery))
+                    {
+                        log.Debug("Original Order ID# " + oldClientOrderId + " not found for update or replace. Normal.");
+                    }
                 }
             }
             int quantity = packetFIX.LeavesQuantity;
