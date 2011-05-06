@@ -34,7 +34,7 @@ namespace TickZoom.FIX
 		FIXTMessage1_1 Create();
         FIXTMessage1_1 Create(int previousSequence);
         void AddHistory(FIXTMessage1_1 message);
-		FIXTMessage1_1 GetHistory(int sequence);
+		bool TryGetHistory(int sequence, out FIXTMessage1_1 message);
 		int LastSequence { get; }
 	}
 }

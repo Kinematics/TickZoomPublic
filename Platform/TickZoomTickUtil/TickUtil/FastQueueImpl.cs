@@ -309,7 +309,7 @@ namespace TickZoom.TickUtil
 	            }
 		        if( queue == null || queue.Count==0) return false;
 	            if( count != queue.Count) {
-		        	throw new ApplicationException("Attempt to dequeue another item before calling RemoveStruct() for previously dequeued item. count " + temp + ", queue.Count " + queue.Count);
+		        	throw new ApplicationException("Attempt to dequeue another item before calling RemoveStruct() for previously dequeued item. count " + count + ", queue.Count " + queue.Count);
 	            }
 		        var last = queue.Last;
 		        tick = last.Value.Entry;
@@ -340,6 +340,7 @@ namespace TickZoom.TickUtil
     		while( !SpinLockNB()) ;
 	    	if( !isDisposed) {
 		        queue.Clear();
+	    	    Interlocked.Exchange(ref count, 0);
 	    	}
 	        SpinUnLock();
 	    }

@@ -39,7 +39,8 @@ namespace TickZoom.FIX
 	{
 		private FIXFilter fixFilter;
 		private FIXPretradeFilter fixFilterController;
-		private readonly Log log;
+        private PhysicalOrderStore orderStore;
+        private readonly Log log;
 		private readonly bool debug;
 		private readonly bool trace;
 		protected readonly object symbolsRequestedLocker = new object();
@@ -83,13 +84,9 @@ namespace TickZoom.FIX
         {
             for( var i = 0; i<=fixFactory.LastSequence; i++)
             {
-                try
-                {
-                    var message = fixFactory.GetHistory(i);
+                FIXTMessage1_1 message;
+                if( fixFactory.TryGetHistory(i, out message)) {
                     log.Info(message.ToString());
-                } catch( ApplicationException)
-                {
-                    
                 }
             }
         }
@@ -211,7 +208,8 @@ namespace TickZoom.FIX
 				return;
 			}
 			log.Info("OnDisconnect( " + socket + " ) ");
-            if( connectionStatus != Status.PendingLogOut)
+            OnDisconnect();
+            if (connectionStatus != Status.PendingLogOut)
             {
                 connectionStatus = Status.Disconnected;
             }
@@ -231,13 +229,14 @@ namespace TickZoom.FIX
 		
 		public void EndRecovery() {
 			connectionStatus = Status.Recovered;
+		    isWaitingResend = false;
 			hasFirstRecovery = true;
 			if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
 		}
 		
 		public bool IsRecovered {
-			get { 
-				return connectionStatus == Status.Recovered;
+			get {
+                return connectionStatus == Status.Recovered;
 			}
 		}
 		
@@ -287,7 +286,8 @@ namespace TickZoom.FIX
 					}
 					switch( connectionStatus) {
 						case Status.Connected:
-                            if( OnLogin())
+                            orderStore = new PhysicalOrderStore(ProviderName);
+                            if (OnLogin())
                             {
                                 connectionStatus = Status.PendingLogin;
                                 if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
@@ -305,7 +305,7 @@ namespace TickZoom.FIX
                             if (retryDelay != retryStart)
                             {
 								retryDelay = retryStart;
-								log.Info("(RetryDelay reset to " + retryDelay + " seconds.)");
+								log.Info("(retryDelay reset to " + retryDelay + " seconds.)");
 							}
 							if( Factory.Parallel.TickCount >= heartbeatTimeout) {
 								log.Warn("Heartbeat Timeout. Last Message UTC Time: " + lastMessage + ", current UTC Time: " + TimeStamp.UtcNow);
@@ -314,33 +314,53 @@ namespace TickZoom.FIX
 								IncreaseRetryTimeout();
 								return Yield.DidWork.Repeat;
 							}
-							Message message;
-							if( Socket.TryGetMessage(out message)) {
+					        Message message = null;
+					        var foundMessage = false;
+
+					        if( !foundMessage)
+                            {
+                                if( foundMessage = Socket.TryGetMessage(out message))
+                                {
+                                    var messageFIX = (MessageFIXT1_1)message;
+                                    if (messageFIX.MessageType == "A")
+                                    {
+                                        HandleLogon(messageFIX);
+                                    }
+                                }
+                            }
+
+					        if( foundMessage) {
 								lastMessage = TimeStamp.UtcNow;
 								if( debug && (LogRecovery || !IsRecovery)) {
 									log.Debug( "Received FIX Message: " + message);
 								}
                                 var messageFIX = (MessageFIXT1_1)message;
-                                if( messageFIX.MessageType == "2")
+                                switch( messageFIX.MessageType)
                                 {
-                                    HandleResend(messageFIX);
+                                    case "2":
+                                        HandleResend(messageFIX);
+                                        break;
                                 }
                                 if (!CheckForMissingMessages(message))
 							    {
                                     switch( messageFIX.MessageType)
                                     {
-                                        case "2":
+                                        case "A": //logon
                                             // Already handled and sequence incremented.
                                             break;
-                                        case "4":
+                                        case "2": // resend
+                                            // Already handled and sequence incremented.
+                                            break;
+                                        case "4": // gap fill
                                             HandleGapFill(messageFIX);
                                             break;
                                         default:
                                             ReceiveMessage(messageFIX);
                                             break;
                                     }
-							    }
-							    Socket.MessageFactory.Release(message);
+                                    orderStore.UpdateSequence(remoteSequence, fixFactory.LastSequence);
+                                    Socket.MessageFactory.Release(message);
+                                }
 								IncreaseRetryTimeout();
 								return Yield.DidWork.Repeat;
 							} else {
@@ -352,7 +372,6 @@ namespace TickZoom.FIX
 				case SocketState.Disconnected:
 					switch( connectionStatus) {
                         case Status.Disconnected:
-							OnDisconnect();
 							retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
 							connectionStatus = Status.PendingRetry;
 							if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus + ". Retrying in " + retryDelay + " seconds.");
@@ -386,6 +405,11 @@ namespace TickZoom.FIX
 			}
 		}
 
+        protected virtual void HandleLogon(MessageFIXT1_1 message)
+        {
+            throw new NotImplementedException();
+        }
+
         private void HandleGapFill(MessageFIXT1_1 packetFIX)
         {
             if (!packetFIX.IsGapFill)
@@ -405,40 +429,53 @@ namespace TickZoom.FIX
             return File.Exists(failedFile);
         }
 
+	    private int expectedResendSequence;
+	    private bool isWaitingResend = false;
+
         private bool CheckForMissingMessages(Message message)
         {
             var messageFIX = (MessageFIXT1_1) message;
             if (messageFIX.Sequence > remoteSequence)
             {
-                var mbtMsg = fixFactory.Create();
-                mbtMsg.AddHeader("2");
-                mbtMsg.SetBeginSeqNum(RemoteSequence);
-                mbtMsg.SetEndSeqNum(0);
-                if (debug) log.Debug("Sequence is " + messageFIX.Sequence + " but expected sequence is " + RemoteSequence + ". Sending resend request: " + mbtMsg);
-                // Clean out the queue of messages.
-                Message throwaway;
-                while (Socket.TryGetMessage(out throwaway)) ;
-                SendMessage(mbtMsg);
+                if (debug) log.Debug("Sequence is " + messageFIX.Sequence + " but expected sequence is " + RemoteSequence + ". Ignoring message.");
+                if (!isWaitingResend)
+                {
+                    isWaitingResend = true;
+                    if (debug) log.Debug("Set is waiting for resed: " + isWaitingResend);
+                    var mbtMsg = fixFactory.Create();
+                    mbtMsg.AddHeader("2");
+                    mbtMsg.SetBeginSeqNum(remoteSequence);
+                    mbtMsg.SetEndSeqNum(0);
+                    if (debug) log.Debug(" Sending resend request: " + mbtMsg);
+                    SendMessage(mbtMsg);
+                }
+                Socket.MessageFactory.Release(message);
                 return true;
             }
             else if( messageFIX.Sequence < remoteSequence)
             {
                 if (debug) log.Debug("Already received sequence " + messageFIX.Sequence + ". Ignoring.");
+                Socket.MessageFactory.Release(message);
                 return true;
             }
             else
             {
+                if( isWaitingResend && messageFIX.Sequence >= expectedResendSequence)
+                {
+                    isWaitingResend = false;
+                    if (debug) log.Debug("Set is waiting for resed: " + isWaitingResend);
+                }
                 RemoteSequence = messageFIX.Sequence + 1;
                 return false;
             }
         }
 
-        private FIXTMessage1_1 GapFillMessage(FIXTMessage1_1 origMessage)
+        private FIXTMessage1_1 GapFillMessage(int currentSequence)
         {
-            var message = fixFactory.Create(origMessage.Sequence);
-            message.Sequence = origMessage.Sequence;
+            if (debug) log.Debug("Sending gap fill message " + currentSequence + "...");
+            var message = fixFactory.Create(currentSequence);
             message.SetGapFill();
-            message.SetNewSeqNum(message.Sequence + 1);
+            message.SetNewSeqNum(currentSequence + 1);
             message.AddHeader("4");
             return message;
         }
@@ -450,27 +487,31 @@ namespace TickZoom.FIX
 			int end = messageFIX.EndSeqNum == 0 ? fixFactory.LastSequence : messageFIX.EndSeqNum;
 			if( debug) log.Debug( "Found resend request for " + messageFIX.BegSeqNum + " to " + end + ": " + messageFIX);
 			for( int i = messageFIX.BegSeqNum; i <= end; i++) {
-				var textMessage = fixFactory.GetHistory(i);
-                var gapFill = false;
-                switch (textMessage.Type)
+                FIXTMessage1_1 textMessage;
+                if( !fixFactory.TryGetHistory(i,out textMessage))
                 {
-                    case "A": // Logoff
-                    case "5": // Logoff
-                    case "0": // Heartbeat
-                    case "1": // Heartbeat
-                    case "2": // Resend request.
-                    case "4": // Reset sequence.
-                        textMessage = GapFillMessage(textMessage);
-                        if (debug) log.Debug("Sending gap fill message " + i + "...");
-                        gapFill = true;
-                        break;
-                    default:
-                        textMessage.SetDuplicate(true);
-                        if (debug) log.Debug("Resending message " + i + "...");
-                        break;
+                    textMessage = GapFillMessage(i);
+                }
+                else
+                {
+                    switch (textMessage.Type)
+                    {
+                        case "A": // Logon
+                        case "5": // Logoff
+                        case "0": // Heartbeat
+                        case "1": // Heartbeat
+                        case "2": // Resend request.
+                        case "4": // Reset sequence.
+                            textMessage = GapFillMessage(i);
+                            break;
+                        default:
+                            textMessage.SetDuplicate(true);
+                            if (debug) log.Debug("Resending message " + i + "...");
+                            break;
+                    }
                 }
                 SendMessageInternal(textMessage);
-			}
+            }
 			return true;
 		}
 
@@ -702,7 +743,8 @@ namespace TickZoom.FIX
 	    
 	    public void SendMessage(FIXTMessage1_1 fixMsg) {
 	    	fixFactory.AddHistory(fixMsg);
-	    	SendMessageInternal( fixMsg);
+            OrderStore.UpdateSequence(RemoteSequence, FixFactory.LastSequence);
+            SendMessageInternal(fixMsg);
 	    }
 		
 	    private void SendMessageInternal(FIXTMessage1_1 fixMsg) {
@@ -829,6 +871,11 @@ namespace TickZoom.FIX
 	    {
 	        get { return remoteSequence; }
 	        set { remoteSequence = value; }
+	    }
+
+	    public PhysicalOrderStore OrderStore
+	    {
+	        get { return orderStore; }
 	    }
 	}
 }

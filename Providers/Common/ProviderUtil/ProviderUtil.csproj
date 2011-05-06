@@ -70,6 +70,7 @@
     <Compile Include="FIX\PacketFIX4_4.cs" />
     <Compile Include="FIX\PacketFIXT1_1.cs">
     </Compile>
+    <Compile Include="FIX\PhysicalOrderStore.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

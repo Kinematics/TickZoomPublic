@@ -47,7 +47,9 @@ namespace TickZoom.FIX
 		private BinaryReader dataIn;
 		private BinaryWriter dataOut;
 		private static int packetIdCounter = 0;
-		private int id = 0;
+        private int heartBeatInterval = 0;
+        private string encryption = null;
+        private int id = 0;
 		private long sendUtcTime;
         private long recvUtcTime;
         private GCHandle handle;
@@ -67,6 +69,7 @@ namespace TickZoom.FIX
 		public static bool IsQuietRecovery = false;
         private int newSeqNum;
         private bool isGapFill;
+        private bool isResetSeqNum;
 		
 		public MessageFIXT1_1()
 		{
@@ -86,7 +89,10 @@ namespace TickZoom.FIX
             {
                 handle.Free();
             }
-		    ptr = null;
+            heartBeatInterval = 0;
+            isResetSeqNum = false;
+            encryption = null;
+            ptr = null;
 		    end = null;
 		    version = null;
 		    begSeqNum = 0;
@@ -340,9 +346,19 @@ namespace TickZoom.FIX
 						sendUtcTime = new TimeStamp(timeStamp).Internal;
 					}
 					break;
+                case 98:
+                    result = GetString(out encryption);
+                    break;
+                case 108:
+                    result = GetInt(out heartBeatInterval);
+                    break;
                 case 123:
                     result = GetString(out value);
                     isGapFill = value == "Y";
+                    break;
+                case 141:
+                    result = GetString(out value);
+                    isResetSeqNum = value == "Y";
                     break;
                 case 10:
 					result = GetInt(out checkSum);
@@ -373,10 +389,17 @@ namespace TickZoom.FIX
 		public int Sequence {
 			get { return sequence; }
 		}
-		
-		public string TimeStamp {
+
+        public string Encryption
+        {
+            get { return encryption; }
+        }
+
+        public string TimeStamp
+        {
 			get { return timeStamp; }
 		}
+
 		public unsafe int Position { 
 			get { return (int) data.Position; }
 			set { data.Position = value; }
@@ -401,8 +424,14 @@ namespace TickZoom.FIX
 		public int Id {
 			get { return id; }
 		}
-		
-		public int BegSeqNum {
+
+        public int HeartBeatInterval
+        {
+            get { return heartBeatInterval; }
+        }
+
+        public int BegSeqNum
+        {
 			get { return begSeqNum; }
 		}
 		
@@ -438,6 +467,11 @@ namespace TickZoom.FIX
         public bool IsGapFill
         {
             get { return isGapFill; }
+        }
+
+        public bool IsResetSeqNum
+        {
+            get { return isResetSeqNum; }
         }
     }
 }

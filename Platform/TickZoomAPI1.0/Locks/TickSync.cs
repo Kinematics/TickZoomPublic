@@ -82,10 +82,17 @@ namespace TickZoom.Api
 			Unlock();
 			if( trace) log.Trace(symbol + ": Clear() " + this);
 		}
-		
-		public override string ToString()
+
+        public void ForceClearOrders()
+        {
+            var process = Interlocked.Exchange(ref processPhysical, 0);
+            var fills = Interlocked.Exchange(ref physicalFills, 0);
+            if (trace) log.Trace(symbol + ": ForceClearOrders() " + this);
+        }
+
+        public override string ToString()
 		{
-			return "TickSync("+ticks+","+physicalOrders+","+positionChange+","+processPhysical+","+physicalFills+")";
+			return "TickSync Ticks "+ticks+", Sent Orders "+physicalOrders+", Changes "+positionChange+", Process Orders "+processPhysical+", Fills "+physicalFills+")";
 		}
 		
 		public void AddTick() {

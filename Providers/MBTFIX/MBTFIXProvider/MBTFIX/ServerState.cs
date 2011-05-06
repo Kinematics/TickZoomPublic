@@ -35,8 +35,4 @@ using TickZoom.MBTQuotes;
 
 namespace TickZoom.MBTFIX
 {
-	public enum ServerState {
-		Startup,
-		LoggedIn
-	}
 }

@@ -65,10 +65,10 @@ namespace TickZoom.FIX
 			this.symbol = Factory.Symbol.LookupSymbol(symbolString);
 			reader = Factory.TickUtil.TickReader();
 			reader.Initialize("Test\\MockProviderData", symbolString);
-			fillSimulator = Factory.Utility.FillSimulator( "FIX", symbol, false);
-			fillSimulator.OnPhysicalFill = onPhysicalFill;
-			fillSimulator.OnRejectOrder = onRejectOrder;
-			tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+			fillSimulator = Factory.Utility.FillSimulator( "FIX", Symbol, false);
+			FillSimulator.OnPhysicalFill = onPhysicalFill;
+			FillSimulator.OnRejectOrder = onRejectOrder;
+			tickSync = SyncTicks.GetTickSync(Symbol.BinaryIdentifier);
 			tickSync.ForceClear();
 			queueTask = Factory.Parallel.Loop("FIXServerSymbol-"+symbolString, OnException, ProcessQueue);
 			tickTimer = Factory.Parallel.CreateTimer(queueTask,PlayBackTick);
@@ -92,36 +92,36 @@ namespace TickZoom.FIX
 		    	if( trace) log.Trace("TryCompleteTick()");
 		    	tickSync.Clear();
 	    	} else if( tickSync.OnlyProcessPhysicalOrders) {
-				fillSimulator.StartTick(nextTick);
-				fillSimulator.ProcessOrders();
+				FillSimulator.StartTick(nextTick);
+				FillSimulator.ProcessOrders();
 				tickSync.RemoveProcessPhysicalOrders();
 	    	}
 		}
 		
 		public int ActualPosition {
 			get {
-				return (int) fillSimulator.ActualPosition;
+				return (int) FillSimulator.ActualPosition;
 			}
 		}
 		
 		public void CreateOrder(PhysicalOrder order) {
-			fillSimulator.OnCreateBrokerOrder( order);
-            fillSimulator.ProcessOrders();
+			FillSimulator.OnCreateBrokerOrder( order);
+            FillSimulator.ProcessOrders();
 		}
 		
 		public void ChangeOrder(PhysicalOrder order, string origBrokerOrder) {
-			fillSimulator.OnChangeBrokerOrder( order, origBrokerOrder);
-            fillSimulator.ProcessOrders();
+			FillSimulator.OnChangeBrokerOrder( order, origBrokerOrder);
+            FillSimulator.ProcessOrders();
         }
 
         public void CancelOrder(string origBrokerOrder)
         {
-			fillSimulator.OnCancelBrokerOrder( symbol, origBrokerOrder);
-            fillSimulator.ProcessOrders();
+			FillSimulator.OnCancelBrokerOrder( Symbol, origBrokerOrder);
+            FillSimulator.ProcessOrders();
         }
 		
 		public PhysicalOrder GetOrderById(string clientOrderId) {
-			return fillSimulator.GetOrderById( clientOrderId);
+			return FillSimulator.GetOrderById( clientOrderId);
 		}
 		
 		private Yield ProcessQueue() {
@@ -132,7 +132,7 @@ namespace TickZoom.FIX
 					TryCompleteTick();
 					return Yield.NoWork.Repeat;
 				} else {
-					if( trace) log.Trace("Locked tickSync for " + symbol);
+					if( trace) log.Trace("Locked tickSync for " + Symbol);
 				}
 			}
 			if( tickStatus == TickStatus.None || tickStatus == TickStatus.Sent) {
@@ -202,10 +202,10 @@ namespace TickZoom.FIX
 				   	tickSync.AddTick();
 				   	if( !isPlayBack) {
 				   		if( isFirstTick) {
-						   	fillSimulator.StartTick( nextTick);
+						   	FillSimulator.StartTick( nextTick);
 					   		isFirstTick = false;
 					   	} else { 
-					   		fillSimulator.ProcessOrders();
+					   		FillSimulator.ProcessOrders();
 					   	}
 				   	}
 				   	if( trace) log.Trace("Dequeue tick " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
@@ -271,10 +271,10 @@ namespace TickZoom.FIX
             LatencyManager.IncrementSymbolHandler();
             latency.TryUpdate(nextTick.lSymbol, nextTick.UtcTime.Internal);
 		   	if( isFirstTick) {
-			   	fillSimulator.StartTick( nextTick);
+			   	FillSimulator.StartTick( nextTick);
 		   		isFirstTick = false;
 		   	} else { 
-		   		fillSimulator.ProcessOrders();
+		   		FillSimulator.ProcessOrders();
 		   	}
 			return Yield.DidWork.Invoke(ProcessOnTickCallBack);
 		}
@@ -286,7 +286,7 @@ namespace TickZoom.FIX
             {
                 quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
             }
-			onTick( quoteMessage, symbol, nextTick);
+			onTick( quoteMessage, Symbol, nextTick);
 			if( trace) log.Trace("Added tick to packet: " + nextTick.UtcTime);
 			quoteMessage.SendUtcTime = nextTick.UtcTime.Internal;
             return Yield.DidWork.Invoke(TryEnqueuePacket);
@@ -355,5 +355,15 @@ namespace TickZoom.FIX
 			get { return isPlayBack; }
 			set { isPlayBack = value; }
 		}
+
+	    public FillSimulator FillSimulator
+	    {
+	        get { return fillSimulator; }
+	    }
+
+	    public SymbolInfo Symbol
+	    {
+	        get { return symbol; }
+	    }
 	}
 }

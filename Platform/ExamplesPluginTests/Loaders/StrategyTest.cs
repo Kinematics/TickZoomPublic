@@ -278,9 +278,12 @@ namespace Loaders
 			var providersFolder = Path.Combine(appDataFolder,"Providers");
 			var mbtfixFolder = Path.Combine(providersFolder,"MBTFIXProvider");
             var databaseFolder = Path.Combine(appDataFolder, "Database");
-            var filePath = Path.Combine(databaseFolder, "MBTFIXProvider.dat");
-            File.Delete(filePath);
-            filePath = Path.Combine(mbtfixFolder, "LoginFailed.txt");
+		    var filePaths = Directory.GetFiles(databaseFolder, "MBTFIXProvider.dat.*", SearchOption.TopDirectoryOnly);
+            foreach( var path in filePaths)
+            {
+                File.Delete(path);
+            }
+            var filePath = Path.Combine(mbtfixFolder, "LoginFailed.txt");
 			File.Delete(filePath);
 		    filePath = Path.Combine(Factory.SysLog.LogFolder,"Trades.log");
             File.Delete(filePath);

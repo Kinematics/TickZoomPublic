@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using TickZoom.Api;
 
-namespace TickZoom.MBTFIX
+namespace TickZoom.FIX
 {
     public class LogicalOrderReference
     {
@@ -207,8 +207,6 @@ namespace TickZoom.MBTFIX
         {
             CheckSnapshotRollover();
 
-            if( ordersByBrokerId.Count == 0) return;
-
             memory.SetLength(0);
             uniqueId = 0;
             unique.Clear();
@@ -291,7 +289,8 @@ namespace TickZoom.MBTFIX
             writer.Write((Int32)memory.Length - sizeof(Int32)); // length excludes the size of the length value.
             fs.Write(memory.GetBuffer(),0,(int)memory.Length);
             snapshotLength += memory.Length;
-            log.Info("Wrote snapshot. Snapshot size = " + memory.Length + ". Snapshot Log Size = " + snapshotLength);
+            log.Info("Wrote snapshot. Sequence Remote = " + remoteSequence + ", Local = " + localSequence + 
+                ", Size = " + memory.Length + ". File Size = " + snapshotLength);
 
         }
 
@@ -363,6 +362,7 @@ namespace TickZoom.MBTFIX
             if( loaded)
             {
                 ForceSnapshotRollover();
+                ForceSnapShot();
             }
             return loaded;
         }
@@ -525,11 +525,20 @@ namespace TickZoom.MBTFIX
             }
         }
 
+        public void UpdateSequence(int remoteSequence, int localSequence)
+        {
+            using (ordersLocker.Using())
+            {
+                this.remoteSequence = remoteSequence;
+                this.localSequence = localSequence;
+                TrySnapshot();
+            }
+        }
+
         public void AssignById(PhysicalOrder order, int remoteSequence, int localSequence)
         {
             using (ordersLocker.Using())
             {
-                TrySnapshot();
                 this.remoteSequence = remoteSequence;
                 this.localSequence = localSequence;
                 if (trace) log.Trace("Assigning order " + order.BrokerOrder + " with " + order.LogicalSerialNumber);
@@ -538,6 +547,7 @@ namespace TickZoom.MBTFIX
                 {
                     ordersBySerial[order.LogicalSerialNumber] = order;
                 }
+                TrySnapshot();
             }
         }
 

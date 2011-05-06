@@ -40,7 +40,6 @@ namespace TickZoom.MBTFIX
 		private static Log log = Factory.SysLog.GetLogger(typeof(MBTFIXSimulator));
 		private static bool trace = log.IsTraceEnabled;
 		private static bool debug = log.IsDebugEnabled;
-		private ServerState fixState = ServerState.Startup;
 		private ServerState quoteState = ServerState.Startup;
 		
 		public MBTFIXSimulator(string mode) : base( mode, 6489, 6488, new MessageFactoryFix44(), new MessageFactoryMbtQuotes()) {
@@ -49,16 +48,10 @@ namespace TickZoom.MBTFIX
 
         protected override void OnConnectFIX(Socket socket)
 		{
-			fixState = ServerState.Startup;
 			quoteState = ServerState.Startup;
 			base.OnConnectFIX(socket);
 		}
 		
-		protected override void CloseSockets()
-		{
-			base.CloseSockets();
-		}
-			
 		public override void StartFIXSimulation()
 		{
 			base.StartFIXSimulation();
@@ -73,9 +66,6 @@ namespace TickZoom.MBTFIX
 		{
 			var packetFIX = (MessageFIX4_4) message;
 			switch( packetFIX.MessageType) {
-				case "A": // Login
-					FIXLogin( packetFIX);
-					break;
 				case "AF": // Request Orders
 					FIXOrderList( packetFIX);
 					break;
@@ -258,31 +248,16 @@ namespace TickZoom.MBTFIX
 			if( debug) log.Debug("Received physical Order: " + physicalOrder);
 			return physicalOrder;
 		}
+
+        protected override FIXTFactory1_1 CreateFIXFactory(int sequence, string target, string sender)
+        {
+            this.target = target;
+            this.sender = sender;
+            return new FIXFactory4_4(sequence, target, sender);
+        }
 		
 		private string target;
 		private string sender;
-		private void FIXLogin(MessageFIX4_4 packet) {
-			if( fixState != ServerState.Startup) {
-                if( packet.IsPossibleDuplicate)
-                {
-                    return;
-                }
-                else
-                {
-                    CloseWithFixError(packet, "Invalid login request. Already logged in.");
-                }
-			}
-			fixState = ServerState.LoggedIn;
-			target = packet.Target;
-			sender = packet.Sender;
-			FixFactory = new FIXFactory4_4(1,packet.Target,packet.Sender);
-			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
-			mbtMsg.SetEncryption(0);
-			mbtMsg.SetHeartBeatInterval(HeartbeatDelay);
-			mbtMsg.AddHeader("A");
-            if (debug) log.Debug("Sending login response: " + mbtMsg);
-            SendMessage(mbtMsg);
-		}
 		
 		private void QuotesLogin(MessageMbtQuotes message) {
 			if( quoteState != ServerState.Startup) {

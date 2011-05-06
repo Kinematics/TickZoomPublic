@@ -37,8 +37,6 @@ namespace TickZoom.FIX
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(MessageFIX4_4));
 		private static readonly bool debug = log.IsDebugEnabled;
 		private static readonly bool trace = log.IsTraceEnabled;
-		int heartBeatInterval = 0;
-		string encryption = null;
 		string account = null;
 		
 		string massStatusRequestId = null;
@@ -71,8 +69,6 @@ namespace TickZoom.FIX
         public override void Clear()
         {
             base.Clear();
-            heartBeatInterval = 0;
-            encryption = null;
             account = null;
 
             massStatusRequestId = null;
@@ -169,14 +165,8 @@ namespace TickZoom.FIX
 				case 77:
 					result = GetString(out positionEffect);
 					break;
-				case 98:
-					result = GetString(out encryption);
-					break;
 				case 100:
 					result = GetString(out destination);
-					break;
-				case 108:
-					result = GetInt(out heartBeatInterval);
 					break;
 				case 150:
 					result = GetString(out executionType);
@@ -206,14 +196,6 @@ namespace TickZoom.FIX
 					break;
 			}
 			return result;
-		}
-		
-		public int HeartBeatInterval {
-			get { return heartBeatInterval; }
-		}
-		
-		public string Encryption {
-			get { return encryption; }
 		}
 		
 		/// <summary>

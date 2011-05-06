@@ -31,7 +31,14 @@ using TickZoom.Api;
 
 namespace TickZoom.FIX
 {
-	public class FIXSimulatorSupport : FIXSimulator
+    public enum ServerState
+    {
+        Startup,
+        LoggedIn,
+        Recovered,
+    }
+
+    public class FIXSimulatorSupport : FIXSimulator
 	{
 		private string localAddress = "0.0.0.0";
 		private static Log log = Factory.SysLog.GetLogger(typeof(FIXSimulatorSupport));
@@ -43,6 +50,8 @@ namespace TickZoom.FIX
 		private object realTimeOffsetLocker = new object();
 		private YieldMethod MainLoopMethod;
 	    private int heartbeatDelay = 1;
+        private ServerState fixState = ServerState.Startup;
+        private bool simulateDisconnect = false;
 
 		// FIX fields.
 		private ushort fixPort = 0;
@@ -75,20 +84,17 @@ namespace TickZoom.FIX
 			ListenToFIX(fixPort);
 			ListenToQuotes(quotesPort);
 			MainLoopMethod = MainLoop;
+            if( debug) log.Debug("Starting FIX Simulator.");
 		}
 
         public void DumpHistory()
         {
             for (var i = 0; i <= fixFactory.LastSequence; i++)
             {
-                try
+                FIXTMessage1_1 message;
+                if( fixFactory.TryGetHistory(i, out message))
                 {
-                    var message = fixFactory.GetHistory(i);
                     log.Info(message.ToString());
-                }
-                catch (ApplicationException)
-                {
-
                 }
             }
         }
@@ -102,7 +108,7 @@ namespace TickZoom.FIX
 			fixListener.OnConnect = OnConnectFIX;
 			fixListener.OnDisconnect = OnDisconnectFIX;
 			fixPort = fixListener.Port;
-			log.Info("Listening to " + localAddress + " on port " + fixPort);
+			log.Info("Listening for FIX to " + localAddress + " on port " + fixPort);
 		}
 
 		private void ListenToQuotes(ushort quotesPort)
@@ -114,13 +120,15 @@ namespace TickZoom.FIX
 			quoteListener.OnConnect = OnConnectQuotes;
 			quoteListener.OnDisconnect = OnDisconnectQuotes;
 			quotesPort = quoteListener.Port;
-			log.Info("Listening to " + localAddress + " on port " + quotesPort);
+			log.Info("Listening for Quotes to " + localAddress + " on port " + quotesPort);
 		}
 
 		protected virtual void OnConnectFIX(Socket socket)
 		{
+		    firstHeartbeat = true;
 			fixSocket = socket;
-			fixSocket.MessageFactory = _fixMessageFactory;
+            fixState = ServerState.Startup;
+            fixSocket.MessageFactory = _fixMessageFactory;
 			log.Info("Received FIX connection: " + socket);
 			StartFIXSimulation();
 			TryInitializeTask();
@@ -140,17 +148,17 @@ namespace TickZoom.FIX
 		private void TryInitializeTask() {
 			if( task == null) {
 				task = Factory.Parallel.Loop("FIXSimulator", OnException, MainLoop);
-				quotePacketQueue.Connect( task);
-				fixPacketQueue.Connect( task);
-				task.Start();
-			}
-		}
+                quotePacketQueue.Connect(task);
+                fixPacketQueue.Connect(task);
+            }
+            task.Start();
+        }
 
 		private void OnDisconnectFIX(Socket socket)
 		{
 			if (this.fixSocket == socket) {
 				log.Info("FIX socket disconnect: " + socket);
-				CloseSockets();
+				CloseFIXSocket();
 			}
 		}
 
@@ -158,39 +166,43 @@ namespace TickZoom.FIX
 		{
 			if (this.quoteSocket == socket) {
 				log.Info("Quotes socket disconnect: " + socket);
-				CloseSockets();
+				CloseQuoteSocket();
 			}
 		}
 
-		protected virtual void CloseSockets()
+        protected void CloseFIXSocket()
+        {
+            if (fixPacketQueue != null)
+            {
+                fixPacketQueue.Clear();
+            }
+            if (fixSocket != null)
+            {
+                fixSocket.Dispose();
+            }
+        }
+
+        protected void CloseQuoteSocket()
+        {
+            if (quotePacketQueue != null)
+            {
+                quotePacketQueue.Clear();
+            }
+            if (quoteSocket != null)
+            {
+                quoteSocket.Dispose();
+            }
+        }
+
+		protected void CloseSockets()
 		{
-			if (symbolHandlers != null) {
-				if (symbolHandlersLocker.TryLock()) {
-					try {
-						foreach (var kvp in symbolHandlers) {
-							var handler = kvp.Value;
-							handler.Dispose();
-						}
-						symbolHandlers.Clear();
-					} finally {
-						symbolHandlersLocker.Unlock();
-					}
-				}
-			}
-			if (task != null) {
-				task.Stop();
-				task.Join();
-			}
-			if (fixSocket != null) {
-				fixSocket.Dispose();
-			}
-			if (task != null) {
-				task.Stop();
-				task.Join();
-			}
-			if (quoteSocket != null) {
-				quoteSocket.Dispose();
-			}
+            if (task != null)
+            {
+                task.Stop();
+                task.Join();
+            }
+            CloseFIXSocket();
+            CloseQuoteSocket();
 		}
 
 		public virtual void StartFIXSimulation()
@@ -208,6 +220,12 @@ namespace TickZoom.FIX
 		private bool hasQuotePacket = false;
 		private bool hasFIXPacket = false;
 		private Yield MainLoop() {
+            if( simulateConnectionLoss)
+            {
+                simulateConnectionLoss = false;
+                CloseFIXSocket();
+                return Yield.NoWork.Repeat;
+            }
 			var result = false;
 			switch( state) {
 				case State.Start:
@@ -282,11 +300,11 @@ namespace TickZoom.FIX
 			}
 		}
 
-        private FIXTMessage1_1 GapFillMessage(FIXTMessage1_1 origMessage)
+        private FIXTMessage1_1 GapFillMessage(int currentSequence)
         {
-            var message = fixFactory.Create(origMessage.Sequence);
+            var message = fixFactory.Create(currentSequence);
             message.SetGapFill();
-            message.SetNewSeqNum( message.Sequence + 1);
+            message.SetNewSeqNum(currentSequence + 1);
             message.AddHeader("4");
             return message;
         }
@@ -298,22 +316,31 @@ namespace TickZoom.FIX
             if (debug) log.Debug("Found resend request for " + messageFIX.BegSeqNum + " to " + end + ": " + messageFIX);
             for (int i = messageFIX.BegSeqNum; i <= end; i++)
             {
-                var textMessage = fixFactory.GetHistory(i);
+                FIXTMessage1_1 textMessage;
                 var gapFill = false;
-                switch( textMessage.Type)
+                if (!fixFactory.TryGetHistory(i, out textMessage))
                 {
-                    case "A": // Logon
-                    case "5": // Logoff
-                    case "0": // Heartbeat
-                    case "1": // Heartbeat
-                    case "2": // Resend request.
-                    case "4": // Reset sequence.
-                        textMessage = GapFillMessage(textMessage);
-                        gapFill = true;
-                        break;
-                    default:
-                        textMessage.SetDuplicate(true);
-                        break;
+                    gapFill = true;
+                    textMessage = GapFillMessage(i);
+                }
+                else
+                {
+                    switch (textMessage.Type)
+                    {
+                        case "A": // Logon
+                        case "5": // Logoff
+                        case "0": // Heartbeat
+                        case "1": // Heartbeat
+                        case "2": // Resend request.
+                        case "4": // Reset sequence.
+                            textMessage = GapFillMessage(i);
+                            gapFill = true;
+                            break;
+                        default:
+                            textMessage.SetDuplicate(true);
+                            break;
+                    }
+
                 }
 
                 var fixString = textMessage.ToString();
@@ -362,6 +389,7 @@ namespace TickZoom.FIX
 		}
 		private Random random = new Random(1234);
 		private int remoteSequence = 1;
+        private int recoveryRemoteSequence = 1;
 		private bool FIXReadLoop()
 		{
 			if (isFIXSimulationStarted) {
@@ -370,33 +398,77 @@ namespace TickZoom.FIX
                     try
                     {
                         var packetFIX = (MessageFIXT1_1)_fixReadMessage;
-                        if( packetFIX.MessageType == "2")
+                        switch( fixState)
                         {
-                            HandleResend(packetFIX);
-                        }
-                        if (packetFIX.Sequence > remoteSequence)
-                        {
-                            if (debug) log.Debug("packet sequence " + packetFIX.Sequence + " mismatch with counter " + remoteSequence);
-                            return Resend(packetFIX);
-                        }
-                        if (packetFIX.Sequence < remoteSequence)
-                        {
-                            if (debug) log.Debug("Already received packet sequence " + packetFIX.Sequence + ". Ignoring.");
-                            return true;
-                        }
-                        else
-                        {
-                            switch (packetFIX.MessageType)
-                            {
-                                case "2": // resend request
-                                    // already handled prior to sequence checking.
+                            case ServerState.Startup:
+                                if (packetFIX.MessageType != "A")
+                                {
+                                    throw new InvalidOperationException("Invalid FIX message type " +
+                                                                        packetFIX.MessageType + ". Not yet logged in.");
+                                }
+                                if (packetFIX.Sequence < remoteSequence)
+                                {
+                                    throw new InvalidOperationException("Login sequence number was " + packetFIX.Sequence + " less than expected " + remoteSequence + ".");
+                                }
+                                HandleFIXLogin(packetFIX);
+                                if (packetFIX.Sequence > remoteSequence)
+                                {
+                                    if (debug) log.Debug("Login packet sequence " + packetFIX.Sequence + " was greater than expected " + remoteSequence);
+                                    recoveryRemoteSequence = packetFIX.Sequence;
+                                    return Resend(packetFIX);
+                                }
+                                else
+                                {
                                     remoteSequence = packetFIX.Sequence + 1;
-                                    break;
-                                case "4":
-                                    return HandleGapFill(packetFIX); 
-                                default:
-                                    return ProcessMessage(packetFIX);
-                            }
+                                    fixState = ServerState.Recovered;
+                                    SendTradeSessionStatus();
+                                    // Setup disconnect simulation.
+                                }
+                                break;
+                            case ServerState.LoggedIn:
+                            case ServerState.Recovered:
+                                switch (packetFIX.MessageType)
+                                {
+                                    case "A":
+                                        throw new InvalidOperationException("Invalid FIX message type " + packetFIX.MessageType + ". Already logged in.");
+                                    case "2":
+                                        HandleResend(packetFIX);
+                                        break;
+                                }
+                                if (packetFIX.Sequence > remoteSequence)
+                                {
+                                    if (debug) log.Debug("packet sequence " + packetFIX.Sequence + " greater than expected " + remoteSequence);
+                                    return Resend(packetFIX);
+                                }
+                                if (packetFIX.Sequence < remoteSequence)
+                                {
+                                    if (debug) log.Debug("Already received packet sequence " + packetFIX.Sequence + ". Ignoring.");
+                                    return true;
+                                }
+                                else
+                                {
+                                    if (fixState == ServerState.LoggedIn && packetFIX.Sequence >= recoveryRemoteSequence)
+                                    {
+                                        // Sequences are synchronized now. Send TradeSessionStatus.
+                                        fixState = ServerState.Recovered;
+                                        SendTradeSessionStatus();
+                                        // Setup disconnect simulation.
+                                        nextDisconnectSequence = packetFIX.Sequence + random.Next(150) + 150;
+                                        if (debug) log.Debug("Set next disconnect sequence = " + nextDisconnectSequence);
+                                    }
+                                    switch (packetFIX.MessageType)
+                                    {
+                                        case "2": // resend request
+                                            // already handled prior to sequence checking.
+                                            remoteSequence = packetFIX.Sequence + 1;
+                                            break;
+                                        case "4":
+                                            return HandleGapFill(packetFIX);
+                                        default:
+                                            return ProcessMessage(packetFIX);
+                                    }
+                                }
+                                break;
                         }
                     }
                     finally
@@ -408,7 +480,69 @@ namespace TickZoom.FIX
 			return false;
 		}
 
-        private bool HandleGapFill( MessageFIXT1_1 packetFIX)
+        private void SendTradeSessionStatus()
+        {
+            var mbtMsg = (FIXMessage4_4)FixFactory.Create();
+            mbtMsg.AddHeader("h");
+            if (debug) log.Debug("Sending trading session status: " + mbtMsg);
+            SendMessage(mbtMsg);
+            log.Info("Current FIX Simulator orders.");
+            using( symbolHandlersLocker.Using())
+            {
+                foreach( var kvp in symbolHandlers)
+                {
+                    var handler = kvp.Value;
+                    var orders = handler.FillSimulator.GetActiveOrders(handler.Symbol);
+                    for( var current = orders.First; current != null; current = current.Next)
+                    {
+                        var order = current.Value;
+                        log.Info(order.ToString());
+                    }
+                }
+            }
+        }
+
+        protected bool HandleFIXLogin(MessageFIXT1_1 packet)
+        {
+            if (fixState != ServerState.Startup)
+            {
+                throw new InvalidOperationException("Invalid login request. Already logged in: \n" + packet);
+            }
+            fixState = ServerState.LoggedIn;
+            if (packet.IsResetSeqNum)
+            {
+                if( packet.Sequence != 1)
+                {
+                    throw new InvalidOperationException("Found reset sequence number flag is true but sequence was " + packet.Sequence + " instead of 1.");
+                }
+                if (debug) log.Debug("Found reset seq number flag. Resetting seq number to " + packet.Sequence);
+                FixFactory = CreateFIXFactory(packet.Sequence, packet.Target, packet.Sender);
+                remoteSequence = packet.Sequence;
+                nextDisconnectSequence = packet.Sequence + random.Next(150) + 150;
+                if (debug) log.Debug("Set next disconnect sequence = " + nextDisconnectSequence);
+            }
+            else if (FixFactory == null)
+            {
+                throw new InvalidOperationException(
+                    "FIX login message specified tried to continue with sequence number " + packet.Sequence +
+                    " but simulator has no sequence history.");
+            }
+
+            var mbtMsg = (FIXMessage4_4)FixFactory.Create();
+            mbtMsg.SetEncryption(0);
+            mbtMsg.SetHeartBeatInterval(HeartbeatDelay);
+            mbtMsg.AddHeader("A");
+            if (debug) log.Debug("Sending login response: " + mbtMsg);
+            SendMessage(mbtMsg);
+            return true;
+        }
+
+        protected virtual FIXTFactory1_1 CreateFIXFactory(int sequence, string target, string sender)
+        {
+            throw new NotImplementedException();
+        }
+
+	    private bool HandleGapFill( MessageFIXT1_1 packetFIX)
         {
             if (!packetFIX.IsGapFill)
             {
@@ -423,8 +557,21 @@ namespace TickZoom.FIX
             return true;
         }
 
+        private int nextDisconnectSequence = 100;
+
         private bool ProcessMessage(MessageFIXT1_1 packetFIX)
         {
+            if( simulateConnectionLoss) return true;
+            if (simulateDisconnect && fixFactory != null && packetFIX.Sequence >= nextDisconnectSequence)
+            {
+                if (debug) log.Debug("Sequence " + packetFIX.Sequence + " >= " + nextDisconnectSequence + " so ignoring AND disconnecting.");
+                nextDisconnectSequence = packetFIX.Sequence + random.Next(150) + 150;
+                if (debug) log.Debug("Set next disconnect sequence = " + nextDisconnectSequence);
+                // Ignore this message. Pretend we never received it AND disconnect.
+                // This will test the message recovery.)
+                simulateConnectionLoss = true;
+                return true;
+            }
             if (fixFactory != null && random.Next(10) == 1)
             {
                 // Ignore this message. Pretend we never received it.
@@ -573,9 +720,20 @@ namespace TickZoom.FIX
 			}
 		}
 
+	    private bool simulateConnectionLoss = false;
+
         public void SendMessage(FIXTMessage1_1 fixMessage)
         {
             FixFactory.AddHistory(fixMessage);
+            if( simulateConnectionLoss) return;
+            if (simulateDisconnect && fixMessage.Sequence >= nextDisconnectSequence)
+            {
+                if (debug) log.Debug("Sequence " + fixMessage.Sequence + " >= " + nextDisconnectSequence + " so ignoring AND disconnecting.");
+                nextDisconnectSequence = fixMessage.Sequence + random.Next(150) + 150;
+                if (debug) log.Debug("Set next disconnect sequence = " + nextDisconnectSequence);
+                simulateConnectionLoss = true;
+                return;
+            }
             if (random.Next(20) == 4)
             {
                 if (debug) log.Debug("Skipping send of sequence # " + fixMessage.Sequence + " to simulate lost message.");
@@ -624,43 +782,36 @@ namespace TickZoom.FIX
 			if (!isDisposed) {
 				isDisposed = true;
 				if (disposing) {
-					if (debug)
-						log.Debug("Dispose()");
-					if (symbolHandlers != null) {
-						if (symbolHandlersLocker.TryLock()) {
-							try {
-								foreach (var kvp in symbolHandlers) {
-									var handler = kvp.Value;
-									handler.Dispose();
-								}
-								symbolHandlers.Clear();
-							} finally {
-								symbolHandlersLocker.Unlock();
-							}
-						}
-					}
-					if (task != null) {
-						task.Stop();
-					}
-					if (fixListener != null) {
-						fixListener.Dispose();
-					}
-					if (fixSocket != null) {
-						fixSocket.Dispose();
-					}
-					if( fixPacketQueue != null) {
-						fixPacketQueue.Clear();
-					}
-					if( quotePacketQueue != null) {
-						quotePacketQueue.Clear();
-					}
-					if (quoteListener != null) {
-						quoteListener.Dispose();
-					}
-					if (quoteSocket != null) {
-						quoteSocket.Dispose();
-					}
-				}
+					if (debug) log.Debug("Dispose()");
+                    CloseSockets();
+                    if (symbolHandlers != null)
+                    {
+                        if (symbolHandlersLocker.TryLock())
+                        {
+                            try
+                            {
+                                foreach (var kvp in symbolHandlers)
+                                {
+                                    var handler = kvp.Value;
+                                    handler.Dispose();
+                                }
+                                symbolHandlers.Clear();
+                            }
+                            finally
+                            {
+                                symbolHandlersLocker.Unlock();
+                            }
+                        }
+                    }
+                    if (fixListener != null)
+                    {
+                        fixListener.Dispose();
+                    }
+                    if (quoteListener != null)
+                    {
+                        quoteListener.Dispose();
+                    }
+                }
 			}
 		}
 
