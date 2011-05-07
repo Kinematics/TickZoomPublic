@@ -32,7 +32,7 @@ namespace TickZoom.Api
 	{
 		void StartTick(Tick tick);
 		void FinishTick(Tick tick);
-		int PositionChange(int signal, ActiveList<LogicalOrder> inputOrders);
+		int PositionChange(int signal, ActiveList<LogicalOrder> inputOrders, ActiveList<StrategyPosition> strategyPositions);
 		void ProcessOrders();
 		int ActualPosition { get; }
 	}

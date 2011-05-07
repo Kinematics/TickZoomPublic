@@ -34,10 +34,12 @@ namespace TickZoom.Api
 		private int position;
 		private long utcTime;
 		private Iterable<LogicalOrder> orders;
-		public PositionChangeDetail(SymbolInfo symbol, int position, Iterable<LogicalOrder> orders, long utcTime) {
+	    private Iterable<StrategyPosition> strategyPositions;
+		public PositionChangeDetail(SymbolInfo symbol, int position, Iterable<LogicalOrder> orders, Iterable<StrategyPosition> strategyPositions, long utcTime) {
 			this.symbol = symbol;
 			this.position = position;
 			this.orders = orders;
+		    this.strategyPositions = strategyPositions;
 			this.utcTime = utcTime;
 		}
 		
@@ -56,5 +58,10 @@ namespace TickZoom.Api
 		public long UtcTime {
 			get { return utcTime; }
 		}
+
+	    public Iterable<StrategyPosition> StrategyPositions
+	    {
+	        get { return strategyPositions; }
+	    }
 	}
 }

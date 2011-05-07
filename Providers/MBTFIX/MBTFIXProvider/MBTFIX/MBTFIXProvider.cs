@@ -960,8 +960,8 @@ namespace TickZoom.MBTFIX
 				}
 			}
 		}
-		
-		public override void PositionChange(Receiver receiver, SymbolInfo symbol, int desiredPosition, Iterable<LogicalOrder> inputOrders)
+
+        public override void PositionChange(Receiver receiver, SymbolInfo symbol, int desiredPosition, Iterable<LogicalOrder> inputOrders, Iterable<StrategyPosition> strategyPositions)
 		{
 			if( !IsRecovered) {
 				if( HasFirstRecovery) {
@@ -976,17 +976,17 @@ namespace TickZoom.MBTFIX
 			
 			var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
             algorithm.SetDesiredPosition(desiredPosition);
-            algorithm.SetLogicalOrders(inputOrders);
+            algorithm.SetLogicalOrders(inputOrders, strategyPositions);
             lock (orderAlgorithmLocker)
             {
-                if (!isPositionSynced && !algorithm.TrySyncPosition())
+                if (!isPositionSynced && !algorithm.TrySyncPosition(strategyPositions))
                 {
                     isPositionSynced = true;
                 }
-                else
-                {
+                //else
+                //{
                     algorithm.ProcessOrders();
-                }
+                //}
             }
 			
 			var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);

@@ -1354,6 +1354,7 @@ namespace Orders
 		{
 			private OrderAlgorithm orderAlgorithm;
 			private MockPhysicalOrderHandler orders;
+		    private Iterable<StrategyPosition> strategyPositions = new ActiveList<StrategyPosition>();
 			private SymbolInfo symbol;
 			private Strategy strategy;
 			public TestOrderAlgorithm(SymbolInfo symbol, Strategy strategy, Action<SymbolInfo, LogicalFillBinary> onProcessFill) {
@@ -1376,13 +1377,14 @@ namespace Orders
 				strategy.Position.Change(position,100.00,TimeStamp.UtcNow);
 				orderAlgorithm.SetDesiredPosition(position);
 			}
-			public void SetLogicalOrders(Iterable<LogicalOrder> logicalOrders) {
-				orderAlgorithm.SetLogicalOrders(logicalOrders);
+            public void SetLogicalOrders(Iterable<LogicalOrder> logicalOrders)
+            {
+                orderAlgorithm.SetLogicalOrders(logicalOrders, strategyPositions);
 			}
 
             public void TrySyncPosition()
             {
-                orderAlgorithm.TrySyncPosition();
+                orderAlgorithm.TrySyncPosition(strategyPositions);
             }
 			public void PerformCompare()
 			{

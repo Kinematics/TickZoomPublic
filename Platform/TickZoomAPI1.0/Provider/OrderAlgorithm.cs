@@ -32,11 +32,11 @@ namespace TickZoom.Api
 
 	public interface OrderAlgorithm : PhysicalOrderHandler {
 		void SetDesiredPosition(int position);
-		void SetLogicalOrders(Iterable<LogicalOrder> logicalOrders);
+        void SetLogicalOrders(Iterable<LogicalOrder> logicalOrders, Iterable<StrategyPosition> strategyPositions);
 		void ProcessFill( PhysicalFill fill, int totalSize, int cumulativeSize, int remainingSize);
 		void SetActualPosition(int position);
         void IncreaseActualPosition(int position);
-        bool TrySyncPosition();
+        bool TrySyncPosition(Iterable<StrategyPosition> strategyPositions);
         bool HandleSimulatedExits { get; set; }
         PhysicalOrderHandler PhysicalOrderHandler { get; }
         Action<SymbolInfo, LogicalFillBinary> OnProcessFill { get; set; }

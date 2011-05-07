@@ -114,7 +114,7 @@ namespace TickZoom.Api
 			var value = Interlocked.Decrement( ref physicalFills);
 			if( trace) log.Trace(symbol + ": RemovePhysicalFill("+value+","+fill+")");
 			if( value < 0) {
-				System.Diagnostics.Debugger.Break();
+                //System.Diagnostics.Debugger.Break();
 			}
 		}
 		public void AddPhysicalOrder(PhysicalOrder order) {

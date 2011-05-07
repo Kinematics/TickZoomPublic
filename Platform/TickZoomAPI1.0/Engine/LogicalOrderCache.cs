@@ -28,18 +28,20 @@ using System;
 
 namespace TickZoom.Api
 {
-	public class StrategyPosition
+	public class StrategyPositionDefault : StrategyPosition
 	{
-	    private static readonly Log log = Factory.SysLog.GetLogger(typeof (StrategyPosition));
+	    private static readonly Log log = Factory.SysLog.GetLogger(typeof (StrategyPositionDefault));
 	    private bool debug = log.IsDebugEnabled;
-		public int Id;
-        public SymbolInfo Symbol;
+	    private int _id;
+	    private SymbolInfo _symbol;
         private int actualPosition;
         private int expectedPosition;
         private long recency;
 
-        public StrategyPosition()
+        public StrategyPositionDefault(int id, SymbolInfo symbol)
         {
+            this._id = id;
+            this._symbol = symbol;
             if( debug) log.Debug("New StrategyPosition");
         }
 
@@ -58,7 +60,17 @@ namespace TickZoom.Api
 	        get { return expectedPosition; }
 	    }
 
-        public void SetExpectedPosition(int position)
+	    public SymbolInfo Symbol
+	    {
+	        get { return _symbol; }
+	    }
+
+	    public int Id
+	    {
+	        get { return _id; }
+	    }
+
+	    public void SetExpectedPosition(int position)
         {
             if (debug) log.Debug("SetExpectedPositions() strategy " + Id + " for " + Symbol + " position change from " + expectedPosition + " to " + position + ". Recency " + this.recency + " to " + recency);
             expectedPosition = position;
@@ -76,19 +88,18 @@ namespace TickZoom.Api
             {
                 throw new InvalidOperationException("Recency must be non-zero.");
             }
-            if (position != actualPosition)
+            if (recency > this.recency)
             {
-                if (recency > this.recency)
+                if (position != actualPosition)
                 {
-                    if( debug) log.Debug("Strategy " + Id + " for " + Symbol + " position change from " + actualPosition + " to " + position + ". Recency " + this.recency + " to " + recency);
+                    if (debug) log.Debug("Strategy " + Id + " for " + Symbol + " position change from " + actualPosition + " to " + position + ". Recency " + this.recency + " to " + recency);
                     actualPosition = position;
-                    this.recency = recency;
                 }
-                else
-                {
-                    if (debug) log.Debug("Rejected change of strategy " + Id + " for " + Symbol + "position " + actualPosition + " to " + position +
-                             ".  Recency " + recency + " wasn't newer than " + this.recency);
-                }
+                this.recency = recency;
+            }
+            else if (position != actualPosition)
+            {
+                if (debug) log.Debug("Rejected change of strategy " + Id + " for " + Symbol + "position " + actualPosition + " to " + position + ".  Recency " + recency + " wasn't newer than " + this.recency);
             }
         }
 	}
@@ -99,6 +110,6 @@ namespace TickZoom.Api
 		void SetActiveOrders(Iterable<LogicalOrder> inputOrders);
 		Iterable<LogicalOrder> ActiveOrders { get; }
 		void RemoveInactive(LogicalOrder order);
-	    void SyncPositions();
+        void SyncPositions(Iterable<StrategyPosition> strategyPositions);
 	}
 }

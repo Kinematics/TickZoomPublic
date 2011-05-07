@@ -229,8 +229,7 @@ namespace TickZoom.FIX
 		
 		public void EndRecovery() {
 			connectionStatus = Status.Recovered;
-		    isWaitingResend = false;
-			hasFirstRecovery = true;
+            hasFirstRecovery = true;
 			if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
 		}
 		
@@ -287,6 +286,8 @@ namespace TickZoom.FIX
 					switch( connectionStatus) {
 						case Status.Connected:
                             orderStore = new PhysicalOrderStore(ProviderName);
+                            isWaitingResend = false;
+                            if (debug) log.Debug("Set is waiting for resend: " + isWaitingResend);
                             if (OnLogin())
                             {
                                 connectionStatus = Status.PendingLogin;
@@ -441,7 +442,7 @@ namespace TickZoom.FIX
                 if (!isWaitingResend)
                 {
                     isWaitingResend = true;
-                    if (debug) log.Debug("Set is waiting for resed: " + isWaitingResend);
+                    if (debug) log.Debug("Set is waiting for resend: " + isWaitingResend);
                     var mbtMsg = fixFactory.Create();
                     mbtMsg.AddHeader("2");
                     mbtMsg.SetBeginSeqNum(remoteSequence);
@@ -684,8 +685,8 @@ namespace TickZoom.FIX
 			}
 			return false;
 		}
-		
-		public abstract void PositionChange(Receiver receiver, SymbolInfo symbol, int signal, Iterable<LogicalOrder> orders);
+
+        public abstract void PositionChange(Receiver receiver, SymbolInfo symbol, int signal, Iterable<LogicalOrder> orders, Iterable<StrategyPosition> strategyPositions);
 		
 	 	protected volatile bool isDisposed = false;
 	    public void Dispose() 
@@ -731,7 +732,7 @@ namespace TickZoom.FIX
 					break;
 				case EventType.PositionChange:
 					PositionChangeDetail positionChange = (PositionChangeDetail) eventDetail;
-					PositionChange(receiver,symbol,positionChange.Position,positionChange.Orders);
+					PositionChange(receiver,symbol,positionChange.Position,positionChange.Orders, positionChange.StrategyPositions);
 					break;
 				case EventType.Terminate:
 					Dispose();

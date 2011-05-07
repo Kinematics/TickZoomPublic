@@ -598,14 +598,15 @@ namespace TickZoom.Common
 			}
 			return pendingAdjustments;
 		}
-		
-		public bool TrySyncPosition() {
+
+        public bool TrySyncPosition(Iterable<StrategyPosition> strategyPositions)
+        {
             // Find any pending adjustments.
             var pendingAdjustments = FindPendingAdjustments();
             var positionDelta = desiredPosition - actualPosition;
 			var delta = positionDelta - pendingAdjustments;
 			PhysicalOrder physical;
-			orderCache.SyncPositions();
+            orderCache.SyncPositions(strategyPositions);
             if( delta != 0)
             {
                 log.Notice("TrySyncPosition() Issuing adjustment order because expected position is " + desiredPosition + " but actual is " + actualPosition + " plus pending adjustments " + pendingAdjustments);
@@ -636,13 +637,14 @@ namespace TickZoom.Common
                 return false;
 			}
 		}
-		
-		public void SetLogicalOrders( Iterable<LogicalOrder> inputLogicals) {
+
+        public void SetLogicalOrders(Iterable<LogicalOrder> inputLogicals, Iterable<StrategyPosition> strategyPositions)
+        {
 			if( trace) {
 				int count = originalLogicals == null ? 0 : originalLogicals.Count;
 				log.Trace("SetLogicalOrders() order count = " + count);
 			}
-			orderCache.SetActiveOrders(inputLogicals);
+            orderCache.SetActiveOrders(inputLogicals);
 			lock( bufferedLogicalsLocker) {
 				bufferedLogicals.Clear();
 				bufferedLogicals.AddLast(orderCache.ActiveOrders);
@@ -722,7 +724,7 @@ namespace TickZoom.Common
 				if( debug) log.Debug("Adjusting symbol position to desired " + desiredPosition + ", physical fill was " + physical.Size);
 				var position = logical.StrategyPosition + physical.Size;
 				if( debug) log.Debug("Creating logical fill with position " + position + " from strategy position " + logical.StrategyPosition);
-                var strategyPosition = (StrategyPosition)logical.Strategy;
+                var strategyPosition = (StrategyPositionDefault)logical.Strategy;
 				fill = new LogicalFillBinary(
 					position, strategyPosition.Recency+1, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber,logical.Position,physical.IsSimulated);
 			} catch( ApplicationException ex) {
@@ -901,7 +903,7 @@ namespace TickZoom.Common
 		}
 	
 		private void UpdateOrderCache(LogicalOrder order, LogicalFill fill) {
-			var strategyPosition = (StrategyPosition) order.Strategy;
+			var strategyPosition = (StrategyPositionDefault) order.Strategy;
             if( debug) log.Debug("Adjusting strategy position to " + fill.Position + " from " + strategyPosition.ActualPosition + ". Recency " + fill.Recency + " for strategy id " + strategyPosition.Id);
             strategyPosition.TrySetPosition(fill.Position, fill.Recency);
 //			orderCache.RemoveInactive(order);
