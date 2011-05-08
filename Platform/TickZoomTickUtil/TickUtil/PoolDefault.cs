@@ -76,5 +76,10 @@ namespace TickZoom.TickUtil
 		public int Count {
 			get { return count; }
 		}
+
+        public T[] Freed
+        {
+            get { return _freed.ToArray(); }
+        }
 	}
 }

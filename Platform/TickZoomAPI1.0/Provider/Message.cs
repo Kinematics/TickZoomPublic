@@ -38,7 +38,7 @@ namespace TickZoom.Api
 		void SetReadableBytes(int bytes);
 		bool TrySplit(MemoryStream other);
 		bool IsComplete { get; }
-		int Id { get; }
+        int Id { get; }
 		int Remaining {	get; }
 		bool HasAny { get; }
 		bool IsFull { get; }

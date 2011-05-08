@@ -24,6 +24,7 @@
  */
 #endregion
 
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -70,6 +71,7 @@ namespace TickZoom.FIX
         private int newSeqNum;
         private bool isGapFill;
         private bool isResetSeqNum;
+        //public SimpleLock sequenceLocker = new SimpleLock();
 		
 		public MessageFIXT1_1()
 		{
@@ -99,7 +101,11 @@ namespace TickZoom.FIX
 		    endSeqNum = 0;
 		    length = 0;
 		    messageType = null;
-		    sender = null;
+            //if (sequence > 0 && sequenceLocker.IsLocked)
+            //{
+            //    throw new InvalidOperationException("Can't clear from " + sender + " sequence " + sequence + " yet.");
+            //}
+            sender = null;
 		    target = null;
 		    sequence = 0;
 		    timeStamp = null;
@@ -338,8 +344,12 @@ namespace TickZoom.FIX
 					result = GetString(out target);
 					break;
 				case 34:
+                    //if( !sequenceLocker.TryLock())
+                    //{
+                    //    throw new InvalidOperationException("Unable to lock message from " + sender + " sequence " + sequence + "?");
+                    //}
 					result = GetInt(out sequence);
-					break;
+                    break;
 				case 52:
 					result = GetString(out timeStamp);
 					if( result) {

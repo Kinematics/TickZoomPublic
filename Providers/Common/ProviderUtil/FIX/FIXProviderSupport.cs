@@ -286,8 +286,8 @@ namespace TickZoom.FIX
 					switch( connectionStatus) {
 						case Status.Connected:
                             orderStore = new PhysicalOrderStore(ProviderName);
-                            isWaitingResend = false;
-                            if (debug) log.Debug("Set is waiting for resend: " + isWaitingResend);
+                            isResendComplete = true;
+                            if (debug) log.Debug("Set resend complete: " + IsResendComplete);
                             if (OnLogin())
                             {
                                 connectionStatus = Status.PendingLogin;
@@ -348,7 +348,7 @@ namespace TickZoom.FIX
                                     {
                                         case "A": //logon
                                             // Already handled and sequence incremented.
-                                            break;
+                                            break; 
                                         case "2": // resend
                                             // Already handled and sequence incremented.
                                             break;
@@ -360,9 +360,10 @@ namespace TickZoom.FIX
                                             break;
                                     }
                                     orderStore.UpdateSequence(remoteSequence, fixFactory.LastSequence);
-                                    Socket.MessageFactory.Release(message);
                                 }
-								IncreaseRetryTimeout();
+                                //messageFIX.sequenceLocker.Unlock();
+                                Socket.MessageFactory.Release(message);
+                                IncreaseRetryTimeout();
 								return Yield.DidWork.Repeat;
 							} else {
 								return Yield.NoWork.Repeat;
@@ -431,18 +432,21 @@ namespace TickZoom.FIX
         }
 
 	    private int expectedResendSequence;
-	    private bool isWaitingResend = false;
+	    private bool isResendComplete = true;
 
         private bool CheckForMissingMessages(Message message)
         {
             var messageFIX = (MessageFIXT1_1) message;
+            var sequence = messageFIX.Sequence;
             if (messageFIX.Sequence > remoteSequence)
             {
                 if (debug) log.Debug("Sequence is " + messageFIX.Sequence + " but expected sequence is " + RemoteSequence + ". Ignoring message.");
-                if (!isWaitingResend)
+                expectedResendSequence = messageFIX.Sequence;
+                if (debug) log.Debug("Expected resend sequence set to " + expectedResendSequence);
+                if (IsResendComplete)
                 {
-                    isWaitingResend = true;
-                    if (debug) log.Debug("Set is waiting for resend: " + isWaitingResend);
+                    isResendComplete = false;
+                    if (debug) log.Debug("Set resend complete: " + isResendComplete);
                     var mbtMsg = fixFactory.Create();
                     mbtMsg.AddHeader("2");
                     mbtMsg.SetBeginSeqNum(remoteSequence);
@@ -450,21 +454,20 @@ namespace TickZoom.FIX
                     if (debug) log.Debug(" Sending resend request: " + mbtMsg);
                     SendMessage(mbtMsg);
                 }
-                Socket.MessageFactory.Release(message);
                 return true;
             }
             else if( messageFIX.Sequence < remoteSequence)
             {
                 if (debug) log.Debug("Already received sequence " + messageFIX.Sequence + ". Ignoring.");
-                Socket.MessageFactory.Release(message);
                 return true;
             }
             else
             {
-                if( isWaitingResend && messageFIX.Sequence >= expectedResendSequence)
+                if( !isResendComplete && messageFIX.Sequence >= expectedResendSequence)
                 {
-                    isWaitingResend = false;
-                    if (debug) log.Debug("Set is waiting for resed: " + isWaitingResend);
+                    isResendComplete = true;
+                    if (debug) log.Debug("Set resend complete: " + isResendComplete);
+                    TryEndRecovery();
                 }
                 RemoteSequence = messageFIX.Sequence + 1;
                 return false;
@@ -767,6 +770,11 @@ namespace TickZoom.FIX
 			}
 	    }
 
+        protected virtual void TryEndRecovery()
+        {
+            throw new NotImplementedException();
+        }
+
         public void LogOut()
         {
             if( connectionStatus == Status.Recovered)
@@ -877,6 +885,11 @@ namespace TickZoom.FIX
 	    public PhysicalOrderStore OrderStore
 	    {
 	        get { return orderStore; }
+	    }
+
+	    public bool IsResendComplete
+	    {
+	        get { return isResendComplete; }
 	    }
 	}
 }

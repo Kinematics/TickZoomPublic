@@ -51,7 +51,7 @@ namespace TickZoom.FIX
 		private YieldMethod MainLoopMethod;
 	    private int heartbeatDelay = 1;
         private ServerState fixState = ServerState.Startup;
-        private bool simulateDisconnect = false;
+        private bool simulateDisconnect = true;
 
 		// FIX fields.
 		private ushort fixPort = 0;
@@ -395,9 +395,9 @@ namespace TickZoom.FIX
 			if (isFIXSimulationStarted) {
 				if (fixSocket.TryGetMessage(out _fixReadMessage))
 				{
+                    var packetFIX = (MessageFIXT1_1)_fixReadMessage;
                     try
                     {
-                        var packetFIX = (MessageFIXT1_1)_fixReadMessage;
                         switch( fixState)
                         {
                             case ServerState.Startup:
@@ -473,6 +473,7 @@ namespace TickZoom.FIX
                     }
                     finally
                     {
+                        //packetFIX.sequenceLocker.Unlock();
                         fixSocket.MessageFactory.Release(_fixReadMessage);
                     }
 				}

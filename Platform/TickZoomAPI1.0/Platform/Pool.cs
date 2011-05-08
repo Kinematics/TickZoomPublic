@@ -35,5 +35,6 @@ namespace TickZoom.Api
 		T Create();
 		void Free(T item);
 		void Clear();
+	    T[] Freed { get;  }
 	}
 }

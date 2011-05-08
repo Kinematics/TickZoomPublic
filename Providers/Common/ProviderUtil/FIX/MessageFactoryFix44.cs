@@ -26,19 +26,56 @@
 
 using System;
 using TickZoom.Api;
+using System.Diagnostics;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace TickZoom.FIX
 {
-	public class MessageFactoryFix44 : MessageFactory {
+	public class MessageFactoryFix44 : MessageFactory
+	{
+	    private static readonly Log log = Factory.Log.GetLogger(typeof (MessageFactoryFix44));
         private Pool<MessageFIX4_4> pool = Factory.TickUtil.Pool<MessageFIX4_4>();
+	    private static int stackCounter = 0;
         public Message Create()
         {
             var message = pool.Create();
             message.Clear();
             return (Message)message;
         }
-		
-		public void Release(Message message) {
+//        Dictionary<string, int> stackTraces = new Dictionary<string, int>();
+		public void Release(Message message)
+		{
+            //var messageFIX = (MessageFIX4_4) message;
+            //if( messageFIX.Sequence > 0 )
+            //{
+            //    var stack = Environment.StackTrace;
+            //    if (stack.Contains("OnSelectWrite")) 
+            //    {
+            //        messageFIX.sequenceLocker.Unlock();
+            //    }
+            //    else
+            //    {
+            //        int count;
+            //        if (!stackTraces.TryGetValue(stack, out count))
+            //        {
+            //            var temp = Interlocked.Increment(ref stackCounter);
+            //            stackTraces.Add(stack, temp);
+            //            log.Warn("Releasing message from " + messageFIX.Sender + " sequence " + messageFIX.Sequence + ", stack id " + temp + "\n" + stack);
+            //        }
+            //        else
+            //        {
+            //            //log.Warn("Releasing message from " + messageFIX.Sender + " sequence " + messageFIX.Sequence + ", stack id " + count);
+            //        }
+            //    }
+            //}
+            //foreach (var freedMessage in pool.Freed)
+            //{
+            //    if( object.ReferenceEquals(message,freedMessage))
+            //    {
+            //        throw new InvalidOperationException("Attempt to free an item that was already freed.");
+            //    }
+            //}
             pool.Free((MessageFIX4_4)message);
 		}
 	}

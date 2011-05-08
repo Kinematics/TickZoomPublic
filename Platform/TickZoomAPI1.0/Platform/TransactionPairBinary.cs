@@ -94,10 +94,15 @@ namespace TickZoom.Api
 		
         public void TryUpdate(Tick tick) {
             if( !completed) {
-                if( currentPosition > 0) {
-                    UpdatePrice(tick.IsQuote ? tick.Bid : tick.Price);
+                if( currentPosition > 0)
+                {
+                    var price = tick.IsQuote ? tick.Bid : tick.Price;
+                    if( trace) log.Trace("Setting using " + price + " of " + tick);
+                    UpdatePrice(price);
                 } else {
-                    UpdatePrice(tick.IsQuote ? tick.Ask : tick.Price);
+                    var price = tick.IsQuote ? tick.Ask : tick.Price;
+                    if( trace) log.Trace("Setting using " + price + " of " + tick);
+                    UpdatePrice(price);
                 }
                 exitTime = tick.Time.Internal;
             }
@@ -105,11 +110,13 @@ namespace TickZoom.Api
 		
 		
         public void UpdatePrice(double price) {
-            if( trace ) log.Trace("UpdatePrice("+price+")");
-            if( price > maxPrice) {
+            if (price > maxPrice)
+            {
+                if( trace) log.Trace("UpdatePrice( max = " + price + ")");
                 maxPrice = price;
             }
             if( price < minPrice) {
+                if( trace) log.Trace("UpdatePrice( min = " + price + ")");
                 minPrice = price;
             }
             exitPrice = price;
@@ -225,7 +232,9 @@ namespace TickZoom.Api
                    entryPriceMatch &&
                    this.EntryTime == trade.EntryTime &&
                    this.exitPrice == trade.exitPrice &&
-                   this.ExitTime == trade.ExitTime;
+                   this.ExitTime == trade.ExitTime &&
+                   this.maxPrice == trade.maxPrice &&
+                   this.minPrice == trade.minPrice;
         }
 		
         public double MaxPrice {

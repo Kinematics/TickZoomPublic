@@ -23,6 +23,11 @@ namespace TickZoom.TickUtil
             pushDiagnoseMetric = Diagnose.RegisterMetric("PoolTicks-Push-"+id);
         }
 
+        public TickBinaryBox[] Freed
+        {
+            get { return _freed.ToArray(); }
+        }
+
         public TickBinaryBox Create()
         {
             using (_sync.Using()) {

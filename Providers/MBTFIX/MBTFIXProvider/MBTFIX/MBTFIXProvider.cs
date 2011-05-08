@@ -344,14 +344,15 @@ namespace TickZoom.MBTFIX
 			}
 		}
 		
-		private void TryEndRecovery() {
-			if( isPositionUpdateComplete && isOrderUpdateComplete) {
+		protected override void TryEndRecovery() {
+			if( isPositionUpdateComplete &&
+                isOrderUpdateComplete &&
+                IsResendComplete &&
+                isPositionSynced ) {
 				isPositionUpdateComplete = false;
 				isOrderUpdateComplete = false;
-                //if( !TryCancelRejectedOrders() ) {
-					ReportRecovery();
-					EndRecovery();
-                //}
+				ReportRecovery();
+				EndRecovery();
 			}
 		}
 		
@@ -392,7 +393,7 @@ namespace TickZoom.MBTFIX
 			if( packetFIX.MessageType == "AO") {
 				isPositionUpdateComplete = true;
 				if(debug) log.Debug("PositionUpdate Complete.");
-				TryEndRecovery();
+                TryEndRecovery();
 			} else if (!IsRecovered)
             {
                 var position = packetFIX.LongQuantity + packetFIX.ShortQuantity;
@@ -982,11 +983,9 @@ namespace TickZoom.MBTFIX
                 if (!isPositionSynced && !algorithm.TrySyncPosition(strategyPositions))
                 {
                     isPositionSynced = true;
+                    TryEndRecovery();
                 }
-                //else
-                //{
-                    algorithm.ProcessOrders();
-                //}
+                algorithm.ProcessOrders();
             }
 			
 			var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
