@@ -106,17 +106,20 @@ namespace TickZoom.FIX
 		
 		public void CreateOrder(PhysicalOrder order) {
 			FillSimulator.OnCreateBrokerOrder( order);
+            log.Info("Previously Called ProcessOrders.");
             FillSimulator.ProcessOrders();
 		}
 		
 		public void ChangeOrder(PhysicalOrder order, string origBrokerOrder) {
 			FillSimulator.OnChangeBrokerOrder( order, origBrokerOrder);
+            log.Info("Previously Called ProcessOrders.");
             FillSimulator.ProcessOrders();
         }
 
         public void CancelOrder(string origBrokerOrder)
         {
 			FillSimulator.OnCancelBrokerOrder( Symbol, origBrokerOrder);
+            log.Info("Previously Called ProcessOrders.");
             FillSimulator.ProcessOrders();
         }
 		

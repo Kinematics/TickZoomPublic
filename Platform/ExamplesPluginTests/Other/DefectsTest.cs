@@ -93,7 +93,7 @@ namespace Other
     		Assert.AreEqual(-27.5,Math.Round(mq1.Performance.ComboTrades.CalcProfitLoss(0),2));
     		Assert.AreEqual(-14.5,Math.Round(mq2.Performance.ComboTrades.CalcProfitLoss(0),2));
     		Assert.AreEqual(-9.00,Math.Round(portfolio.Performance.ComboTrades.CalcProfitLoss(0),2));
-    		Assert.AreEqual(-16.00,Math.Round(portfolio.Performance.Equity.CurrentEquity-portfolio.Performance.Equity.StartingEquity,2));
+    		Assert.AreEqual(-39.00,Math.Round(portfolio.Performance.Equity.CurrentEquity-portfolio.Performance.Equity.StartingEquity,2));
  
 		}
 	}

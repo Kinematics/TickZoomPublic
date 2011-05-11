@@ -29,183 +29,294 @@ using System.Threading;
 
 namespace TickZoom.Api
 {
-	public class TickSync : SimpleLock {
-		private static readonly Log staticLog = Factory.SysLog.GetLogger(typeof(TickSync));
-		private readonly bool debug = staticLog.IsDebugEnabled;		
-		private readonly bool trace = staticLog.IsTraceEnabled;		
-		private Log log;
-		private int ticks = 0;
-		private int positionChange = 0;
-		private int processPhysical = 0;
-		private int physicalFills = 0;
-		private int physicalOrders = 0;
-		private SymbolInfo symbolInfo;
-		private string symbol;
-		
-		internal TickSync( long symbolId) {
-			this.symbolInfo = Factory.Symbol.LookupSymbol(symbolId);
-			this.symbol = symbolInfo.Symbol.StripInvalidPathChars();
-			this.log = Factory.SysLog.GetLogger(typeof(TickSync).FullName + "." + symbol);
-			if( trace) log.Trace(symbol + ": created with binary symbol id = " + symbolId);
-		}
-		public bool Completed {
-			get { var value = CheckCompletedInternal();
-					return value;
-			}
-		}		
-		private bool CheckCompletedInternal() {
-			return ticks == 0 && positionChange == 0 &&
-					physicalOrders == 0 && physicalFills == 0 &&
-					processPhysical == 0;
-		}		
-		private bool CheckOnlyPhysicalFills() {
-			return positionChange == 0 && physicalOrders == 0 &&
-				physicalFills == 0 && processPhysical > 0;
-		}		
-		private bool CheckProcessingOrders() {
-			return positionChange > 0 || physicalOrders > 0 || physicalFills > 0;
-		}		
-		
-		public void Clear() {
-			if( !CheckCompletedInternal()) {
-				System.Diagnostics.Debugger.Break();
-				throw new ApplicationException(symbol + ": Tick, position changes, physical orders, and physical fills, must all complete before clearing the tick sync. Current numbers are: " + this);
-			}
-			ForceClear();
-		}
-		public void ForceClear() {
-			var ticks = Interlocked.Exchange(ref this.ticks, 0);
-			var orders = Interlocked.Exchange(ref physicalOrders, 0);
-			var process = Interlocked.Exchange(ref processPhysical, 0);
-			var changes = Interlocked.Exchange(ref positionChange, 0);
-			var fills = Interlocked.Exchange(ref physicalFills, 0);
-			Unlock();
-			if( trace) log.Trace(symbol + ": Clear() " + this);
-		}
+    public struct TickSyncState
+    {
+        public int ticks;
+        public int positionChange;
+        public int processPhysical;
+        public int physicalFills;
+        public int physicalOrders;
+        public bool Compare(TickSyncState other)
+        {
+            return ticks == other.ticks && positionChange == other.positionChange &&
+                   processPhysical == other.processPhysical && physicalFills == other.physicalFills &&
+                   physicalOrders == other.physicalOrders;
+
+        }
+    }
+
+    public class TickSync : SimpleLock
+    {
+        private static readonly Log staticLog = Factory.SysLog.GetLogger(typeof(TickSync));
+        private readonly bool debug = staticLog.IsDebugEnabled;
+        private readonly bool trace = staticLog.IsTraceEnabled;
+        private Log log;
+        private TickSyncState state;
+        private SymbolInfo symbolInfo;
+        private string symbol;
+        private bool rollbackNeeded = false;
+
+        internal TickSync(long symbolId)
+        {
+            this.symbolInfo = Factory.Symbol.LookupSymbol(symbolId);
+            this.symbol = symbolInfo.Symbol.StripInvalidPathChars();
+            this.log = Factory.SysLog.GetLogger(typeof(TickSync).FullName + "." + symbol);
+            if (trace) log.Trace(symbol + ": created with binary symbol id = " + symbolId);
+        }
+        public bool Completed
+        {
+            get
+            {
+                var value = CheckCompletedInternal();
+                return value;
+            }
+        }
+        private bool CheckCompletedInternal()
+        {
+            return state.ticks == 0 && state.positionChange == 0 &&
+                    state.physicalOrders == 0 && state.physicalFills == 0 &&
+                    state.processPhysical == 0;
+        }
+        private bool CheckOnlyPhysicalFills()
+        {
+            return state.positionChange == 0 && state.physicalOrders == 0 &&
+                state.physicalFills == 0 && state.processPhysical > 0;
+        }
+        private bool CheckProcessingOrders()
+        {
+            return state.positionChange > 0 || state.physicalOrders > 0 || state.physicalFills > 0;
+        }
+
+        private TickSyncState rollback;
+
+        public void CaptureState()
+        {
+            rollback = state;
+        }
+
+        public void Clear()
+        {
+            if (!CheckCompletedInternal())
+            {
+                System.Diagnostics.Debugger.Break();
+                throw new ApplicationException(symbol + ": Tick, position changes, physical orders, and physical fills, must all complete before clearing the tick sync. Current numbers are: " + this);
+            }
+            ForceClear();
+        }
+        public void ForceClear()
+        {
+            var ticks = Interlocked.Exchange(ref state.ticks, 0);
+            var orders = Interlocked.Exchange(ref state.physicalOrders, 0);
+            var process = Interlocked.Exchange(ref state.processPhysical, 0);
+            var changes = Interlocked.Exchange(ref state.positionChange, 0);
+            var fills = Interlocked.Exchange(ref state.physicalFills, 0);
+            Unlock();
+            if (trace) log.Trace(symbol + ": Clear() " + this);
+        }
 
         public void ForceClearOrders()
         {
-            var orders = Interlocked.Exchange(ref physicalOrders, 0);
-            var changes = Interlocked.Exchange(ref positionChange, 0);
-            var process = Interlocked.Exchange(ref processPhysical, 0);
-            var fills = Interlocked.Exchange(ref physicalFills, 0);
+            var orders = Interlocked.Exchange(ref state.physicalOrders, 0);
+            var changes = Interlocked.Exchange(ref state.positionChange, 0);
+            var process = Interlocked.Exchange(ref state.processPhysical, 0);
+            var fills = Interlocked.Exchange(ref state.physicalFills, 0);
             if (trace) log.Trace(symbol + ": ForceClearOrders() " + this);
         }
 
         public override string ToString()
-		{
-			return "TickSync Ticks "+ticks+", Sent Orders "+physicalOrders+", Changes "+positionChange+", Process Orders "+processPhysical+", Fills "+physicalFills+")";
-		}
-		
-		public void AddTick() {
-			var value = Interlocked.Increment( ref ticks);
-			if( trace) log.Trace(symbol + ": AddTick("+value+")");
-		}
-		public void RemoveTick() {
-			var value = Interlocked.Decrement( ref ticks);
-			if( trace) log.Trace(symbol + ": RemoveTick("+value+")");
+        {
+            return ToString(state);
+        }
+
+        private string ToString(TickSyncState temp)
+        {
+            return "TickSync Ticks " + temp.ticks + ", Sent Orders " + temp.physicalOrders + ", Changes " + temp.positionChange + ", Process Orders " + temp.processPhysical + ", Fills " + temp.physicalFills + ")";
+        }
+
+        public void AddTick()
+        {
+            var value = Interlocked.Increment(ref state.ticks);
+            if (trace) log.Trace(symbol + ": AddTick(" + value + ")");
+        }
+        public void RemoveTick()
+        {
+            var value = Interlocked.Decrement(ref state.ticks);
+            if (trace) log.Trace(symbol + ": RemoveTick(" + value + ")");
             if (value < 0)
             {
-                Interlocked.Increment(ref ticks);
-                //System.Diagnostics.Debugger.Break();
+                Interlocked.Increment(ref state.ticks);
+                if (trace) System.Diagnostics.Debugger.Break();
             }
-		}
-		public void AddPhysicalFill(PhysicalFill fill) {
-			var value = Interlocked.Increment( ref physicalFills);
-			if( trace) log.Trace(symbol + ": AddPhysicalFill("+value+","+fill+","+fill.Order+")");
-		}
-		public void RemovePhysicalFill(object fill) {
-			var value = Interlocked.Decrement( ref physicalFills);
-			if( trace) log.Trace(symbol + ": RemovePhysicalFill("+value+","+fill+")");
-			if( value < 0)
-			{
-			    var temp = Interlocked.Increment(ref physicalFills);
-			    log.Warn("PhysicalFills counter was " + value + ". Incremented to " + temp);
-			    //System.Diagnostics.Debugger.Break();
-			}
-		}
-		public void AddPhysicalOrder(PhysicalOrder order) {
-			var value = Interlocked.Increment( ref physicalOrders);
-			if( trace) log.Trace(symbol + ": AddPhysicalOrder("+value+","+order+")");
-		}
-		public void RemovePhysicalOrder(object order) {
-			var value = Interlocked.Decrement( ref physicalOrders);
-			if( trace) log.Trace(symbol + ": RemovePhysicalOrder("+value+","+order+")");
-			if( value < 0) {
-                var temp = Interlocked.Increment(ref physicalOrders);
+        }
+
+        public void AddPhysicalFill(PhysicalFill fill)
+        {
+            var value = Interlocked.Increment(ref state.physicalFills);
+            RollbackPhysicalFills();
+            if (trace) log.Trace(symbol + ": AddPhysicalFill(" + value + "," + fill + "," + fill.Order + ")");
+        }
+
+        public void RollbackPhysicalFills()
+        {
+            while (rollback.physicalFills > 0 && state.physicalFills > 0)
+            {
+                Interlocked.Decrement(ref state.physicalFills);
+                Interlocked.Decrement(ref rollback.physicalFills);
+            }
+        }
+
+        public void RemovePhysicalFill(object fill)
+        {
+            var value = Interlocked.Decrement(ref state.physicalFills);
+            if (trace) log.Trace(symbol + ": RemovePhysicalFill(" + value + "," + fill + ")");
+            if (value < 0)
+            {
+                var temp = Interlocked.Increment(ref state.physicalFills);
+                log.Warn("PhysicalFills counter was " + value + ". Incremented to " + temp);
+                if (trace) System.Diagnostics.Debugger.Break();
+            }
+        }
+
+        public void AddPhysicalOrder(PhysicalOrder order)
+        {
+            var value = Interlocked.Increment(ref state.physicalOrders);
+            RollbackPhysicalOrders();
+            if (trace) log.Trace(symbol + ": AddPhysicalOrder(" + value + "," + order + ")");
+        }
+
+        public void RollbackPhysicalOrders()
+        {
+            while (rollback.physicalOrders > 0 && state.physicalOrders > 0)
+            {
+                Interlocked.Decrement(ref state.physicalOrders);
+                Interlocked.Decrement(ref rollback.physicalOrders);
+            }
+        }
+        public void RemovePhysicalOrder(object order)
+        {
+            var value = Interlocked.Decrement(ref state.physicalOrders);
+            if (trace) log.Trace(symbol + ": RemovePhysicalOrder(" + value + "," + order + ")");
+            if (value < 0)
+            {
+                var temp = Interlocked.Increment(ref state.physicalOrders);
                 log.Warn("PhysicalOrders counter was " + value + ". Incremented to " + temp);
-                //System.Diagnostics.Debugger.Break();
-			}
-		}
-		public void RemovePhysicalOrder() {
-			var value = Interlocked.Decrement( ref physicalOrders);
-			if( trace) log.Trace(symbol + ": RemovePhysicalOrder("+value+")");
-			if( value < 0) {
-                var temp = Interlocked.Increment(ref physicalOrders);
+                if (trace) System.Diagnostics.Debugger.Break();
+            }
+        }
+        public void RemovePhysicalOrder()
+        {
+            var value = Interlocked.Decrement(ref state.physicalOrders);
+            if (trace) log.Trace(symbol + ": RemovePhysicalOrder(" + value + ")");
+            if (value < 0)
+            {
+                var temp = Interlocked.Increment(ref state.physicalOrders);
                 log.Warn("PhysicalOrders counter was " + value + ". Incremented to " + temp);
-                //System.Diagnostics.Debugger.Break();
-			}
-		}
-		public void AddPositionChange() {
-			var value = Interlocked.Increment( ref positionChange);
-			if( trace) log.Trace(symbol + ": AddPositionChange("+value+")");
-		}
-		public void RemovePositionChange() {
-			var value = Interlocked.Decrement( ref positionChange);
-			if( trace) log.Trace(symbol + ": RemovePositionChange("+value+")");
-			if( value < 0) {
-				log.Warn(symbol + ": Completed: value below zero: " + positionChange);
-			}
-			if( value < 0) {
-                var temp = Interlocked.Increment(ref positionChange);
+                if (trace) System.Diagnostics.Debugger.Break();
+            }
+        }
+        public void AddPositionChange()
+        {
+            var value = Interlocked.Increment(ref state.positionChange);
+            RollbackPositionChange();
+            if (trace) log.Trace(symbol + ": AddPositionChange(" + value + ")");
+        }
+
+        public void RollbackPositionChange()
+        {
+            while (rollback.positionChange > 0 && state.positionChange > 0)
+            {
+                Interlocked.Decrement(ref state.positionChange);
+                Interlocked.Decrement(ref rollback.positionChange);
+            }
+        }
+
+        public void RemovePositionChange()
+        {
+            var value = Interlocked.Decrement(ref state.positionChange);
+            if (trace) log.Trace(symbol + ": RemovePositionChange(" + value + ")");
+            if (value < 0)
+            {
+                log.Warn(symbol + ": Completed: value below zero: " + state.positionChange);
+            }
+            if (value < 0)
+            {
+                var temp = Interlocked.Increment(ref state.positionChange);
                 log.Warn("PositionChange counter was " + value + ". Incremented to " + temp);
-                //System.Diagnostics.Debugger.Break();
-			}
-		}
-		
-		public void AddProcessPhysicalOrders() {
-			var value = Interlocked.Increment( ref processPhysical);
-			if( trace) log.Trace(symbol + ": AddProcessPhysicalOrders("+value+")");
-		}
-		public void RemoveProcessPhysicalOrders() {
-			var value = Interlocked.Decrement( ref processPhysical);
-			if( trace) log.Trace(symbol + ": RemoveProcessPhysicalOrders("+value+")");
-			if( value < 0) {
-				log.Warn(symbol + ": Completed: value below zero: " + processPhysical);
-			}
-			if( value < 0) {
-                var temp = Interlocked.Increment(ref processPhysical);
-                log.Warn("ProcessPhysical counter was " + value + ". Incremented to " + temp);
-                //System.Diagnostics.Debugger.Break();
-			}
-		}
-		
-		public bool SentPhysicalOrders {
-			get { return physicalOrders > 0; }
-		}
-		
-		public bool SentPhysicalFills {
-			get { return physicalFills > 0; }
-		}
-		
-		public bool SentPositionChange {
-			get { return positionChange > 0; }
-		}
-		
-		public bool OnlyProcessPhysicalOrders {
-			get { return CheckOnlyPhysicalFills(); }
-		}
-		
-		public bool IsProcessingOrders {
-			get { return CheckProcessingOrders(); }
-		}
-		
-		public bool SentProcessPhysicalOrders {
-			get { return processPhysical > 0; }
-		}
-		
-		public int PhysicalFills {
-			get { return physicalFills; }
-		}
-	}
+                if (trace) System.Diagnostics.Debugger.Break();
+            }
+        }
+
+        public void AddProcessPhysicalOrders()
+        {
+            var value = Interlocked.Increment(ref state.processPhysical);
+            RollbackProcessPhysicalOrders();
+            if (trace) log.Trace(symbol + ": AddProcessPhysicalOrders(" + value + ")");
+        }
+
+        public void RollbackProcessPhysicalOrders()
+        {
+            while (rollback.processPhysical > 0 && state.processPhysical >= 0)
+            {
+                Interlocked.Decrement(ref state.processPhysical);
+                Interlocked.Decrement(ref rollback.processPhysical);
+            }
+        }
+
+        public void RemoveProcessPhysicalOrders()
+        {
+            var value = Interlocked.Decrement(ref state.processPhysical);
+            if (trace) log.Trace(symbol + ": RemoveProcessPhysicalOrders(" + value + ")");
+            if (value < 0)
+            {
+                log.Warn(symbol + ": Completed: value below zero: " + state.processPhysical);
+            }
+            if (value < 0)
+            {
+                //var temp = Interlocked.Increment(ref state.processPhysical);
+                //log.Warn("ProcessPhysical counter was " + value + ". Incremented to " + temp);
+                if (trace) System.Diagnostics.Debugger.Break();
+            }
+        }
+
+        public bool SentPhysicalOrders
+        {
+            get { return state.physicalOrders > 0; }
+        }
+
+        public bool SentPhysicalFills
+        {
+            get { return state.physicalFills > 0; }
+        }
+
+        public bool SentPositionChange
+        {
+            get { return state.positionChange > 0; }
+        }
+
+        public bool OnlyProcessPhysicalOrders
+        {
+            get { return CheckOnlyPhysicalFills(); }
+        }
+
+        public bool IsProcessingOrders
+        {
+            get { return CheckProcessingOrders(); }
+        }
+
+        public bool SentProcessPhysicalOrders
+        {
+            get { return state.processPhysical > 0; }
+        }
+
+        public int PhysicalFills
+        {
+            get { return state.physicalFills; }
+        }
+
+        public bool RollbackNeeded
+        {
+            get { return rollbackNeeded; }
+            set { rollbackNeeded = value; }
+        }
+    }
 }

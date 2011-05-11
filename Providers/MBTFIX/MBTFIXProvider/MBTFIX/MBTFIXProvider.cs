@@ -154,7 +154,7 @@ namespace TickZoom.MBTFIX
             foreach (var kvp in orderAlgorithms)
             {
                 var algorithm = kvp.Value;
-                //algorithm.IsPositionSynced = false;
+                algorithm.IsPositionSynced = false;
             }
 
             if (OrderStore.Recover())
@@ -997,11 +997,11 @@ namespace TickZoom.MBTFIX
             algorithm.SetLogicalOrders(inputOrders, strategyPositions);
             lock (orderAlgorithmLocker)
             {
-                //if( !algorithm.IsPositionSynced)
-                //{
+                if( !algorithm.IsPositionSynced)
+                {
                     OrderStore.ClearPendingOrders(symbol);
                     algorithm.TrySyncPosition(strategyPositions);
-                //}
+                }
                 algorithm.ProcessOrders();
             }
 			

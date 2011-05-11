@@ -69,7 +69,6 @@ namespace TickZoom.FIX
 		private bool logRecovery = true;
         private string configFilePath;
         private string configSection;
-        private bool hasFirstRecovery = false;
         private bool useLocalFillTime = true;
 		private FIXTFactory fixFactory;
 	    private string appDataFolder;
@@ -91,11 +90,6 @@ namespace TickZoom.FIX
             }
         }
 
-        public bool HasFirstRecovery
-        {
-			get { return hasFirstRecovery; }
-		}
-		
 		public FIXProviderSupport()
 		{
 			log = Factory.SysLog.GetLogger(typeof(FIXProviderSupport)+"."+GetType().Name);
@@ -229,7 +223,6 @@ namespace TickZoom.FIX
 		
 		public void EndRecovery() {
 			connectionStatus = Status.Recovered;
-            hasFirstRecovery = true;
 			if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
 		}
 		
