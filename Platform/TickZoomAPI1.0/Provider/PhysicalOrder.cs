@@ -92,5 +92,7 @@ namespace TickZoom.Api
         }
 
 	    TimeStamp LastStateChange { get; }
+
+	    TimeStamp UtcCreateTime { get; }
     }
 }

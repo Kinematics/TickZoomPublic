@@ -469,10 +469,16 @@ namespace TickZoom.FIX
 
         private FIXTMessage1_1 GapFillMessage(int currentSequence)
         {
-            if (debug) log.Debug("Sending gap fill message " + currentSequence + "...");
+            return GapFillMessage(currentSequence, currentSequence + 1);
+        }
+
+        private FIXTMessage1_1 GapFillMessage(int currentSequence, int newSequence)
+        {
+            var endText = newSequence == 0 ? "infinity" : newSequence.ToString();
+            if (debug) log.Debug("Sending gap fill message " + currentSequence + " to " + endText);
             var message = fixFactory.Create(currentSequence);
             message.SetGapFill();
-            message.SetNewSeqNum(currentSequence + 1);
+            message.SetNewSeqNum(newSequence);
             message.AddHeader("4");
             return message;
         }
@@ -483,8 +489,16 @@ namespace TickZoom.FIX
 			var result = false;
 			int end = messageFIX.EndSeqNum == 0 ? fixFactory.LastSequence : messageFIX.EndSeqNum;
 			if( debug) log.Debug( "Found resend request for " + messageFIX.BegSeqNum + " to " + end + ": " + messageFIX);
-			for( int i = messageFIX.BegSeqNum; i <= end; i++) {
-                FIXTMessage1_1 textMessage;
+            var firstSequence = fixFactory.FirstSequence;
+            var lastSequence = fixFactory.LastSequence;
+            FIXTMessage1_1 textMessage;
+            if (messageFIX.BegSeqNum < firstSequence)
+            {
+                textMessage = GapFillMessage(messageFIX.BegSeqNum, firstSequence);
+                SendMessageInternal(textMessage);
+            }
+            int first = messageFIX.BegSeqNum < firstSequence ? firstSequence : messageFIX.BegSeqNum;
+			for( int i = first; i <= end; i++) {
                 if( !fixFactory.TryGetHistory(i,out textMessage))
                 {
                     textMessage = GapFillMessage(i);
@@ -507,6 +521,11 @@ namespace TickZoom.FIX
                             break;
                     }
                 }
+                SendMessageInternal(textMessage);
+            }
+            if( messageFIX.EndSeqNum > lastSequence)
+            {
+                textMessage = GapFillMessage(lastSequence + 1, messageFIX.EndSeqNum);
                 SendMessageInternal(textMessage);
             }
 			return true;

@@ -90,7 +90,8 @@ namespace Orders
 		
 		[Test]
 		public void Test01FlatZeroOrders() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
+            handler.TrySyncPosition();
 			
 			int buyLimitId = CreateLogicalEntry(OrderType.BuyLimit,234.12,1000);
 			int buyStopId = CreateLogicalEntry(OrderType.SellStop,154.12,1000);
@@ -132,7 +133,7 @@ namespace Orders
 		
 		[Test]
 		public void Test02FlatTwoOrders() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			int buyLimitId = CreateLogicalEntry(OrderType.BuyLimit,234.12,1000);
 			int sellStopId = CreateLogicalEntry(OrderType.SellStop,154.12,1000);
@@ -170,7 +171,7 @@ namespace Orders
             handler.PerformCompare();
             handler.FillCreatedOrders();
             orders.Clear();
-            handler.Clear();
+            handler.ClearPhysicalOrders();
         }
             
 		
@@ -500,7 +501,7 @@ namespace Orders
 		
 		[Test]
 		public void Test11FlatChangeSizes() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			int buyLimitId = CreateLogicalEntry(OrderType.BuyLimit,234.12,700);
 			int sellStopId = CreateLogicalEntry(OrderType.SellStop,154.12,800);
@@ -543,7 +544,7 @@ namespace Orders
 		
 		[Test]
 		public void Test12FlatChangePrices() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			int buyLimitId = CreateLogicalEntry(OrderType.BuyLimit,244.12,1000);
 			int sellStopId = CreateLogicalEntry(OrderType.SellStop,164.12,1000);
@@ -586,7 +587,7 @@ namespace Orders
 		
 		[Test]
 		public void Test13LongChangePrices() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
             var position = 1000;
             SetActualSize(1000);
 			
@@ -630,7 +631,7 @@ namespace Orders
 		
 		[Test]
 		public void Test13LongChangeSizes() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
             var position = 1000;
             SetActualSize(position);
 			
@@ -672,7 +673,7 @@ namespace Orders
 		
 		[Test]
 		public void Test14ShortToFlat() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = -1000;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
@@ -697,7 +698,7 @@ namespace Orders
 		
 		[Test]
 		public void Test14AddToShort() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = -4;
 			handler.SetActualPosition(-2);
@@ -723,7 +724,7 @@ namespace Orders
 		
 		[Test]
 		public void Test14ReverseFromLong() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = -2;
 			handler.SetActualPosition(2);
@@ -736,7 +737,7 @@ namespace Orders
             var order = handler.Orders.CreatedOrders[0];
             Assert.AreEqual(0, handler.Orders.CanceledOrders.Count);
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
-			Assert.AreEqual(1,handler.Orders.CreatedOrders.Count);
+			Assert.AreEqual(2,handler.Orders.CreatedOrders.Count);
 			
 			Assert.AreEqual(OrderType.SellMarket,order.Type);
 			Assert.AreEqual(OrderSide.Sell,order.Side);
@@ -744,8 +745,16 @@ namespace Orders
 			Assert.AreEqual(2,order.Size);
 			Assert.AreEqual(0,order.LogicalOrderId);
 			AssertBrokerOrder(order.BrokerOrder);
-			
-			handler.Clear();
+
+            order = handler.Orders.CreatedOrders[0];
+            Assert.AreEqual(OrderType.SellMarket, order.Type);
+            Assert.AreEqual(OrderSide.Sell, order.Side);
+            Assert.AreEqual(0, order.Price);
+            Assert.AreEqual(2, order.Size);
+            Assert.AreEqual(0, order.LogicalOrderId);
+
+            AssertBrokerOrder(order.BrokerOrder);
+            handler.ClearPhysicalOrders();
 			handler.SetActualPosition( 0);
             handler.TrySyncPosition();
             handler.FillCreatedOrders();
@@ -765,7 +774,7 @@ namespace Orders
 		
 		[Test]
 		public void Test14ReduceFromLong() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var desiredPosition = 1;
 			handler.SetActualPosition(2);
@@ -791,7 +800,7 @@ namespace Orders
 		
 		[Test]
 		public void Test15LongToFlat() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = 1000;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
@@ -816,7 +825,7 @@ namespace Orders
 		
 		[Test]
 		public void Test16ActiveSellMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = -10;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
@@ -835,7 +844,7 @@ namespace Orders
 		
 		[Test]
 		public void Test17ActiveBuyMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = 10;
 			handler.SetActualPosition(-5); // Actual and desired differ!!!
@@ -854,7 +863,7 @@ namespace Orders
 		
 		[Test]
 		public void Test18ActiveExtraBuyMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = 10;
 			handler.SetActualPosition(-5); // Actual and desired differ!!!
@@ -874,7 +883,7 @@ namespace Orders
 		
 		[Test]
 		public void Test19ActiveExtraSellMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = -10;
 			handler.SetActualPosition(5); // Actual and desired differ!!!
@@ -894,7 +903,7 @@ namespace Orders
 		
 		[Test]
 		public void Test20ActiveUnneededSellMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = 0;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
@@ -913,7 +922,7 @@ namespace Orders
 		
 		[Test]
 		public void Test21ActiveUnneededBuyMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = 0;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
@@ -932,7 +941,7 @@ namespace Orders
 		
 		[Test]
 		public void Test22ActiveWrongSideSellMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = 10;
 			handler.SetActualPosition(-5); // Actual and desired differ!!!
@@ -951,7 +960,7 @@ namespace Orders
 		
 		[Test]
 		public void Test23ActiveWrongSideBuyMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = -10;
 			handler.SetActualPosition(5); // Actual and desired differ!!!
@@ -970,7 +979,7 @@ namespace Orders
 		
 		[Test]
 		public void Test24ActiveBuyLimit() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = 10;
 			handler.SetActualPosition(-5);
@@ -992,7 +1001,7 @@ namespace Orders
 		
 		[Test]
 		public void Test25ActiveSellLimit() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = -10;
 			handler.SetActualPosition(5); // Actual and desired differ!!!
@@ -1007,14 +1016,14 @@ namespace Orders
 			handler.PerformCompare();
 			
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
-			Assert.AreEqual(1,handler.Orders.CreatedOrders.Count);
-			Assert.AreEqual(1,handler.Orders.CanceledOrders.Count);
+			Assert.AreEqual(2,handler.Orders.CreatedOrders.Count);
+			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
 			
 		}
 		
 		[Test]
 		public void Test26ActiveBuyAndSellLimit() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			CreateLogicalEntry(OrderType.BuyMarket,0,2);
 			
@@ -1037,7 +1046,7 @@ namespace Orders
 		
 		[Test]
 		public void Test27PendingSellMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = -10;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
@@ -1056,7 +1065,7 @@ namespace Orders
 		
 		[Test]
 		public void Test28PendingBuyMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = 10;
 			handler.SetActualPosition(-5); // Actual and desired differ!!!
@@ -1075,7 +1084,7 @@ namespace Orders
 		
 		[Test]
 		public void Test29PendingExtraBuyMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = 10;
 			handler.SetActualPosition(-5); // Actual and desired differ!!!
@@ -1095,7 +1104,7 @@ namespace Orders
 		
 		[Test]
 		public void Test30PendingExtraSellMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = -10;
 			handler.SetActualPosition(5); // Actual and desired differ!!!
@@ -1115,7 +1124,7 @@ namespace Orders
 		
 		[Test]
 		public void Test31PendingUnneededSellMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = 0;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
@@ -1134,7 +1143,7 @@ namespace Orders
 		
 		[Test]
 		public void Test32PendingUnneededBuyMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = 0;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
@@ -1153,7 +1162,7 @@ namespace Orders
 		
 		[Test]
 		public void Test33PendingWrongSideSellMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = 10;
 			handler.SetActualPosition(-5); // Actual and desired differ!!!
@@ -1172,7 +1181,7 @@ namespace Orders
 		
 		[Test]
 		public void Test34PendingWrongSideBuyMarket() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = -10;
 			handler.SetActualPosition(5); // Actual and desired differ!!!
@@ -1191,7 +1200,7 @@ namespace Orders
 		
 		[Test]
 		public void Test35PendingBuyLimit() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = 10;
 			handler.SetActualPosition(-5);
@@ -1210,7 +1219,7 @@ namespace Orders
 		
 		[Test]
 		public void Test36PendingSellLimit() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			var position = -10;
 			handler.SetActualPosition(5); // Actual and desired differ!!!
@@ -1225,13 +1234,13 @@ namespace Orders
 			handler.PerformCompare();
 			
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
-			Assert.AreEqual(1,handler.Orders.CreatedOrders.Count);
-			Assert.AreEqual(1,handler.Orders.CanceledOrders.Count);
+			Assert.AreEqual(2,handler.Orders.CreatedOrders.Count);
+			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
 		}
 		
 		[Test]
 		public void Test37PendingBuyAndSellLimit() {
-			handler.Clear();
+			handler.ClearPhysicalOrders();
 			
 			CreateLogicalEntry(OrderType.BuyMarket,0,2);
 			
@@ -1364,12 +1373,16 @@ namespace Orders
 			    var orderCache = Factory.Engine.LogicalOrderCache(symbol, false);
 				orderAlgorithm = Factory.Utility.OrderAlgorithm("test",symbol,orders,orderCache);
 			    orderAlgorithm.OnProcessFill = onProcessFill;
+                orderAlgorithm.TrySyncPosition(new ActiveList<StrategyPosition>());
 				orders.ConfirmOrders = orderAlgorithm;
 			}
-			public void Clear() {
+			public void ClearPhysicalOrders() {
 				orders.ClearPhysicalOrders();
-//				strategy.Position.Change(0,100.00,TimeStamp.UtcNow);
 			}
+            public void ClearSyncPosition()
+            {
+                orderAlgorithm.IsPositionSynced = false;
+            }
 			public void SetActualPosition( int position) {
 				orderAlgorithm.SetActualPosition(position);
 			}
@@ -1384,6 +1397,7 @@ namespace Orders
 
             public void TrySyncPosition()
             {
+                ClearSyncPosition();
                 orderAlgorithm.TrySyncPosition(strategyPositions);
             }
 			public void PerformCompare()

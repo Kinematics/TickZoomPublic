@@ -35,6 +35,64 @@ using TickZoom.Api;
 
 namespace TickZoom.Common
 {
+    public class PhysicalOrderCache
+    {
+        private static readonly Log staticLog = Factory.SysLog.GetLogger(typeof(PhysicalOrderCache));
+        private readonly bool trace = staticLog.IsTraceEnabled;
+        private readonly bool debug = staticLog.IsDebugEnabled;
+        private Log log;
+        private ActiveList<PhysicalOrder> createOrderQueue = new ActiveList<PhysicalOrder>();
+        private ActiveList<string> cancelOrderQueue = new ActiveList<string>();
+        private ActiveList<ChangeOrderEntry> changeOrderQueue = new ActiveList<ChangeOrderEntry>();
+
+        public PhysicalOrderCache(string name, SymbolInfo symbol)
+        {
+            this.log = Factory.SysLog.GetLogger(typeof(PhysicalOrderCache).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name);
+        }
+
+        public struct ChangeOrderEntry
+        {
+            public PhysicalOrder Order;
+            public string OrigOrderId;
+        }
+
+        public Iterable<PhysicalOrder> CreateOrderQueue
+        {
+            get { return createOrderQueue; }
+        }
+
+        private bool HasCreateOrder(PhysicalOrder order)
+        {
+            for (var current = CreateOrderQueue.First; current != null; current = current.Next)
+            {
+                var queueOrder = current.Value;
+                if (order.LogicalSerialNumber == queueOrder.LogicalSerialNumber)
+                {
+                    if (debug) log.Debug("Create ignored because order was already on create order queue: " + queueOrder);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public bool AddCreateOrder(PhysicalOrder order)
+        {
+            var result = !HasCreateOrder(order);
+            if( !result)
+            {
+                createOrderQueue.AddLast(order);
+            }
+            return result;
+        }
+
+        public void Clear()
+        {
+            createOrderQueue.Clear();
+            cancelOrderQueue.Clear();
+            changeOrderQueue.Clear();
+        }
+    }
+
 	public class OrderAlgorithmDefault : OrderAlgorithm {
 		private static readonly Log staticLog = Factory.SysLog.GetLogger(typeof(OrderAlgorithmDefault));
 		private readonly bool debug = staticLog.IsDebugEnabled;
@@ -57,13 +115,15 @@ namespace TickZoom.Common
 		private int sentPhysicalOrders = 0;
 		private TickSync tickSync;
 		private Dictionary<long,long> filledOrders = new Dictionary<long,long>();
-	    private LogicalOrderCache orderCache;
+	    private LogicalOrderCache logicalOrderCache;
+	    private PhysicalOrderCache physicalOrderCache;
         private bool isPositionSynced = false;
 		
-		public OrderAlgorithmDefault(string name, SymbolInfo symbol, PhysicalOrderHandler brokerOrders, LogicalOrderCache orderCache) {
+		public OrderAlgorithmDefault(string name, SymbolInfo symbol, PhysicalOrderHandler brokerOrders, LogicalOrderCache logicalOrderCache) {
 			this.log = Factory.SysLog.GetLogger(typeof(OrderAlgorithmDefault).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name );
 			this.symbol = symbol;
-		    this.orderCache = orderCache;
+		    this.logicalOrderCache = logicalOrderCache;
+            this.physicalOrderCache = new PhysicalOrderCache(name,symbol);
 			this.tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			this.physicalOrderHandler = brokerOrders;
             this.canceledLogicals = new ActiveList<LogicalOrder>();
@@ -145,17 +205,17 @@ namespace TickZoom.Common
 		
 		private void TryCreateBrokerOrder(PhysicalOrder physical) {
 			if( debug) log.Debug("Create Broker Order " + physical);
-            if( physicalOrderHandler.HasBrokerOrder(physical))
-            {
-                if( debug) log.Debug("Ignoring broker order as physical order handler has it already pending.");
-                return;
-            }
-            sentPhysicalOrders++;
-            TryAddPhysicalOrder(physical);
             if (physical.Size <= 0)
             {
                 throw new ApplicationException("Sorry, order size must be greater than or equal to zero.");
             }
+            if (!physicalOrderCache.AddCreateOrder(physical))
+            {
+                if( debug) log.Debug("Ignoring broker order as physical order cache has it already.");
+                return;
+            }
+            sentPhysicalOrders++;
+            TryAddPhysicalOrder(physical);
             physicalOrderHandler.OnCreateBrokerOrder(physical);
         }
 		
@@ -557,6 +617,11 @@ namespace TickZoom.Common
 		private int FindPendingAdjustments() {
 			var positionDelta = desiredPosition - actualPosition;
 			var pendingAdjustments = 0;
+
+            originalPhysicals.Clear();
+            originalPhysicals.AddLast(physicalOrderHandler.GetActiveOrders(symbol));
+            originalPhysicals.AddLast(physicalOrderCache.CreateOrderQueue);
+
 			var next = originalPhysicals.First;
 			for( var node = next; node != null; node = next) {
 				next = node.Next;
@@ -607,23 +672,29 @@ namespace TickZoom.Common
                 if (debug) log.Debug("TrySyncPosition() ignore. Position already synced.");
                 return;
             }
+            logicalOrderCache.SyncPositions(strategyPositions);
+            SyncPosition();
+        }
+
+	    private void SyncPosition()
+        {
             // Find any pending adjustments.
             var pendingAdjustments = FindPendingAdjustments();
             var positionDelta = desiredPosition - actualPosition;
 			var delta = positionDelta - pendingAdjustments;
 			PhysicalOrder physical;
-            orderCache.SyncPositions(strategyPositions);
             if( delta != 0)
             {
-                log.Notice("TrySyncPosition() Issuing adjustment order because expected position is " + desiredPosition + " but actual is " + actualPosition + " plus pending adjustments " + pendingAdjustments);
+                log.Notice("SyncPositionInternal() Issuing adjustment order because expected position is " + desiredPosition + " but actual is " + actualPosition + " plus pending adjustments " + pendingAdjustments);
                 if (debug) log.Debug("TrySyncPosition - " + tickSync);
             }
             else
             {
-                log.Notice("TrySyncPosition() found position already synced. With expected " + desiredPosition + " and actual " + actualPosition + " plus pending adjustments " + pendingAdjustments);
+                IsPositionSynced = true;
+                log.Notice("SyncPositionInternal() found position currently synced. With expected " + desiredPosition + " and actual " + actualPosition + " plus pending adjustments " + pendingAdjustments);
             }
 			if( delta > 0) {
-				physical = new PhysicalOrderDefault(OrderState.Active, symbol,OrderSide.Buy,OrderType.BuyMarket,0,delta,0,0,null,null);
+				physical = new PhysicalOrderDefault(OrderState.Active, symbol,OrderSide.Buy,OrderType.BuyMarket,0,delta,0,0,null,null,default(TimeStamp));
                 log.Info("Sending adjustment order to position: " + physical);
                 TryCreateBrokerOrder(physical);
                 if (SyncTicks.Enabled)
@@ -641,7 +712,7 @@ namespace TickZoom.Common
 					side = OrderSide.SellShort;
 				}
 				side = actualPosition >= Math.Abs(delta) ? OrderSide.Sell : OrderSide.SellShort;
-                physical = new PhysicalOrderDefault(OrderState.Active, symbol, side, OrderType.SellMarket, 0, Math.Abs(delta), 0, 0, null, null);
+                physical = new PhysicalOrderDefault(OrderState.Active, symbol, side, OrderType.SellMarket, 0, Math.Abs(delta), 0, 0, null, null,default(TimeStamp));
                 log.Info("Sending adjustment order to correct position: " + physical);
                 TryCreateBrokerOrder(physical);
                 if( SyncTicks.Enabled)
@@ -649,7 +720,6 @@ namespace TickZoom.Common
                     tickSync.AddProcessPhysicalOrders();
                 }
             }
-            IsPositionSynced = true;
         }
 
         public void SetLogicalOrders(Iterable<LogicalOrder> inputLogicals, Iterable<StrategyPosition> strategyPositions)
@@ -658,11 +728,11 @@ namespace TickZoom.Common
 				int count = originalLogicals == null ? 0 : originalLogicals.Count;
 				log.Trace("SetLogicalOrders() order count = " + count);
 			}
-            orderCache.SetActiveOrders(inputLogicals);
+            logicalOrderCache.SetActiveOrders(inputLogicals);
 			lock( bufferedLogicalsLocker) {
 				bufferedLogicals.Clear();
-				bufferedLogicals.AddLast(orderCache.ActiveOrders);
-			    canceledLogicals.AddLast(orderCache.ActiveOrders);
+				bufferedLogicals.AddLast(logicalOrderCache.ActiveOrders);
+			    canceledLogicals.AddLast(logicalOrderCache.ActiveOrders);
 			}
 		}
 		
@@ -766,8 +836,20 @@ namespace TickZoom.Common
 					Interlocked.Exchange( ref recursiveCounter, 1);
 					try
 					{
+                        if (!isPositionSynced)
+                        {
+                            SyncPosition();
+                        }
+                        // Is it still not synced?
+                        if (!isPositionSynced)
+                        {
+                            var extra = SyncTicks.Enabled ? tickSync.ToString() : "";
+                            if (debug) log.Debug("PerformCompare ignored. Position not yet synced. " + extra);
+                            return;
+                        }
                         PerformCompareInternal();
                         physicalOrderHandler.ProcessOrders();
+                        physicalOrderCache.Clear();
                         if( SyncTicks.Enabled)
                         {
                             tickSync.RollbackPhysicalOrders();
@@ -840,10 +922,6 @@ namespace TickZoom.Common
 				}
 			}
 			UpdateOrderCache(filledOrder, fill);
-			if( onProcessFill != null) {
-				if( debug) log.Debug("Sending logical fill for " + symbol + ": " + fill);
-				onProcessFill( symbol, fill);
-			}
 			if( isCompletePhysicalFill && !fill.IsComplete) {
                 if (filledOrder.TradeDirection == TradeDirection.Entry && fill.Position == 0)
                 {
@@ -859,7 +937,12 @@ namespace TickZoom.Common
 				if( debug) log.Debug("Performing extra compare.");
 				PerformCompareProtected();
 			}
-		}
+            if (onProcessFill != null)
+            {
+                if (debug) log.Debug("Sending logical fill for " + symbol + ": " + fill);
+                onProcessFill(symbol, fill);
+            }
+        }
 
         private void CancelLogical(LogicalOrder order)
         {
@@ -939,12 +1022,6 @@ namespace TickZoom.Common
 		}
 		
 		public int ProcessOrders() {
-            if (!isPositionSynced)
-            {
-                var extra = SyncTicks.Enabled ? tickSync.ToString() : "";
-                if (debug) log.Debug("ProcessOrders() ignored. Position not yet synced. " + extra);
-                return 0;
-            }
             sentPhysicalOrders = 0;
 			PerformCompareProtected();
 			return sentPhysicalOrders;
@@ -976,6 +1053,7 @@ namespace TickZoom.Common
 				
             originalPhysicals.Clear();
             originalPhysicals.AddLast(physicalOrderHandler.GetActiveOrders(symbol));
+		    originalPhysicals.AddLast(physicalOrderCache.CreateOrderQueue);
 
             if (CheckForPending())
             {
@@ -1103,9 +1181,9 @@ namespace TickZoom.Common
 			set { handleSimulatedExits = value; }
 		}
 
-	    public LogicalOrderCache OrderCache
+	    public LogicalOrderCache LogicalOrderCache
 	    {
-	        get { return orderCache; }
+	        get { return logicalOrderCache; }
 	    }
 
 	    public bool IsPositionSynced
@@ -1119,8 +1197,8 @@ namespace TickZoom.Common
 		{
 			PerformCompareProtected();
 			if( SyncTicks.Enabled) {
-				tickSync.RemovePhysicalOrder( order);
-                //tickSync.AddProcessPhysicalOrders();
+                tickSync.SetReprocessPhysicalOrders();
+                tickSync.RemovePhysicalOrder(order);
             }
 		}
 
@@ -1132,18 +1210,18 @@ namespace TickZoom.Common
 		public void OnCreateBrokerOrder(PhysicalOrder order)
 		{
 			PerformCompareProtected();
-			if( SyncTicks.Enabled) {
-				tickSync.RemovePhysicalOrder( order);
-                //tickSync.AddProcessPhysicalOrders();
-			}
+            if( SyncTicks.Enabled) {
+                tickSync.SetReprocessPhysicalOrders();
+                tickSync.RemovePhysicalOrder(order);
+            }
 		}
 		
 		public void OnCancelBrokerOrder(SymbolInfo symbol, string origBrokerOrder)
 		{
 			PerformCompareProtected();
 			if( SyncTicks.Enabled) {
-				tickSync.RemovePhysicalOrder( origBrokerOrder);
-                //tickSync.AddProcessPhysicalOrders();
+                tickSync.SetReprocessPhysicalOrders();
+                tickSync.RemovePhysicalOrder(origBrokerOrder);
             }
 		}
 		

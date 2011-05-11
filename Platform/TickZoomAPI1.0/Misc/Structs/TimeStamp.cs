@@ -68,7 +68,7 @@ namespace TickZoom.Api
 		public const string DefaultFormatStr = "yyyy-MM-dd HH:mm:ss.fff";
 		
 		public void Assign( int year, int month, int day, int hour, int minute, int second, int millis) {
-			_timeStamp = CalendarDateTotimeStamp( year, month, day, hour, minute, second, millis, 0);
+			Interlocked.Exchange(ref _timeStamp, CalendarDateTotimeStamp( year, month, day, hour, minute, second, millis, 0));
 		}
 		
 		public static TimeStamp FromOADate(double value) {

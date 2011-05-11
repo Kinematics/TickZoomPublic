@@ -1,4 +1,4 @@
-﻿namespace TickZoom.Api
+namespace TickZoom.Api
 {
     public enum LimitOrderTradeSimulation
     {

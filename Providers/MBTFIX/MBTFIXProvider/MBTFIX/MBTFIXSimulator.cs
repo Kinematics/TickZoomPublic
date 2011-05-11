@@ -242,9 +242,10 @@ namespace TickZoom.MBTFIX
 			}
 			var clientId = clientOrderId.Split(new char[] {'.'});
 			var logicalId = int.Parse(clientId[0]);
+		    var utcCreateTime = new TimeStamp(packet.TransactionTime);
 			var physicalOrder = Factory.Utility.PhysicalOrder(
 				OrderState.Active, symbol, side, type,
-				packet.Price, packet.OrderQuantity, logicalId, 0, clientOrderId, null);
+				packet.Price, packet.OrderQuantity, logicalId, 0, clientOrderId, null, utcCreateTime);
 			if( debug) log.Debug("Received physical Order: " + physicalOrder);
 			return physicalOrder;
 		}

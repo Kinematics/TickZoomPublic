@@ -36,8 +36,14 @@ namespace TickZoom.Common
 		public PhysicalOrder PhysicalOrder( OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, object brokerOrder, object tag) {
 			return new PhysicalOrderDefault(orderState, symbol,side,type,price,size,logicalOrderId,logicalSerialNumber,(string) brokerOrder,(string) tag);
 		}
-		
-		public ProviderService CommandLineProcess() {
+
+        public PhysicalOrder PhysicalOrder(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, object brokerOrder, object tag, TimeStamp utcCreateTime)
+        {
+            return new PhysicalOrderDefault(orderState, symbol, side, type, price, size, logicalOrderId, logicalSerialNumber, (string)brokerOrder, (string)tag, utcCreateTime);
+        }
+
+        public ProviderService CommandLineProcess()
+        {
 			return new CommandLineProcess();
 		}
 		public ProviderService WindowsService() {

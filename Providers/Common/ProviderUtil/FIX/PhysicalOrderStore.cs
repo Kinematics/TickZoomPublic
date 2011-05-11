@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -132,7 +132,7 @@ namespace TickZoom.FIX
             {
                 Thread.Sleep(100);
             }
-            if (writeFileResult.IsCompleted)
+            if (writeFileResult != null && writeFileResult.IsCompleted)
             {
                 writeFileAction.EndInvoke(writeFileResult);
                 writeFileResult = null;
@@ -273,6 +273,7 @@ namespace TickZoom.FIX
                         writer.Write(order.Tag);
                     }
                     writer.Write((int)order.Type);
+                    writer.Write(order.UtcCreateTime.Internal);
                 }
 
                 writer.Write(ordersBySerial.Count);
@@ -403,9 +404,10 @@ namespace TickZoom.FIX
                     var tag = reader.ReadString();
                     if (string.IsNullOrEmpty(tag)) tag = null;
                     var type = (OrderType)reader.ReadInt32();
+                    var utcCreateTime= new TimeStamp(reader.ReadInt64());
                     var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
                     var order = Factory.Utility.PhysicalOrder(orderState, symbolInfo, side, type, price, size,
-                                                              logicalOrderId, logicalSerialNumber, brokerOrder, tag);
+                                                              logicalOrderId, logicalSerialNumber, brokerOrder, tag, utcCreateTime);
                     uniqueIds.Add(id, order);
                     if (replaceId != 0)
                     {

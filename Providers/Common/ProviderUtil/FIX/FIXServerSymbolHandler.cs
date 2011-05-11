@@ -1,4 +1,4 @@
-﻿#region Copyright
+#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2009 M. Wayne Walter
@@ -69,7 +69,7 @@ namespace TickZoom.FIX
 			FillSimulator.OnPhysicalFill = onPhysicalFill;
 			FillSimulator.OnRejectOrder = onRejectOrder;
 			tickSync = SyncTicks.GetTickSync(Symbol.BinaryIdentifier);
-			tickSync.ForceClear();
+            //tickSync.ForceClear();
 			queueTask = Factory.Parallel.Loop("FIXServerSymbol-"+symbolString, OnException, ProcessQueue);
 			tickTimer = Factory.Parallel.CreateTimer(queueTask,PlayBackTick);
 			queueTask.Scheduler = Scheduler.RoundRobin;
@@ -89,14 +89,23 @@ namespace TickZoom.FIX
 		
 	    private void TryCompleteTick() {
 	    	if( tickSync.Completed) {
-		    	if( trace) log.Trace("TryCompleteTick()");
+		    	if( trace) log.Trace("TryCompleteTick() Next Tick");
 		    	tickSync.Clear();
-	    	} else if( tickSync.OnlyProcessPhysicalOrders) {
-				FillSimulator.StartTick(nextTick);
-				FillSimulator.ProcessOrders();
-				tickSync.RemoveProcessPhysicalOrders();
-	    	}
-		}
+            }
+            else if (tickSync.OnlyReprocessPhysicalOrders)
+            {
+                if (trace) log.Trace("TryCompleteTick() Reprocess physical orders - " + tickSync);
+                FillSimulator.ProcessOrders();
+                tickSync.RemoveReprocessPhysicalOrders();
+            }
+            else if (tickSync.OnlyProcessPhysicalOrders)
+            {
+                if (trace) log.Trace("TryCompleteTick() Process physical orders - " + tickSync);
+                FillSimulator.StartTick(nextTick);
+                FillSimulator.ProcessOrders();
+                tickSync.RemoveProcessPhysicalOrders();
+            }
+        }
 		
 		public int ActualPosition {
 			get {
@@ -106,21 +115,21 @@ namespace TickZoom.FIX
 		
 		public void CreateOrder(PhysicalOrder order) {
 			FillSimulator.OnCreateBrokerOrder( order);
-            log.Info("Previously Called ProcessOrders.");
-            FillSimulator.ProcessOrders();
+            //log.Info("Previously Called ProcessOrders.");
+            //FillSimulator.ProcessOrders();
 		}
 		
 		public void ChangeOrder(PhysicalOrder order, string origBrokerOrder) {
 			FillSimulator.OnChangeBrokerOrder( order, origBrokerOrder);
-            log.Info("Previously Called ProcessOrders.");
-            FillSimulator.ProcessOrders();
+            //log.Info("Previously Called ProcessOrders.");
+            //FillSimulator.ProcessOrders();
         }
 
         public void CancelOrder(string origBrokerOrder)
         {
 			FillSimulator.OnCancelBrokerOrder( Symbol, origBrokerOrder);
-            log.Info("Previously Called ProcessOrders.");
-            FillSimulator.ProcessOrders();
+            //log.Info("Previously Called ProcessOrders.");
+            //FillSimulator.ProcessOrders();
         }
 		
 		public PhysicalOrder GetOrderById(string clientOrderId) {

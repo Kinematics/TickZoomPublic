@@ -36,7 +36,8 @@ namespace TickZoom.Api
 		ProviderService WindowsService();
 		OrderAlgorithm OrderAlgorithm(string name, SymbolInfo symbol, PhysicalOrderHandler handler, LogicalOrderCache orderCache);
 		PhysicalOrder PhysicalOrder( OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, object brokerOrder, object tag);
-		SymbolHandler SymbolHandler(SymbolInfo symbol, Receiver receiver);
+        PhysicalOrder PhysicalOrder(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, object brokerOrder, object tag, TimeStamp utcCreateTime);
+        SymbolHandler SymbolHandler(SymbolInfo symbol, Receiver receiver);
 		VerifyFeed VerifyFeed();
 		FillHandler FillHandler();
 		FillHandler FillHandler(StrategyInterface strategy);

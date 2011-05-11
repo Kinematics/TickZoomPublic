@@ -39,5 +39,6 @@ namespace TickZoom.Api
 		Action<int> OnPositionChange { get; set; }
 		PhysicalOrderHandler ConfirmOrders { get; set; }
 		bool IsBarData { get; set; }
-	}
+	    TimeStamp CurrentTick { get; }
+    }
 }

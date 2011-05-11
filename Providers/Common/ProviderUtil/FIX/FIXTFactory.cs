@@ -36,5 +36,6 @@ namespace TickZoom.FIX
         void AddHistory(FIXTMessage1_1 message);
 		bool TryGetHistory(int sequence, out FIXTMessage1_1 message);
 		int LastSequence { get; }
-	}
+	    int FirstSequence { get; }
+    }
 }

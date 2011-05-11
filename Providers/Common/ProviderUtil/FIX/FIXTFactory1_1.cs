@@ -38,6 +38,7 @@ namespace TickZoom.FIX
 		private int lastSequence;
 		private string sender;
 		private string destination;
+	    private int firstSequence = int.MaxValue;
 		private Dictionary<int,FIXTMessage1_1> messageHistory = new Dictionary<int,FIXTMessage1_1>();
 		public FIXTFactory1_1(int nextSequence, string sender, string destination) {
 			// Decrement since first message will increment.
@@ -72,7 +73,11 @@ namespace TickZoom.FIX
 		}
 		public void AddHistory(FIXTMessage1_1 fixMsg) {
 			messageHistory.Add( fixMsg.Sequence, fixMsg);
-			lastSequence = fixMsg.Sequence;
+            if (fixMsg.Sequence < FirstSequence)
+            {
+                firstSequence = fixMsg.Sequence;
+            }
+            lastSequence = fixMsg.Sequence;
 		}
 		public bool TryGetHistory(int sequence, out FIXTMessage1_1 result)
 		{
@@ -81,5 +86,10 @@ namespace TickZoom.FIX
 		public int LastSequence {
 			get { return lastSequence; }
 		}
+
+	    public int FirstSequence
+	    {
+	        get { return firstSequence; }
+	    }
 	}
 }

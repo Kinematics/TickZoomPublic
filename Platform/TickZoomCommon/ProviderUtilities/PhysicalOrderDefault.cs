@@ -49,6 +49,7 @@ namespace TickZoom.Common
 		private string tag;
         private object reference;
 		private PhysicalOrder replace;
+	    private TimeStamp utcCreateTime;
 		
 		public override string ToString()
 		{
@@ -95,9 +96,16 @@ namespace TickZoom.Common
 			this.reference = null;
 			this.replace = null;
 			this.brokerOrder = CreateBrokerOrderId(logicalOrderId);
+		    this.utcCreateTime = logical.UtcChangeTime;
 		}
-		
-		public PhysicalOrderDefault(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag) {
+
+        public PhysicalOrderDefault(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag)
+            : this( orderState, symbol, side, type, price, size, logicalOrderId, logicalSerialNumber, brokerOrder, tag, TimeStamp.UtcNow)
+        {
+
+        }
+
+	    public PhysicalOrderDefault(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag, TimeStamp utcCreateTime) {
 			this.orderState = orderState;
 		    this.lastStateChange = TimeStamp.UtcNow;
 			this.symbol = symbol;
@@ -114,9 +122,10 @@ namespace TickZoom.Common
 			if( this.brokerOrder == null) {
 				this.brokerOrder = CreateBrokerOrderId(logicalOrderId);
 			}
-		}
+	        this.utcCreateTime = utcCreateTime;
+	    }
 
-		private static long lastId = TimeStamp.UtcNow.Internal;
+        private static long lastId = 3514249423548981L;
 		private static string CreateBrokerOrderId(int logicalId) {
 			var longId = Interlocked.Increment(ref lastId);
 			return logicalId + "." + longId;
@@ -185,6 +194,11 @@ namespace TickZoom.Common
 	    public TimeStamp LastStateChange
 	    {
 	        get { return lastStateChange; }
+	    }
+
+	    public TimeStamp UtcCreateTime
+	    {
+	        get { return utcCreateTime; }
 	    }
 	}
 }

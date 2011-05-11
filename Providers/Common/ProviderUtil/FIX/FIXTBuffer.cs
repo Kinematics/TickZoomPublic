@@ -62,7 +62,8 @@ namespace TickZoom.FIX
 			sb.AppendFormat("{0:00}:",time.Minute);
 			sb.AppendFormat("{0:00}",time.Second);
 			sb.AppendFormat(".{0:000}",time.Millisecond);
-			sb.Append(EndField); 
+            sb.AppendFormat(".{0:000}",time.Microsecond);
+            sb.Append(EndField); 
 		}
 		public void Insert(string header) {
 			sb.Insert(0,header);

@@ -51,7 +51,7 @@ namespace TickZoom.FIX
 		private YieldMethod MainLoopMethod;
 	    private int heartbeatDelay = 1;
         private ServerState fixState = ServerState.Startup;
-        private bool simulateDisconnect = true;
+        private bool simulateDisconnect = false;
 
 		// FIX fields.
 		private ushort fixPort = 0;

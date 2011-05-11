@@ -103,5 +103,7 @@ namespace TickZoom.Api
 		}
 
 	    long Recency { get; }
-	}
+
+	    TimeStamp UtcChangeTime { get; }
+    }
 }

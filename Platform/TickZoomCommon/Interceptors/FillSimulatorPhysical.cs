@@ -40,20 +40,12 @@ namespace TickZoom.Interceptors
 		private readonly bool debug = staticLog.IsDebugEnabled;
 		private static readonly bool notice = staticLog.IsNoticeEnabled;
 		private Log log;
-        public struct ChangeOrderEntry
-        {
-            public PhysicalOrder Order;
-            public string OrigOrderId;
-        }
 
 		private Dictionary<string,PhysicalOrder> orderMap = new Dictionary<string, PhysicalOrder>();
 		private ActiveList<PhysicalOrder> increaseOrders = new ActiveList<PhysicalOrder>();
 		private ActiveList<PhysicalOrder> decreaseOrders = new ActiveList<PhysicalOrder>();
 		private ActiveList<PhysicalOrder> marketOrders = new ActiveList<PhysicalOrder>();
         private NodePool<PhysicalOrder> nodePool = new NodePool<PhysicalOrder>();
-        private ActiveList<PhysicalOrder> createOrderQueue = new ActiveList<PhysicalOrder>();
-        private ActiveList<string> cancelOrderQueue = new ActiveList<string>();
-        private ActiveList<ChangeOrderEntry> changeOrderQueue = new ActiveList<ChangeOrderEntry>();
         private object orderMapLocker = new object();
 		private bool isOpenTick = false;
 		private TimeStamp openTime;
@@ -175,15 +167,6 @@ namespace TickZoom.Interceptors
 
         public bool HasBrokerOrder( PhysicalOrder order)
         {
-            for (var current = createOrderQueue.First; current != null; current = current.Next)
-            {
-                var queueOrder = current.Value;
-                if (order.LogicalSerialNumber == queueOrder.LogicalSerialNumber)
-                {
-                    if (debug) log.Debug("Create ignored because order was already on create order queue.");
-                    return true;
-                }
-            }
             var list = increaseOrders;
             switch (order.Type)
             {
@@ -220,54 +203,19 @@ namespace TickZoom.Interceptors
 			if( order.Size <= 0) {
 				throw new ApplicationException("Sorry, Size of order must be greater than zero: " + order);
 			}
-            for( var current = createOrderQueue.First; current != null; current = current.Next)
-            {
-                var queueOrder = current.Value;
-                if( order.LogicalSerialNumber == queueOrder.LogicalSerialNumber)
-                {
-                    if (debug) log.Debug("Create ignored because order was already on create order queue.");
-                    return;
-                }
-            }
-		    createOrderQueue.AddLast(order);
-			if( confirmOrders != null) confirmOrders.OnCreateBrokerOrder(order);
+            CreateBrokerOrder(order);
+            if (confirmOrders != null) confirmOrders.OnCreateBrokerOrder(order);
 		}
 		
 		public void OnCancelBrokerOrder(SymbolInfo symbol, string origBrokerOrder)
 		{
 			if( debug) log.Debug("OnCancelBrokerOrder( " + origBrokerOrder + ")");
             CancelBrokerOrder((string) origBrokerOrder);
-            //cancelOrderQueue.AddLast((string)origBrokerOrder);
             if (confirmOrders != null) confirmOrders.OnCancelBrokerOrder(symbol, origBrokerOrder);
         }
 
-        private void CleanOrderQueues()
-        {
-            for( var current = createOrderQueue.First; current != null; current = current.Next)
-            {
-                var order = current.Value;
-                CreateBrokerOrder(order);
-                createOrderQueue.Remove(current);
-            }
-            for (var current = cancelOrderQueue.First; current != null; current = current.Next)
-            {
-                var origOrderId = current.Value;
-                CancelBrokerOrder(origOrderId);
-                cancelOrderQueue.Remove(current);
-            }
-            for (var current = changeOrderQueue.First; current != null; current = current.Next)
-            {
-                var changeOrderEntry = current.Value;
-                CancelBrokerOrder(changeOrderEntry.OrigOrderId);
-                CreateBrokerOrder(changeOrderEntry.Order);
-                changeOrderQueue.Remove(current);
-            }
-        }
-		
 		public int ProcessOrders() {
 			if( hasCurrentTick) {
-                ProcessOrdersInternal(currentTick);
-                CleanOrderQueues();
                 ProcessOrdersInternal(currentTick);
             }
 		    return 1;
@@ -440,7 +388,14 @@ namespace TickZoom.Interceptors
 		
 		private void OnProcessOrder(PhysicalOrder order, Tick tick)
 		{
-			switch (order.Type) {
+            if (tick.UtcTime < order.UtcCreateTime)
+            {
+                //if (trace) log.Trace
+                log.Info("Skipping check of " + order.Type + " on tick UTC time " + tick.UtcTime + "." + order.UtcCreateTime.Microsecond + " because earlier than order create UTC time " + order.UtcCreateTime + "." + order.UtcCreateTime.Microsecond);
+                return;
+            }
+            switch (order.Type)
+            {
 				case OrderType.SellMarket:
 					ProcessSellMarket(order, tick);
 					break;
@@ -499,9 +454,14 @@ namespace TickZoom.Interceptors
 
 		private bool ProcessBuyMarket(PhysicalOrder order, Tick tick)
 		{
-			double price = tick.IsQuote ? tick.Ask : tick.Price;
-			CreatePhysicalFillHelper(order.Size, price, tick.Time, tick.UtcTime, order);
-			return true;
+            if (!tick.IsQuote && !tick.IsTrade)
+            {
+                throw new ApplicationException("tick w/o either trade or quote data? " + tick);
+            }
+            var price = tick.IsQuote ? tick.Ask : tick.Price;
+            CreatePhysicalFillHelper(order.Size, price, tick.Time, tick.UtcTime, order);
+            if (debug) log.Debug("Filling " + order.Type + " at " + price + " created at " + order.UtcCreateTime + "." + order.UtcCreateTime.Microsecond + " using tick UTC time " + tick.UtcTime + "." + tick.UtcTime.Microsecond);
+            return true;
 		}
 
         private bool ProcessBuyLimitTrade(PhysicalOrder order, Tick tick)
@@ -666,9 +626,10 @@ namespace TickZoom.Interceptors
 			if( !tick.IsQuote && !tick.IsTrade) {
 				throw new ApplicationException("tick w/o either trade or quote data? " + tick);
 			}
-			double price = tick.IsQuote ? tick.Bid : tick.Price;
-			CreatePhysicalFillHelper(-order.Size, price, tick.Time, tick.UtcTime, order);
-			return true;
+            double price = tick.IsQuote ? tick.Bid : tick.Price;
+            CreatePhysicalFillHelper(-order.Size, price, tick.Time, tick.UtcTime, order);
+            if( debug) log.Debug("Filling " + order.Type + " at " + price + " created at " + order.UtcCreateTime + "." + order.UtcCreateTime.Microsecond + " using tick UTC time " + tick.UtcTime + "." + tick.UtcTime.Microsecond);
+            return true;
 		}
 
 		private int maxPartialFillsPerOrder = 10;
@@ -768,5 +729,10 @@ namespace TickZoom.Interceptors
 			get { return onRejectOrder; }
 			set { onRejectOrder = value; }
 		}
+
+	    public TimeStamp CurrentTick
+	    {
+	        get { return currentTick.UtcTime; }
+	    }
 	}
 }

@@ -161,6 +161,7 @@ namespace TickZoom.MBTFIX
             {
                 if (debug) log.Debug("Recovered orders from snapshot: \n" + OrderStore.LogOrders());
                 RemoteSequence = OrderStore.RemoteSequence;
+                OrderStore.UpdateSequence(RemoteSequence,OrderStore.LocalSequence+500);
                 SendLogin(OrderStore.LocalSequence);
                 isOrderUpdateComplete = RecoverProgress.Completed;
             }
@@ -1002,13 +1003,15 @@ namespace TickZoom.MBTFIX
                     OrderStore.ClearPendingOrders(symbol);
                     algorithm.TrySyncPosition(strategyPositions);
                 }
+
                 algorithm.ProcessOrders();
+
+                if(SyncTicks.Enabled)
+                {
+                    var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+                    tickSync.RemovePositionChange();
+                }
             }
-			
-			var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-			if( SyncTicks.Enabled ) {
-				tickSync.RemovePositionChange();
-			}				
 		}
 		
 		
@@ -1100,7 +1103,7 @@ namespace TickZoom.MBTFIX
 					break;
 			}
 			fixMsg.SetLocateRequired("N");
-			fixMsg.SetTransactTime(TimeStamp.UtcNow);
+			fixMsg.SetTransactTime(physicalOrder.UtcCreateTime);
 			fixMsg.SetOrderQuantity((int)physicalOrder.Size);
 			fixMsg.SetOrderCapacity("A");
 			fixMsg.SetUserName();

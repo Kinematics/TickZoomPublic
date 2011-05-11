@@ -221,7 +221,11 @@ namespace Loaders
 			StartGUIThread();
 		    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
             GC.WaitForPendingFinalizers();
-			
+			// Clear tick syncs.
+            foreach( var tickSync in SyncTicks.TickSyncs)
+            {
+                tickSync.Value.ForceClear();
+            }
 			try {
 				// Run the loader.
 				try { 
@@ -278,6 +282,7 @@ namespace Loaders
 			var providersFolder = Path.Combine(appDataFolder,"Providers");
 			var mbtfixFolder = Path.Combine(providersFolder,"MBTFIXProvider");
             var databaseFolder = Path.Combine(appDataFolder, "Database");
+		    Directory.CreateDirectory(databaseFolder);
 		    var filePaths = Directory.GetFiles(databaseFolder, "MBTFIXProvider.dat.*", SearchOption.TopDirectoryOnly);
             foreach( var path in filePaths)
             {
