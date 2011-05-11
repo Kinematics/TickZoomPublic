@@ -37,6 +37,7 @@ namespace TickZoom.Common
 {
 	public struct PhysicalOrderDefault : PhysicalOrder {
 		private OrderState orderState;
+	    private TimeStamp lastStateChange;
 		private SymbolInfo symbol;
 		private OrderType type;
 		private double price;
@@ -82,6 +83,7 @@ namespace TickZoom.Common
 		
 		public PhysicalOrderDefault(OrderState orderState, SymbolInfo symbol, LogicalOrder logical, OrderSide side, int size) {
 			this.orderState = orderState;
+		    this.lastStateChange = TimeStamp.UtcNow;
 			this.symbol = symbol;
 			this.side = side;
 			this.type = logical.Type;
@@ -97,6 +99,7 @@ namespace TickZoom.Common
 		
 		public PhysicalOrderDefault(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag) {
 			this.orderState = orderState;
+		    this.lastStateChange = TimeStamp.UtcNow;
 			this.symbol = symbol;
 			this.side = side;
 			this.type = type;
@@ -151,9 +154,16 @@ namespace TickZoom.Common
 		
 		public OrderState OrderState {
 			get { return orderState; }
-			set { orderState = value; }
+            set
+            {
+                if( value != orderState)
+                {
+                    orderState = value;
+                    lastStateChange = TimeStamp.UtcNow;
+                }
+            }
 		}
-		
+
 		public string Tag {
 			get { return tag; }
 		}
@@ -171,5 +181,10 @@ namespace TickZoom.Common
 			get { return replace; }
 			set { replace = value; }
 		}
+
+	    public TimeStamp LastStateChange
+	    {
+	        get { return lastStateChange; }
+	    }
 	}
 }

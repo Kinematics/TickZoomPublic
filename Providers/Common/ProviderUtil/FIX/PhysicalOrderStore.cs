@@ -21,6 +21,7 @@ namespace TickZoom.FIX
         private Dictionary<string, PhysicalOrder> ordersByBrokerId = new Dictionary<string, PhysicalOrder>();
         private Dictionary<long, PhysicalOrder> ordersBySerial = new Dictionary<long, PhysicalOrder>();
         private TaskLock ordersLocker = new TaskLock();
+        private int pendingExpireSeconds = 3;
         private string databasePath;
         private FileStream fs;
         private MemoryStream memory = null;
@@ -95,6 +96,7 @@ namespace TickZoom.FIX
 
         public void TrySnapshot()
         {
+            if (isDisposed) return;
             updateCount++;
             if (updateCount > 100)
             {
@@ -106,6 +108,7 @@ namespace TickZoom.FIX
         {
             using( snapshotLocker.Using())
             {
+                if( isDisposed) return;
                 if (writeFileResult != null)
                 {
                     if (writeFileResult.IsCompleted)
@@ -196,8 +199,9 @@ namespace TickZoom.FIX
 
         private void CheckSnapshotRollover()
         {
-            if (snapshotLength >= SnapshotRolloverSize)
+            if (snapshotLength >= SnapshotRolloverSize || forceSnapShotRollover)
             {
+                forceSnapShotRollover = false;
                 log.Info("Snapshot length greater than snapshot rollover: " + SnapshotRolloverSize);
                 ForceSnapshotRollover();
             }
@@ -222,7 +226,7 @@ namespace TickZoom.FIX
                 {
                     var order = kvp.Value;
                     AddUniqueOrder(order);
-                    if( order.Replace != null)
+                    if (order.Replace != null)
                     {
                         AddUniqueOrder(order.Replace);
                     }
@@ -232,7 +236,7 @@ namespace TickZoom.FIX
                 {
                     var order = kvp.Value;
                     AddUniqueOrder(order);
-                    if( order.Replace != null)
+                    if (order.Replace != null)
                     {
                         AddUniqueOrder(order.Replace);
                     }
@@ -247,19 +251,20 @@ namespace TickZoom.FIX
                     writer.Write(order.BrokerOrder);
                     writer.Write(order.LogicalOrderId);
                     writer.Write(order.LogicalSerialNumber);
-                    writer.Write((int) order.OrderState);
+                    writer.Write((int)order.OrderState);
                     writer.Write(order.Price);
-                    if( order.Replace != null)
+                    if (order.Replace != null)
                     {
                         writer.Write(unique[order.Replace]);
-                    } else
+                    }
+                    else
                     {
                         writer.Write((int)0);
                     }
-                    writer.Write((int) order.Side);
-                    writer.Write((int) order.Size);
+                    writer.Write((int)order.Side);
+                    writer.Write((int)order.Size);
                     writer.Write(order.Symbol.Symbol);
-                    if( order.Tag == null)
+                    if (order.Tag == null)
                     {
                         writer.Write("");
                     }
@@ -267,7 +272,7 @@ namespace TickZoom.FIX
                     {
                         writer.Write(order.Tag);
                     }
-                    writer.Write((int) order.Type);
+                    writer.Write((int)order.Type);
                 }
 
                 writer.Write(ordersBySerial.Count);
@@ -279,7 +284,8 @@ namespace TickZoom.FIX
                     try
                     {
                         writer.Write(unique[order]);
-                    } catch( KeyNotFoundException )
+                    }
+                    catch (KeyNotFoundException)
                     {
                         Int16 x = 0;
                     }
@@ -287,9 +293,9 @@ namespace TickZoom.FIX
             }
             memory.Position = 0;
             writer.Write((Int32)memory.Length - sizeof(Int32)); // length excludes the size of the length value.
-            fs.Write(memory.GetBuffer(),0,(int)memory.Length);
+            fs.Write(memory.GetBuffer(), 0, (int)memory.Length);
             snapshotLength += memory.Length;
-            log.Info("Wrote snapshot. Sequence Remote = " + remoteSequence + ", Local = " + localSequence + 
+            log.Info("Wrote snapshot. Sequence Remote = " + remoteSequence + ", Local = " + localSequence +
                 ", Size = " + memory.Length + ". File Size = " + snapshotLength);
 
         }
@@ -361,11 +367,13 @@ namespace TickZoom.FIX
             }
             if( loaded)
             {
-                ForceSnapshotRollover();
+                forceSnapShotRollover = true;
                 ForceSnapShot();
             }
             return loaded;
         }
+
+        private bool forceSnapShotRollover = false;
 
         private bool SnapshotLoadLast(Snapshot snapshot) {
 
@@ -551,21 +559,57 @@ namespace TickZoom.FIX
             }
         }
 
-        public List<PhysicalOrder> GetOrders(Func<PhysicalOrder,bool> select)
+        public void ClearPendingOrders(SymbolInfo symbol)
         {
+            var remove = new List<PhysicalOrder>();
             using (ordersLocker.Using())
             {
-                var list = new List<PhysicalOrder>();
                 foreach (var kvp in ordersByBrokerId)
                 {
                     var order = kvp.Value;
+                    if (order.Symbol.BinaryIdentifier == symbol.BinaryIdentifier && order.OrderState == OrderState.Pending)
+                    {
+                        remove.Add(order);
+                    }
+                }
+            }
+            foreach (var order in remove)
+            {
+                log.Warn("Removing pending order due recovery from snapshot: " + order);
+                RemoveOrder(order.BrokerOrder);
+            }
+        }
+
+        public List<PhysicalOrder> GetOrders(Func<PhysicalOrder,bool> select)
+        {
+            var list = new List<PhysicalOrder>();
+            var remove = new List<PhysicalOrder>();
+            using (ordersLocker.Using())
+            {
+                foreach (var kvp in ordersByBrokerId)
+                {
+                    var order = kvp.Value;
+                    if( order.OrderState == OrderState.Pending)
+                    {
+                        var elapsed = TimeStamp.UtcNow - order.LastStateChange;
+                        if( elapsed.TotalSeconds >= pendingExpireSeconds)
+                        {
+                            remove.Add(order);
+                            continue;
+                        }
+                    }
                     if (select(order))
                     {
                         list.Add(order);
                     }
                 }
-                return list;
             }
+            foreach (var order in remove)
+            {
+                log.Warn("Removing pending order due to " + pendingExpireSeconds + " second expiration: " + order);
+                RemoveOrder(order.BrokerOrder);
+            }
+            return list;
         }
 
         public string LogOrders()

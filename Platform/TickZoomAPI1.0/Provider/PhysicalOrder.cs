@@ -35,11 +35,11 @@ namespace TickZoom.Api
 		Suspended,
 		Filled
 	}
-	public interface PhysicalOrder {
-		OrderState OrderState {
-			get;
-			set;
-		}
+	public interface PhysicalOrder
+	{
+        OrderState OrderState
+        {
+            get; set; }
 		
 		SymbolInfo Symbol {
 			get;
@@ -84,11 +84,13 @@ namespace TickZoom.Api
         {
             get;
         }
-		
+
         object Reference
         {
             get;
             set;
         }
-	}
+
+	    TimeStamp LastStateChange { get; }
+    }
 }

@@ -48,10 +48,15 @@ namespace TickZoom.MBTFIX
         private Dictionary<long,OrderAlgorithm> orderAlgorithms = new Dictionary<long,OrderAlgorithm>();
         long lastLoginTry = long.MinValue;
 		long loginRetryTime = 10000; //milliseconds = 10 seconds.
-		private bool isPositionUpdateComplete = false;
-		private bool isOrderUpdateComplete = false;
-		private string fixDestination = "MBT";
-        private bool isPositionSynced = false;
+        public enum RecoverProgress
+        {
+            InProgress,
+            Completed,
+            None,
+        }
+        private RecoverProgress isPositionUpdateComplete = RecoverProgress.None;
+        private RecoverProgress isOrderUpdateComplete = RecoverProgress.None;
+        private string fixDestination = "MBT";
 		
 		public MBTFIXProvider(string name)
 		{
@@ -81,7 +86,7 @@ namespace TickZoom.MBTFIX
 
 		public override void OnRetry() {
 		}
-		
+
 		private void SendStartBroker() {
 			lock( symbolsRequestedLocker) {
 				foreach( var kvp in symbolsRequested) {
@@ -144,16 +149,20 @@ namespace TickZoom.MBTFIX
         public override bool OnLogin()
         {
             if (debug) log.Debug("Login()");
-            isPositionUpdateComplete = false;
-            isOrderUpdateComplete = false;
-            isPositionSynced = false;
+            isPositionUpdateComplete = RecoverProgress.None;
+            isOrderUpdateComplete = RecoverProgress.None;
+            foreach (var kvp in orderAlgorithms)
+            {
+                var algorithm = kvp.Value;
+                //algorithm.IsPositionSynced = false;
+            }
 
             if (OrderStore.Recover())
             {
                 if (debug) log.Debug("Recovered orders from snapshot: \n" + OrderStore.LogOrders());
                 RemoteSequence = OrderStore.RemoteSequence;
                 SendLogin(OrderStore.LocalSequence);
-                isOrderUpdateComplete = true;
+                isOrderUpdateComplete = RecoverProgress.Completed;
             }
             else
             {
@@ -179,14 +188,7 @@ namespace TickZoom.MBTFIX
 			if( !LogRecovery) {
 				MessageFIXT1_1.IsQuietRecovery = true;
 			}
-            if( isOrderUpdateComplete )
-            {
-                RequestPositions();
-            }
-            else
-            {
-                RequestOrders();
-            }
+            TryEndRecovery();
 		}
 		
 		public override void OnStartSymbol(SymbolInfo symbol)
@@ -345,15 +347,33 @@ namespace TickZoom.MBTFIX
 		}
 		
 		protected override void TryEndRecovery() {
-			if( isPositionUpdateComplete &&
-                isOrderUpdateComplete &&
-                IsResendComplete &&
-                isPositionSynced ) {
-				isPositionUpdateComplete = false;
-				isOrderUpdateComplete = false;
-				ReportRecovery();
-				EndRecovery();
+            if (debug) log.Debug("TryEndRecovery Status " + ConnectionStatus + ", OrderUpdate " + isOrderUpdateComplete + ", PositionUpdate " + isPositionUpdateComplete +
+                ", Resend " + IsResendComplete);
+            if( ConnectionStatus == Status.Recovered) return;
+            if (isOrderUpdateComplete == RecoverProgress.Completed &&
+                isPositionUpdateComplete == RecoverProgress.Completed &&
+                IsResendComplete)
+			{
+			    EndRecovery();
+                StartPositionSync();
+                return;
 			}
+            if( isOrderUpdateComplete !=  RecoverProgress.Completed )
+            {
+                if( isOrderUpdateComplete != RecoverProgress.InProgress )
+                {
+                    isOrderUpdateComplete = RecoverProgress.InProgress;
+                    RequestOrders();
+                }
+            }
+            else if (isPositionUpdateComplete != RecoverProgress.Completed)
+            {
+                if( isPositionUpdateComplete != RecoverProgress.InProgress)
+                {
+                    isPositionUpdateComplete = RecoverProgress.InProgress;
+                    RequestPositions();
+                }
+            }
 		}
 		
 		private bool isCancelingPendingOrders = false;
@@ -374,7 +394,7 @@ namespace TickZoom.MBTFIX
         //    return isCancelingPendingOrders;
         //}
 
-		private void ReportRecovery() {
+		private void StartPositionSync() {
 			StringBuilder sb = new StringBuilder();
 		    var list = OrderStore.GetOrders((x) => true);
 			foreach( var order in list) {
@@ -391,7 +411,7 @@ namespace TickZoom.MBTFIX
 		
 		private void PositionUpdate( MessageFIX4_4 packetFIX) {
 			if( packetFIX.MessageType == "AO") {
-				isPositionUpdateComplete = true;
+				isPositionUpdateComplete = RecoverProgress.Completed;
 				if(debug) log.Debug("PositionUpdate Complete.");
                 TryEndRecovery();
 			} else if (!IsRecovered)
@@ -415,9 +435,9 @@ namespace TickZoom.MBTFIX
 		
 		private void ExecutionReport( MessageFIX4_4 packetFIX) {
 			if( packetFIX.Text == "END") {
-				isOrderUpdateComplete = true;
+				isOrderUpdateComplete = RecoverProgress.Completed;
 				if(debug) log.Debug("ExecutionReport Complete.");
-                RequestPositions();
+                TryEndRecovery();
 			} else {
 				if( debug && (LogRecovery || !IsRecovery) ) {
 					log.Debug("ExecutionReport: " + packetFIX);
@@ -964,14 +984,11 @@ namespace TickZoom.MBTFIX
 
         public override void PositionChange(Receiver receiver, SymbolInfo symbol, int desiredPosition, Iterable<LogicalOrder> inputOrders, Iterable<StrategyPosition> strategyPositions)
 		{
-			if( !IsRecovered) {
-				if( HasFirstRecovery) {
-					log.Warn("PositionChange event received while FIX was offline or recovering. Current connection status is: " + ConnectionStatus);
-					return;
-				} else {
-					throw new ApplicationException("PositionChange event received prior to completing FIX recovery. Current connection status is: " + ConnectionStatus);
-				}
-			}
+            if (!IsRecovered)
+            {
+                log.Warn("PositionChange event received while FIX was offline or recovering. Ignoring. Current connection status is: " + ConnectionStatus);
+                return;
+            }
 			var count = inputOrders == null ? 0 : inputOrders.Count;
 			if( debug) log.Debug( "PositionChange " + symbol + ", desired " + desiredPosition + ", order count " + count);
 			
@@ -980,11 +997,11 @@ namespace TickZoom.MBTFIX
             algorithm.SetLogicalOrders(inputOrders, strategyPositions);
             lock (orderAlgorithmLocker)
             {
-                if (!isPositionSynced && !algorithm.TrySyncPosition(strategyPositions))
-                {
-                    isPositionSynced = true;
-                    TryEndRecovery();
-                }
+                //if( !algorithm.IsPositionSynced)
+                //{
+                    OrderStore.ClearPendingOrders(symbol);
+                    algorithm.TrySyncPosition(strategyPositions);
+                //}
                 algorithm.ProcessOrders();
             }
 			

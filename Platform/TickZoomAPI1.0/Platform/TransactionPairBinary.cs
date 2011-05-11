@@ -232,9 +232,7 @@ namespace TickZoom.Api
                    entryPriceMatch &&
                    this.EntryTime == trade.EntryTime &&
                    this.exitPrice == trade.exitPrice &&
-                   this.ExitTime == trade.ExitTime &&
-                   this.maxPrice == trade.maxPrice &&
-                   this.minPrice == trade.minPrice;
+                   this.ExitTime == trade.ExitTime;
         }
 		
         public double MaxPrice {
