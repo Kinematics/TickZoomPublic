@@ -1,4 +1,4 @@
-﻿#region Copyright
+#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2009 M. Wayne Walter
@@ -278,7 +278,10 @@ namespace TickZoom.FIX
 					}
 					switch( connectionStatus) {
 						case Status.Connected:
-                            orderStore = new PhysicalOrderStore(ProviderName);
+                            if( orderStore == null)
+                            {
+                                orderStore = new PhysicalOrderStore(ProviderName);
+                            }
                             isResendComplete = true;
                             if (debug) log.Debug("Set resend complete: " + IsResendComplete);
                             if (OnLogin())
@@ -726,6 +729,10 @@ namespace TickZoom.FIX
                     if (fixFilterController != null)
                     {
                         fixFilterController.Dispose();
+                    }
+                    if( orderStore != null)
+                    {
+                        orderStore.Dispose();
                     }
 	            }
     		}

@@ -39,7 +39,8 @@ namespace TickZoom.Interceptors
 		private readonly bool trace = staticLog.IsTraceEnabled;
 		private readonly bool debug = staticLog.IsDebugEnabled;
 		private static readonly bool notice = staticLog.IsNoticeEnabled;
-		private Log log;
+        private Queue<FillEvent> fillQueue = new Queue<FillEvent>();
+        private Log log;
 
 		private Dictionary<string,PhysicalOrder> orderMap = new Dictionary<string, PhysicalOrder>();
 		private ActiveList<PhysicalOrder> increaseOrders = new ActiveList<PhysicalOrder>();
@@ -69,8 +70,16 @@ namespace TickZoom.Interceptors
 		// seed so that test results are reproducable.
 		private Random random = new Random(1234);
 		private long minimumTick;
-		
-		public FillSimulatorPhysical(string name, SymbolInfo symbol, bool createSimulatedFills)
+
+        public struct FillEvent
+        {
+            public PhysicalFill PhysicalFill;
+            public int TotalSize;
+            public int CumulativeSize;
+            public int RemainingSize;
+        }
+
+        public FillSimulatorPhysical(string name, SymbolInfo symbol, bool createSimulatedFills)
 		{
 			this.symbol = symbol;
 		    limitOrderQuoteSimulation = symbol.LimitOrderQuoteSimulation;
@@ -257,7 +266,19 @@ namespace TickZoom.Interceptors
 				var order = node.Value;
 				OnProcessOrder(order, tick);
 			}
-        }
+            if (onPhysicalFill == null)
+            {
+                throw new ApplicationException("Please set the OnPhysicalFill property.");
+            }
+            else
+            {
+                while (fillQueue.Count > 0)
+                {
+                    var entry = fillQueue.Dequeue();
+                    onPhysicalFill(entry.PhysicalFill, entry.TotalSize, entry.CumulativeSize, entry.RemainingSize);
+                }
+            }
+		}
 		
 		private void LogOpenOrders() {
 			if( trace) {
@@ -361,7 +382,9 @@ namespace TickZoom.Interceptors
 			if( node.List != null) {
 				node.List.Remove(node);
 			}
-			if( onRejectOrder != null) {
+			if( onRejectOrder != null)
+			{
+			    log.Warn("Rejecting order because position is " + actualPosition + " but order side was " + order.Side + ": " + order);
 				onRejectOrder( order, message);
 			} else {
 				throw new ApplicationException( message + " while handling order: " + order);
@@ -653,7 +676,7 @@ namespace TickZoom.Interceptors
 				CreateSingleFill( lastSize, totalSize, cumulativeQuantity, order.Size, price, time, utcTime, order);
 			}
 		}
-	
+
 		private void CreateSingleFill(int size, int totalSize, int cumulativeSize, int remainingSize, double price, TimeStamp time, TimeStamp utcTime, PhysicalOrder order) {
 			if( debug) log.Debug("Changing actual position from " + this.actualPosition + " to " + (actualPosition+size) + ". Fill size is " + size);
 			this.actualPosition += size;
@@ -662,12 +685,14 @@ namespace TickZoom.Interceptors
             //}
 			var fill = new PhysicalFillDefault(size,price,time,utcTime,order,createSimulatedFills);
 			if( debug) log.Debug("Fill: " + fill );
-			if( onPhysicalFill == null) {
-				throw new ApplicationException("Please set the OnPhysicalFill property.");
-			} else {
-				if( SyncTicks.Enabled) tickSync.AddPhysicalFill(fill);
-				onPhysicalFill(fill,totalSize,cumulativeSize,remainingSize);
-			}
+			if( SyncTicks.Enabled) tickSync.AddPhysicalFill(fill);
+		    fillQueue.Enqueue(new FillEvent
+		                          {
+		                              PhysicalFill = fill,
+                                      TotalSize = totalSize,
+                                      CumulativeSize = cumulativeSize,
+                                      RemainingSize = remainingSize
+                                  });
 		}
 		
 		public bool UseSyntheticLimits {

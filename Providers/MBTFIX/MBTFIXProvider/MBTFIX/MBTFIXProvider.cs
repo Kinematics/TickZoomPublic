@@ -76,7 +76,6 @@ namespace TickZoom.MBTFIX
 		
 		public override void OnDisconnect() {
             OrderStore.ForceSnapShot();
-		    OrderStore.Dispose();
             if (IsRecovered)
             {
                 log.Error("Logging out -- Sending EndBroker event.");
@@ -698,7 +697,10 @@ namespace TickZoom.MBTFIX
 		    var list = OrderStore.GetOrders((o) => o.Symbol == symbol);
             foreach( var order in list)
             {
-                result.AddLast(order);
+                if( order.OrderState != OrderState.Filled)
+                {
+                    result.AddLast(order);
+                }
             }
 			return result;
 		}
@@ -1017,7 +1019,6 @@ namespace TickZoom.MBTFIX
 		
 	    protected override void Dispose(bool disposing)
 	    {
-            OrderStore.Dispose();
             base.Dispose(disposing);
            	nextConnectTime = Factory.Parallel.TickCount + 10000;
 	    }    

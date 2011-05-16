@@ -30,8 +30,8 @@ namespace TickZoom.Api
 {
 	public enum OrderStatus {
 		Inactive,
-		AutoCancel,
 		NextBar,
+        AutoCancel,
 		Active,
 	}
 	
@@ -105,5 +105,7 @@ namespace TickZoom.Api
 	    long Recency { get; }
 
 	    TimeStamp UtcChangeTime { get; }
+
+        bool IsAutoCancel { get; }
     }
 }

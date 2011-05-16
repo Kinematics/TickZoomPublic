@@ -254,9 +254,9 @@ namespace Orders
 			handler.PerformCompare();
             handler.FillCreatedOrders();
 
-            Assert.AreEqual(0, handler.Orders.CanceledOrders.Count);
+            Assert.AreEqual(1,handler.Orders.CanceledOrders.Count);
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
-			Assert.AreEqual(2,handler.Orders.CreatedOrders.Count);
+			Assert.AreEqual(4,handler.Orders.CreatedOrders.Count);
 
             //PhysicalOrder order = handler.Orders.CreatedOrders[0];
             //Assert.AreEqual(OrderType.BuyMarket,order.Type);

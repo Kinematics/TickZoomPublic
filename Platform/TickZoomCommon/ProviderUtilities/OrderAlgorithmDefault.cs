@@ -35,65 +35,7 @@ using TickZoom.Api;
 
 namespace TickZoom.Common
 {
-    public class PhysicalOrderCache
-    {
-        private static readonly Log staticLog = Factory.SysLog.GetLogger(typeof(PhysicalOrderCache));
-        private readonly bool trace = staticLog.IsTraceEnabled;
-        private readonly bool debug = staticLog.IsDebugEnabled;
-        private Log log;
-        private ActiveList<PhysicalOrder> createOrderQueue = new ActiveList<PhysicalOrder>();
-        private ActiveList<string> cancelOrderQueue = new ActiveList<string>();
-        private ActiveList<ChangeOrderEntry> changeOrderQueue = new ActiveList<ChangeOrderEntry>();
-
-        public PhysicalOrderCache(string name, SymbolInfo symbol)
-        {
-            this.log = Factory.SysLog.GetLogger(typeof(PhysicalOrderCache).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name);
-        }
-
-        public struct ChangeOrderEntry
-        {
-            public PhysicalOrder Order;
-            public string OrigOrderId;
-        }
-
-        public Iterable<PhysicalOrder> CreateOrderQueue
-        {
-            get { return createOrderQueue; }
-        }
-
-        private bool HasCreateOrder(PhysicalOrder order)
-        {
-            for (var current = CreateOrderQueue.First; current != null; current = current.Next)
-            {
-                var queueOrder = current.Value;
-                if (order.LogicalSerialNumber == queueOrder.LogicalSerialNumber)
-                {
-                    if (debug) log.Debug("Create ignored because order was already on create order queue: " + queueOrder);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public bool AddCreateOrder(PhysicalOrder order)
-        {
-            var result = !HasCreateOrder(order);
-            if( !result)
-            {
-                createOrderQueue.AddLast(order);
-            }
-            return result;
-        }
-
-        public void Clear()
-        {
-            createOrderQueue.Clear();
-            cancelOrderQueue.Clear();
-            changeOrderQueue.Clear();
-        }
-    }
-
-	public class OrderAlgorithmDefault : OrderAlgorithm {
+    public class OrderAlgorithmDefault : OrderAlgorithm {
 		private static readonly Log staticLog = Factory.SysLog.GetLogger(typeof(OrderAlgorithmDefault));
 		private readonly bool debug = staticLog.IsDebugEnabled;
 		private readonly bool trace = staticLog.IsTraceEnabled;
@@ -101,7 +43,8 @@ namespace TickZoom.Common
 		private SymbolInfo symbol;
 		private PhysicalOrderHandler physicalOrderHandler;
 		private ActiveList<PhysicalOrder> originalPhysicals;
-		private object bufferedLogicalsLocker = new object();
+        private SimpleLock bufferedLogicalsLocker = new SimpleLock();
+        private volatile bool bufferedLogicalsChanged = false;
 		private ActiveList<LogicalOrder> bufferedLogicals;
         private ActiveList<LogicalOrder> canceledLogicals;
         private ActiveList<LogicalOrder> originalLogicals;
@@ -218,7 +161,7 @@ namespace TickZoom.Common
             TryAddPhysicalOrder(physical);
             physicalOrderHandler.OnCreateBrokerOrder(physical);
         }
-		
+
 		private void ProcessMatchPhysicalEntry( LogicalOrder logical, PhysicalOrder physical) {
 			log.Trace("ProcessMatchPhysicalEntry()");
 			var strategyPosition = logical.StrategyPosition;
@@ -728,11 +671,18 @@ namespace TickZoom.Common
 				int count = originalLogicals == null ? 0 : originalLogicals.Count;
 				log.Trace("SetLogicalOrders() order count = " + count);
 			}
+            if (CheckForFilledOrders(inputLogicals))
+            {
+                if (debug) log.Debug("Found already filled orders in position change event. Ignoring until recent fills get posted.");
+                return;
+            }
             logicalOrderCache.SetActiveOrders(inputLogicals);
-			lock( bufferedLogicalsLocker) {
+			using( bufferedLogicalsLocker.Using()) {
 				bufferedLogicals.Clear();
 				bufferedLogicals.AddLast(logicalOrderCache.ActiveOrders);
 			    canceledLogicals.AddLast(logicalOrderCache.ActiveOrders);
+			    bufferedLogicalsChanged = true;
+                if( debug) log.Debug("SetLogicalOrders( logicals " + bufferedLogicals.Count + ", strategy positions " + strategyPositions.Count);
 			}
 		}
 		
@@ -908,24 +858,18 @@ namespace TickZoom.Common
 					if( debug) log.Debug( "Changing order to position: " + filledOrder.Position);
 				}
 			}
-			if( fill.IsComplete) {
-				try { 
-					if( debug) log.Debug("Marking order id " + filledOrder.Id + " as completely filled.");
-					filledOrders.Add(filledOrder.SerialNumber,TimeStamp.UtcNow.Internal);
-					originalLogicals.Remove(filledOrder);
-					CleanupAfterFill(filledOrder);
-				} catch( ApplicationException) {
-					
-				} catch( ArgumentException ex)
-				{
-                    log.Warn(ex.Message + " Was the order already marked as filled? : " + filledOrder);
-				}
+			if( fill.IsComplete)
+			{
+                if (debug) log.Debug("LogicalFill is completely filled.");
+			    MarkAsFilled(filledOrder);
 			}
 			UpdateOrderCache(filledOrder, fill);
-			if( isCompletePhysicalFill && !fill.IsComplete) {
+            if (isCompletePhysicalFill && !fill.IsComplete)
+            {
                 if (filledOrder.TradeDirection == TradeDirection.Entry && fill.Position == 0)
                 {
                     if (debug) log.Debug("Found a entry order which flattened the position. Likely due to bracketed entries that both get filled: " + filledOrder);
+                    MarkAsFilled(filledOrder);
                 }
                 else
                 {
@@ -933,14 +877,34 @@ namespace TickZoom.Common
                     ProcessMissingPhysical(filledOrder);
                 }
 			}
-			if( fill.IsComplete) {
-				if( debug) log.Debug("Performing extra compare.");
-				PerformCompareProtected();
-			}
             if (onProcessFill != null)
             {
                 if (debug) log.Debug("Sending logical fill for " + symbol + ": " + fill);
                 onProcessFill(symbol, fill);
+            }
+            if (fill.IsComplete)
+            {
+				if( debug) log.Debug("Performing extra compare.");
+				PerformCompareProtected();
+			}
+        }
+
+        private void MarkAsFilled(LogicalOrder filledOrder)
+        {
+            try
+            {
+                if (debug) log.Debug("Marking order id " + filledOrder.Id + " as completely filled.");
+                filledOrders.Add(filledOrder.SerialNumber, TimeStamp.UtcNow.Internal);
+                originalLogicals.Remove(filledOrder);
+                CleanupAfterFill(filledOrder);
+            }
+            catch (ApplicationException)
+            {
+
+            }
+            catch (ArgumentException ex)
+            {
+                log.Warn(ex.Message + " Was the order already marked as filled? : " + filledOrder);
             }
         }
 
@@ -1024,10 +988,11 @@ namespace TickZoom.Common
 		public int ProcessOrders() {
             sentPhysicalOrders = 0;
 			PerformCompareProtected();
-			return sentPhysicalOrders;
+            return sentPhysicalOrders;
 		}
 
 		private bool CheckForFilledOrders(Iterable<LogicalOrder> orders) {
+            if( orders == null) return false;
 		    var next = orders.First;
 		    for (var current = next; current != null; current = next)
 		    {
@@ -1053,7 +1018,7 @@ namespace TickZoom.Common
 				
             originalPhysicals.Clear();
             originalPhysicals.AddLast(physicalOrderHandler.GetActiveOrders(symbol));
-		    originalPhysicals.AddLast(physicalOrderCache.CreateOrderQueue);
+            originalPhysicals.AddLast(physicalOrderCache.CreateOrderQueue);
 
             if (CheckForPending())
             {
@@ -1061,18 +1026,19 @@ namespace TickZoom.Common
                 return;
             }
 
-            lock (bufferedLogicalsLocker)
+            if( bufferedLogicalsChanged)
             {
-				if( CheckForFilledOrders(bufferedLogicals)) {
-					if( debug) log.Debug("Found already filled orders in position change event. Skipping compare.");
-					return;
-				}
-				
-				originalLogicals.Clear();
-				if(bufferedLogicals != null) {
-					originalLogicals.AddLast(bufferedLogicals);
-				}
-			}
+                log.Debug("Buffered logicals were updated so refreshing original logicals list ...");
+                using (bufferedLogicalsLocker.Using())
+                {
+                    originalLogicals.Clear();
+                    if (bufferedLogicals != null)
+                    {
+                        originalLogicals.AddLast(bufferedLogicals);
+                    }
+                    bufferedLogicalsChanged = false;
+                }
+            }
 
             if (debug)
             {
