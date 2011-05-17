@@ -32,7 +32,7 @@ namespace TickZoom.FIX
 {
 	public class FIXFactory4_4 : FIXTFactory1_1 {
 		public FIXFactory4_4(int nextSequence,string sender,string destination) :
-			base( nextSequence, sender, destination) {
+			base( "FIX.4.4", nextSequence, sender, destination) {
 			
 		}
 		public override FIXTMessage1_1 Create() {

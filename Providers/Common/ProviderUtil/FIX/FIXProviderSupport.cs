@@ -328,9 +328,9 @@ namespace TickZoom.FIX
 
 					        if( foundMessage) {
 								lastMessage = TimeStamp.UtcNow;
-								if( debug && (LogRecovery || !IsRecovery)) {
+                                //if( debug && (LogRecovery || !IsRecovery)) {
 									log.Debug( "Received FIX Message: " + message);
-								}
+                                //}
                                 var messageFIX = (MessageFIXT1_1)message;
                                 switch( messageFIX.MessageType)
                                 {
@@ -419,6 +419,8 @@ namespace TickZoom.FIX
                 throw new InvalidOperationException("Reset new sequence number must be greater than or equal to the next sequence: " + remoteSequence + ".\n" + packetFIX);
             }
             remoteSequence = packetFIX.NewSeqNum;
+            isResendComplete = true;
+            TryRequestResend(packetFIX);
             if (debug) log.Debug("Received gap fill. Setting next sequence = " + remoteSequence);
         }
 
@@ -434,27 +436,13 @@ namespace TickZoom.FIX
         {
             var messageFIX = (MessageFIXT1_1) message;
             var sequence = messageFIX.Sequence;
-            if (messageFIX.Sequence > remoteSequence)
+            if (TryRequestResend(messageFIX))
             {
-                if (debug) log.Debug("Sequence is " + messageFIX.Sequence + " but expected sequence is " + RemoteSequence + ". Ignoring message.");
-                expectedResendSequence = messageFIX.Sequence;
-                if (debug) log.Debug("Expected resend sequence set to " + expectedResendSequence);
-                if (IsResendComplete)
-                {
-                    isResendComplete = false;
-                    if (debug) log.Debug("Set resend complete: " + isResendComplete);
-                    var mbtMsg = fixFactory.Create();
-                    mbtMsg.AddHeader("2");
-                    mbtMsg.SetBeginSeqNum(remoteSequence);
-                    mbtMsg.SetEndSeqNum(0);
-                    if (debug) log.Debug(" Sending resend request: " + mbtMsg);
-                    SendMessage(mbtMsg);
-                }
                 return true;
             }
             else if( messageFIX.Sequence < remoteSequence)
             {
-                if (debug) log.Debug("Already received sequence " + messageFIX.Sequence + ". Ignoring.");
+                if (debug) log.Debug("Already received sequence " + messageFIX.Sequence + ". Expecting " + remoteSequence + " as next sequence. Ignoring. \n" + messageFIX);
                 return true;
             }
             else
@@ -466,8 +454,33 @@ namespace TickZoom.FIX
                     TryEndRecovery();
                 }
                 RemoteSequence = messageFIX.Sequence + 1;
+                if( debug) log.Debug("Incrementing remote sequence to " + RemoteSequence);
                 return false;
             }
+        }
+
+        private bool TryRequestResend(MessageFIXT1_1 messageFIX)
+        {
+            var result = false;
+            if (messageFIX.Sequence > remoteSequence)
+            {
+                result = true;
+                if (debug) log.Debug("Sequence is " + messageFIX.Sequence + " but expected sequence is " + remoteSequence + ". Ignoring message.");
+                expectedResendSequence = messageFIX.Sequence;
+                if (debug) log.Debug("Expected resend sequence set to " + expectedResendSequence);
+                if (isResendComplete)
+                {
+                    isResendComplete = false;
+                    if (debug) log.Debug("TryRequestResend() Set resend complete: " + isResendComplete);
+                    var mbtMsg = fixFactory.Create();
+                    mbtMsg.AddHeader("2");
+                    mbtMsg.SetBeginSeqNum(remoteSequence);
+                    mbtMsg.SetEndSeqNum(0);
+                    if (debug) log.Debug(" Sending resend request: " + mbtMsg);
+                    SendMessage(mbtMsg);
+                }
+            }
+            return result;
         }
 
         private FIXTMessage1_1 GapFillMessage(int currentSequence)
@@ -531,6 +544,7 @@ namespace TickZoom.FIX
                 textMessage = GapFillMessage(lastSequence + 1, messageFIX.EndSeqNum);
                 SendMessageInternal(textMessage);
             }
+            isResendComplete = true;  // Force resending any "resend requests".
 			return true;
 		}
 

@@ -33,21 +33,24 @@ using TickZoom.Api;
 
 namespace TickZoom.FIX
 {
-	public class FIXTFactory1_1 : FIXTFactory {
+	public class FIXTFactory1_1 : FIXTFactory
+	{
+	    private string fixVersion = "FIXT1.1";
 		private int nextSequence;
 		private int lastSequence;
 		private string sender;
 		private string destination;
 	    private int firstSequence = int.MaxValue;
 		private Dictionary<int,FIXTMessage1_1> messageHistory = new Dictionary<int,FIXTMessage1_1>();
-		public FIXTFactory1_1(int nextSequence, string sender, string destination) {
+		public FIXTFactory1_1(string version, int nextSequence, string sender, string destination) {
 			// Decrement since first message will increment.
+		    this.fixVersion = version;
 			this.nextSequence = nextSequence - 1;
 			this.sender = sender;
 			this.destination = destination;
 		}
 		public virtual FIXTMessage1_1 Create() {
-			var message = new FIXTMessage1_1("FIXT1.1",sender,destination);
+			var message = new FIXTMessage1_1(fixVersion,sender,destination);
 			message.Sequence = GetNextSequence();
 			return message;
 		}
@@ -57,7 +60,7 @@ namespace TickZoom.FIX
             {
                 throw new InvalidOperationException("Cannot create new fix message with sequence in the future.");
             }
-            var message = new FIXTMessage1_1("FIXT1.1", sender, destination);
+            var message = new FIXTMessage1_1(fixVersion, sender, destination);
             message.Sequence = previousSequence;
             return message;
         }

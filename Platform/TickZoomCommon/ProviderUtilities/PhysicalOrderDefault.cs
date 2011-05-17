@@ -125,7 +125,7 @@ namespace TickZoom.Common
 	        this.utcCreateTime = utcCreateTime;
 	    }
 
-        private static long lastId = 3514249423548981L;
+	    private static long lastId = TimeStamp.UtcNow.Internal;
 		private static string CreateBrokerOrderId(int logicalId) {
 			var longId = Interlocked.Increment(ref lastId);
 			return logicalId + "." + longId;

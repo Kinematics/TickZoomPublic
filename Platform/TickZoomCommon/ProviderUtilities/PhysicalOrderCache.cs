@@ -1,4 +1,4 @@
-﻿using TickZoom.Api;
+using TickZoom.Api;
 
 namespace TickZoom.Common
 {
@@ -10,17 +10,10 @@ namespace TickZoom.Common
         private Log log;
         private ActiveList<PhysicalOrder> createOrderQueue = new ActiveList<PhysicalOrder>();
         private ActiveList<string> cancelOrderQueue = new ActiveList<string>();
-        private ActiveList<ChangeOrderEntry> changeOrderQueue = new ActiveList<ChangeOrderEntry>();
 
         public PhysicalOrderCache(string name, SymbolInfo symbol)
         {
             this.log = Factory.SysLog.GetLogger(typeof(PhysicalOrderCache).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name);
-        }
-
-        public struct ChangeOrderEntry
-        {
-            public PhysicalOrder Order;
-            public string OrigOrderId;
         }
 
         public Iterable<PhysicalOrder> CreateOrderQueue
@@ -42,6 +35,20 @@ namespace TickZoom.Common
             return false;
         }
 
+        private bool HasCancelOrder(string order)
+        {
+            for (var current = cancelOrderQueue.First; current != null; current = current.Next)
+            {
+                var clientId = current.Value;
+                if (order == clientId)
+                {
+                    if (debug) log.Debug("Cancel or Changed ignored because pervious order order working for: " + order);
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public bool AddCreateOrder(PhysicalOrder order)
         {
             var result = !HasCreateOrder(order);
@@ -52,11 +59,20 @@ namespace TickZoom.Common
             return result;
         }
 
+        public bool AddCancelOrder(string order)
+        {
+            var result = !HasCancelOrder(order);
+            if (!result)
+            {
+                cancelOrderQueue.AddLast(order);
+            }
+            return result;
+        }
+
         public void Clear()
         {
             createOrderQueue.Clear();
             cancelOrderQueue.Clear();
-            changeOrderQueue.Clear();
         }
     }
 }

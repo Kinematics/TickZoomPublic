@@ -120,22 +120,37 @@ namespace TickZoom.Common
 		
 		private bool TryCancelBrokerOrder(PhysicalOrder physical) {
 			bool result = false;
-			if( physical.OrderState != OrderState.Pending &&
-			    // Market orders can't be canceled.
-			    physical.Type != OrderType.BuyMarket &&
-			    physical.Type != OrderType.SellMarket) {
-				if( debug) log.Debug("Cancel Broker Order: " + physical);
-				sentPhysicalOrders++;
-				TryAddPhysicalOrder(physical);
-				physicalOrderHandler.OnCancelBrokerOrder(symbol, physical.BrokerOrder);
-				result = true;	
-			}
-			return result;
+            if (physical.OrderState != OrderState.Pending &&
+                // Market orders can't be canceled.
+                physical.Type != OrderType.BuyMarket &&
+                physical.Type != OrderType.SellMarket)
+            {
+                if (!physicalOrderCache.AddCancelOrder(physical.BrokerOrder))
+                {
+                    if (debug) log.Debug("Ignoring cancel broker order " + physical.BrokerOrder + " as physical order cache has it already.");
+                    result = false;
+                }
+                else
+                {
+                    if (debug) log.Debug("Cancel Broker Order: " + physical);
+                    sentPhysicalOrders++;
+                    TryAddPhysicalOrder(physical);
+                    physicalOrderHandler.OnCancelBrokerOrder(symbol, physical.BrokerOrder);
+                    result = true;
+                }
+            }
+		    return result;
 		}
 		
 		private void TryChangeBrokerOrder(PhysicalOrder physical, string origBrokerOrder) {
-			if( physical.OrderState == OrderState.Active) {
-				if( debug) log.Debug("Change Broker Order: " + physical);
+            if (physical.OrderState == OrderState.Active)
+            {
+                if (!physicalOrderCache.AddCancelOrder(origBrokerOrder))
+                {
+                    if (debug) log.Debug("Ignoring broker order " + origBrokerOrder + " as physical order cache has it already.");
+                    return;
+                }
+                if (debug) log.Debug("Change Broker Order: " + physical);
 				sentPhysicalOrders++;
 				TryAddPhysicalOrder(physical);
 				physicalOrderHandler.OnChangeBrokerOrder(physical,origBrokerOrder);

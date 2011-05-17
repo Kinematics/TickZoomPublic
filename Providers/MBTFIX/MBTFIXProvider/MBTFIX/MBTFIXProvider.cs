@@ -414,7 +414,8 @@ namespace TickZoom.MBTFIX
 				isPositionUpdateComplete = RecoverProgress.Completed;
 				if(debug) log.Debug("PositionUpdate Complete.");
                 TryEndRecovery();
-			} else if (!IsRecovered)
+			}
+            else 
             {
                 var position = packetFIX.LongQuantity + packetFIX.ShortQuantity;
                 SymbolInfo symbolInfo;
@@ -428,8 +429,11 @@ namespace TickZoom.MBTFIX
                     return;
                 }
                 if (debug) log.Debug("PositionUpdate: " + symbolInfo + "=" + position);
-                var orderHandler = GetAlgorithm(symbolInfo.BinaryIdentifier);
-                orderHandler.SetActualPosition(position);
+                if (!IsRecovered)
+                {
+                    var orderHandler = GetAlgorithm(symbolInfo.BinaryIdentifier);
+                    orderHandler.SetActualPosition(position);
+                }
             }
 		}
 		
