@@ -43,39 +43,8 @@ namespace TickZoom.FIX
             message.Clear();
             return (Message)message;
         }
-//        Dictionary<string, int> stackTraces = new Dictionary<string, int>();
 		public void Release(Message message)
 		{
-            //var messageFIX = (MessageFIX4_4) message;
-            //if( messageFIX.Sequence > 0 )
-            //{
-            //    var stack = Environment.StackTrace;
-            //    if (stack.Contains("OnSelectWrite")) 
-            //    {
-            //        messageFIX.sequenceLocker.Unlock();
-            //    }
-            //    else
-            //    {
-            //        int count;
-            //        if (!stackTraces.TryGetValue(stack, out count))
-            //        {
-            //            var temp = Interlocked.Increment(ref stackCounter);
-            //            stackTraces.Add(stack, temp);
-            //            log.Warn("Releasing message from " + messageFIX.Sender + " sequence " + messageFIX.Sequence + ", stack id " + temp + "\n" + stack);
-            //        }
-            //        else
-            //        {
-            //            //log.Warn("Releasing message from " + messageFIX.Sender + " sequence " + messageFIX.Sequence + ", stack id " + count);
-            //        }
-            //    }
-            //}
-            //foreach (var freedMessage in pool.Freed)
-            //{
-            //    if( object.ReferenceEquals(message,freedMessage))
-            //    {
-            //        throw new InvalidOperationException("Attempt to free an item that was already freed.");
-            //    }
-            //}
             pool.Free((MessageFIX4_4)message);
 		}
 	}

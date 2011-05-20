@@ -90,7 +90,7 @@ namespace TickZoom.TickUtil
                     throw new InvalidOperationException("Item is on the pending list already. --> " + item);
                 }
             }
-            // Okay is on the already free list?
+            // Okay is it on the already free list?
             for (var current = _available.First; current != null; current = current.Next)
             {
                 if (object.ReferenceEquals(item, current.Value))

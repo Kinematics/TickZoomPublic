@@ -51,11 +51,10 @@ namespace TickZoom.FIX
         private int heartBeatInterval = 0;
         private string encryption = null;
         private int id = 0;
+        private byte* ptr;
+        private byte* end;
 		private long sendUtcTime;
         private long recvUtcTime;
-        private GCHandle handle;
-		private byte* ptr;
-		private byte* end;
 		private string version = null;
 		private int begSeqNum;
 		private int endSeqNum;
@@ -87,15 +86,9 @@ namespace TickZoom.FIX
             data.SetLength(0);
 		    sendUtcTime = 0L;
             recvUtcTime = 0L;
-            if (handle.IsAllocated)
-            {
-                handle.Free();
-            }
             heartBeatInterval = 0;
             isResetSeqNum = false;
             encryption = null;
-            ptr = null;
-		    end = null;
 		    version = null;
 		    begSeqNum = 0;
 		    endSeqNum = 0;
@@ -158,29 +151,41 @@ namespace TickZoom.FIX
 		}
 		
 		private int FindSplitAt() {
-			if( trace) log.Trace("Processing Keys: " + this);
-		    data.Position = 0;
-			handle = GCHandle.Alloc(data.GetBuffer(), GCHandleType.Pinned);
-			ptr = (byte*)handle.AddrOfPinnedObject();	
-			end = ptr + data.Length;
-			int key;
-			while( NextKey( out key)) {
-				if( trace) log.Trace("HandleKey("+key+")");
-				HandleKey(key);
-				if( key == 10 ) {
-					isComplete = true;
-					if( data.Position == data.Length) {
-						return 0;
-					} else if( data.Position < data.Length) {
-						if( trace) log.Trace("Splitting message at " + data.Position);
-						return (int) data.Position;
-					}
-				}
-			}
-			// Never found a complete checksum tag so we need more bytes.
-			data.Position = data.Length;
-			isComplete = false;
-			return 0;
+		    if( trace) log.Trace("Processing Keys: " + this);
+	        data.Position = 0;
+		    var handle = GCHandle.Alloc(data.GetBuffer(), GCHandleType.Pinned);
+            var beg = ptr = (byte*)handle.AddrOfPinnedObject();
+            try
+            {
+			    end = ptr + data.Length;
+			    int key;
+			    while( NextKey( out key)) {
+				    if( trace) log.Trace("HandleKey("+key+")");
+				    HandleKey(key);
+				    if( key == 10 ) {
+					    isComplete = true;
+					    if( data.Position == data.Length) {
+						    return 0;
+					    } else if( data.Position < data.Length) {
+						    if( trace) log.Trace("Splitting message at " + data.Position);
+						    return (int) data.Position;
+					    }
+				    }
+			    }
+			    // Never found a complete checksum tag so we need more bytes.
+			    data.Position = data.Length;
+			    isComplete = false;
+			    return 0;
+            }
+            catch( Exception ex)
+            {
+                log.Error("TrySplitFailed() data.Position " + data.Position + ", data.Length " + data.Length + ", ptr offset " + (ptr - beg) + ", end offset " + (end - beg) + ". Packet contents follow:\n" + ToHex());
+                throw new ApplicationException("FindSplitAt failed.", ex);
+            }
+            finally
+            {
+                handle.Free();
+            }
 		}
 		
 		private bool isComplete;
@@ -199,18 +204,21 @@ namespace TickZoom.FIX
 		}
 		
 		public bool TrySplit(MemoryStream other) {
-			bool result = false;
-			int splitAt = FindSplitAt();
-			if( splitAt > 0) {
-				other.Write(data.GetBuffer(), splitAt, (int)data.Length - splitAt);
-				data.Position = splitAt;
-				data.SetLength( splitAt);
-				result = true;
-			} else {
-				LogMessage();
-				result = false;
-			}
-			return result;
+            bool result = false;
+            int splitAt = FindSplitAt();
+            if (splitAt > 0)
+            {
+                other.Write(data.GetBuffer(), splitAt, (int)data.Length - splitAt);
+                data.Position = splitAt;
+                data.SetLength(splitAt);
+                result = true;
+            }
+            else
+            {
+                LogMessage();
+                result = false;
+            }
+            return result;
 		}
 		
 		protected unsafe bool GetKey(out int val) {
@@ -310,6 +318,28 @@ namespace TickZoom.FIX
 				return false;
 			}
 		}
+
+        private string ToHex()
+        {
+            var sb = new StringBuilder();
+            var offset = 0;
+            while (offset < data.Length)
+            {
+                var rowSize = (int)Math.Min(16, data.Length - offset);
+                var bytes = new byte[rowSize];
+                Array.Copy(Data.GetBuffer(), offset, bytes, 0, rowSize);
+                for (int i = 0; i < bytes.Length; i++)
+                {
+                    sb.Append(bytes[i].ToString("X").PadLeft(2, '0'));
+                    sb.Append(" ");
+                }
+                offset += rowSize;
+                sb.AppendLine();
+                sb.AppendLine(Encoding.UTF8.GetString(bytes));
+            }
+            return sb.ToString();
+        }
+
 		
 		protected virtual bool HandleKey(int key) {
 			bool result = false;
