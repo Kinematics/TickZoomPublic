@@ -169,6 +169,7 @@ namespace TickZoom.MBTFIX
                 if( debug) log.Debug("Unable to recover from snapshot. Beginning full recovery.");
                 RemoteSequence = 1;
                 SendLogin(0);
+                isOrderUpdateComplete = RecoverProgress.Completed;
             }
             return true;
         }

@@ -381,6 +381,7 @@ namespace TickZoom.FIX
             try
             {
                 uniqueIds.Clear();
+                replaceIds.Clear();
 
                 memory.Position = snapshot.Offset + sizeof(Int32); // Skip the snapshot length;
 
@@ -445,7 +446,7 @@ namespace TickZoom.FIX
             }
             catch( Exception ex)
             {
-                log.Info("Loading snapshot at offset " + snapshot.Offset + " failed due to " + ex.Message);
+                log.Info("Loading snapshot at offset " + snapshot.Offset + " failed due to " + ex.Message + ". Rolling back to previous snapshot.", ex);
                 return false;
             }
         }

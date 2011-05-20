@@ -27,8 +27,10 @@ namespace TickZoom.Examples
         bool isFirstTick = true;
         private int maxLevels = 5;
         double minimumTick;
-        private int spreadInTicks = 10;
-        double spread;
+        private int increaseSpreadInTicks = 10;
+        private int reduceSpreadInTicks = 5;
+        private double reduceSpread;
+        private double increaseSpread;
         private int lotSize = 1000;
         private int increaseLotSize = 1000;
         double ask, marketAsk;
@@ -36,7 +38,7 @@ namespace TickZoom.Examples
         private Action<SimpleStrategy> onDirectionChange;
         private bool isVisible = false;
         private long totalVolume = 0;
-        private int maxLots = 15;
+        private int maxLots = 20;
         private int lastSize = 0;
         private ActiveList<LocalFill> fills = new ActiveList<LocalFill>();
         private double mantissa = 1.15;
@@ -68,7 +70,8 @@ namespace TickZoom.Examples
             displacedSMA.Drawing.Color = Color.Blue;
 
             minimumTick = Data.SymbolInfo.MinimumTick;
-            spread = spreadInTicks*minimumTick;
+            increaseSpread = increaseSpreadInTicks*minimumTick;
+            reduceSpread = reduceSpreadInTicks*minimumTick;
 
             askLine = Formula.Indicator();
             askLine.Name = "Ask";
@@ -80,7 +83,7 @@ namespace TickZoom.Examples
 
             averagePrice = Formula.Indicator();
             averagePrice.Name = "BE";
-            averagePrice.Drawing.IsVisible = false;
+            averagePrice.Drawing.IsVisible = true;
             averagePrice.Drawing.Color = Color.Black;
 
             position = Formula.Indicator();
@@ -228,31 +231,27 @@ namespace TickZoom.Examples
             if(comboTrades.Count == 0 || comboTrades.Tail.Completed)
             {
                 Orders.Enter.ActiveNow.BuyLimit(bid, increaseLotSize);
-                Orders.Change.ActiveNow.BuyLimit(bid - spread, increaseLotSize, levels - 1, spreadInTicks);
+                Orders.Change.ActiveNow.BuyLimit(bid - increaseSpread, increaseLotSize, levels - 1, increaseSpreadInTicks);
 
                 Orders.Enter.ActiveNow.SellLimit(ask, increaseLotSize);
-                Orders.Change.ActiveNow.SellLimit(ask+spread, increaseLotSize, levels-1, spreadInTicks);
+                Orders.Change.ActiveNow.SellLimit(ask+increaseSpread, increaseLotSize, levels-1, increaseSpreadInTicks);
             }
             else
             {
-                Orders.Change.ActiveNow.BuyLimit(bid, increaseLotSize, levels, spreadInTicks);
-                Orders.Change.ActiveNow.SellLimit(ask, increaseLotSize, levels, spreadInTicks);
+                Orders.Change.ActiveNow.BuyLimit(bid, increaseLotSize, levels, increaseSpreadInTicks);
+                Orders.Change.ActiveNow.SellLimit(ask, increaseLotSize, levels, increaseSpreadInTicks);
             }
         }
 
         private double CalcAveragePrice(TransactionPairBinary comboTrade)
         {
             var lots = Position.Current/lotSize;
-            if( lots > 5)
-            {
-                int x = 0;
-            }
             var size = Math.Abs(comboTrade.CurrentPosition);
             var sign = -Math.Sign(comboTrade.CurrentPosition);
             var openPnL = comboTrade.AverageEntryPrice*size;
             var closedPnl = sign * comboTrade.ClosedPoints;
-
             var result = ( openPnL + closedPnl) / size;
+            //result = comboTrade.AverageEntryPrice;
             return result;
         }
 
@@ -295,7 +294,7 @@ namespace TickZoom.Examples
             var levels = Math.Min(maxLots - lots, maxLevels);
             if (lots < maxLots)
             {
-                Orders.Change.ActiveNow.BuyLimit(bid, increaseLotSize, levels, spreadInTicks);
+                Orders.Change.ActiveNow.BuyLimit(bid, increaseLotSize, levels, increaseSpreadInTicks);
             }
         }
 
@@ -311,7 +310,7 @@ namespace TickZoom.Examples
             var levels = Math.Min(maxLots + lots, maxLevels);
             if (lots > -maxLots)
             {
-                Orders.Change.ActiveNow.SellLimit(ask, increaseLotSize, levels, spreadInTicks);
+                Orders.Change.ActiveNow.SellLimit(ask, increaseLotSize, levels, increaseSpreadInTicks);
             }
         }
 
@@ -321,16 +320,16 @@ namespace TickZoom.Examples
             var levels = Math.Min(maxLots - lots, maxLevels);
             if( levels > 0)
             {
-                Orders.Change.ActiveNow.BuyLimit(bid, increaseLotSize, levels, spreadInTicks);
+                Orders.Change.ActiveNow.BuyLimit(bid, increaseLotSize, levels, increaseSpreadInTicks);
             }
             if (lots == 1)
             {
                 Orders.Reverse.ActiveNow.SellLimit(ask, increaseLotSize);
-                Orders.Change.ActiveNow.SellLimit(ask+spread, increaseLotSize, maxLevels-1, spreadInTicks);
+                Orders.Change.ActiveNow.SellLimit(ask+reduceSpread, increaseLotSize, maxLevels-1, reduceSpreadInTicks);
             }
             else
             {
-                Orders.Change.ActiveNow.SellLimit(ask, increaseLotSize, maxLevels, spreadInTicks);
+                Orders.Change.ActiveNow.SellLimit(ask, increaseLotSize, maxLevels, reduceSpreadInTicks);
             }
         }
 
@@ -340,16 +339,16 @@ namespace TickZoom.Examples
             var levels = Math.Min(maxLots - lots, maxLevels);
             if( levels > 0)
             {
-                Orders.Change.ActiveNow.SellLimit(ask, increaseLotSize, levels, spreadInTicks);
+                Orders.Change.ActiveNow.SellLimit(ask, increaseLotSize, levels, increaseSpreadInTicks);
             }
             if (lots == 1)
             {
                 Orders.Reverse.ActiveNow.BuyLimit(bid, increaseLotSize);
-                Orders.Change.ActiveNow.BuyLimit(bid - spread, increaseLotSize, maxLevels - 1, spreadInTicks);
+                Orders.Change.ActiveNow.BuyLimit(bid - reduceSpread, increaseLotSize, maxLevels - 1, reduceSpreadInTicks);
             }
             else
             {
-                Orders.Change.ActiveNow.BuyLimit(bid, increaseLotSize, maxLevels, spreadInTicks);
+                Orders.Change.ActiveNow.BuyLimit(bid, increaseLotSize, maxLevels, reduceSpreadInTicks);
             }
         }
 
@@ -383,17 +382,14 @@ namespace TickZoom.Examples
 
         private void SetupBidAsk(double price)
         {
+            var lots = Position.Size/lotSize;
+            increaseSpread = increaseSpreadInTicks * minimumTick;
+            reduceSpread = reduceSpreadInTicks * minimumTick;
             var tick = Ticks[0];
             CheckForDirectionChange(tick);
             if (direction != Direction.Sideways) return;
-            //price = fills.First.Value.Price;
-            var midpoint = (tick.Ask + tick.Bid) / 2;
-            var priceDivergence = midpoint - displacedSMA[0];
-            var lots = Position.Size / lotSize;
-            var myAsk = price + spread / 2;
-            var myBid = price - spread / 2;
-            myAsk = price + spread / 2;
-            myBid = price - spread / 2;
+            var myAsk = Position.IsShort ? price + increaseSpread : price + reduceSpread;
+            var myBid = Position.IsLong ? price - increaseSpread : price - reduceSpread;
             marketAsk = Math.Max(tick.Ask, tick.Bid);
             marketBid = Math.Min(tick.Ask, tick.Bid);
             ask = Math.Max(myAsk, marketAsk);
@@ -415,6 +411,7 @@ namespace TickZoom.Examples
             if (fill.Position % lotSize != 0) return;
             var size = Math.Abs(comboTrade.CurrentPosition);
             var change = size - lastSize;
+            totalVolume += change;
             lastSize = size;
             if (change > 0)
             {
@@ -457,8 +454,8 @@ namespace TickZoom.Examples
         {
             var tick = Ticks[0];
             var midPoint = (tick.Bid + tick.Ask)/2;
-            var myAsk = midPoint + spread/2;
-            var myBid = midPoint - spread/2;
+            var myAsk = midPoint + increaseSpread;
+            var myBid = midPoint - increaseSpread;
             var marketAsk = Math.Max(tick.Ask, tick.Bid);
             var marketBid = Math.Min(tick.Ask, tick.Bid);
             ask = Math.Max(myAsk, marketAsk);

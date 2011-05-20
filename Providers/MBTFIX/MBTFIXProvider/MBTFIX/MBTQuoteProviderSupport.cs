@@ -201,9 +201,17 @@ namespace TickZoom.MBTQuotes
 				return connectionStatus == Status.PendingRecovery;
 			}
 		}
+
+	    private Status lastStatus;
+        private SocketState lastSocketState;
 		
 		private Yield SocketTask() {
 			if( isDisposed ) return Yield.NoWork.Repeat;
+            if( socket.State != lastSocketState)
+            {
+                if( debug) log.Debug("Socket state changed to: " + socket.State);
+                lastSocketState = socket.State;
+            }
 			switch( socket.State) {
 				case SocketState.New:
 					if( receiver != null && Factory.Parallel.TickCount > nextConnectTime) {
@@ -224,6 +232,11 @@ namespace TickZoom.MBTQuotes
 						return Yield.NoWork.Repeat;
 					}
 				case SocketState.Connected:
+                    if( connectionStatus != lastStatus)
+                    {
+                        if( debug) log.Debug("Connection status changed to: " + connectionStatus);
+                        lastStatus = connectionStatus;
+                    }
 					if( connectionStatus == Status.New) {
 						connectionStatus = Status.Connected;
 						if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
@@ -278,7 +291,10 @@ namespace TickZoom.MBTQuotes
 								return Yield.NoWork.Repeat;
 							}
 						default:
-							return Yield.NoWork.Repeat;
+                            log.Warn("Unexpected state for quotes connection: " + connectionStatus);
+					        connectionStatus = Status.Disconnected;
+                            log.Warn("Forces connection state to be: " + connectionStatus);
+                            return Yield.NoWork.Repeat;
 					}
 				default:
 					string message = "Unknown socket state: " + socket.State;
