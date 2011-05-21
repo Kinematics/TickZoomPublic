@@ -20,19 +20,21 @@ namespace TickZoom.Examples
 
         public override void OnLoad(ProjectProperties properties)
         {
-            foreach( var symbol in properties.Starter.SymbolProperties)
-            {
-                symbol.LimitOrderQuoteSimulation = LimitOrderQuoteSimulation.SameSideQuoteThrough;
-                symbol.LimitOrderTradeSimulation = LimitOrderTradeSimulation.None;
-            }
-            var portfolio = new SimplePortfolio();
+            //foreach( var symbol in properties.Starter.SymbolProperties)
+            //{
+            //    symbol.LimitOrderQuoteSimulation = LimitOrderQuoteSimulation.SameSideQuoteThrough;
+            //    symbol.LimitOrderTradeSimulation = LimitOrderTradeSimulation.None;
+            //}
+            //var portfolio = new SimplePortfolio();
+            //var strategy = new SimpleStrategy();
+            //strategy.IsActive = false;
+            //portfolio.AddDependency(strategy);
             var strategy = new SimpleStrategy();
-            strategy.IsActive = false;
-            portfolio.AddDependency(strategy);
-            strategy = new SimpleStrategy();
-            strategy.IsActive = false;
-            portfolio.AddDependency(strategy);
-            TopModel = portfolio;
+            strategy.IsActive = true;
+            strategy.IsVisible = true;
+            //portfolio.AddDependency(strategy);
+            //TopModel = portfolio;
+            TopModel = strategy;
         }
     }
 }

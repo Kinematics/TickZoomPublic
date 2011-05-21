@@ -26,24 +26,26 @@ namespace TickZoom.Examples
             longSide.IsActive = false;
         }
 
+        private int IncreaseLotSize = 4;
+
         public override bool OnProcessTick(TickZoom.Api.Tick tick)
         {
-            var shortLots = shortSide.Position.Size/lotSize;
-            var longLots = longSide.Position.Size/lotSize;
-            if( shortLots > 20 && longLots < 20)
-            {
-                longSide.IncreaseLotSize = 2 * lotSize;
-                shortSide.IncreaseLotSize = lotSize;
-            }
-            else if( shortLots < 20 && longLots > 20)
-            {
-                shortSide.IncreaseLotSize = 2 * lotSize;
-                longSide.IncreaseLotSize = lotSize;
-            } else
-            {
-                shortSide.IncreaseLotSize = lotSize;
-                longSide.IncreaseLotSize = lotSize;
-            }
+            //var shortLots = shortSide.Position.Size/lotSize;
+            //var longLots = longSide.Position.Size/lotSize;
+            //if( shortLots > 20 && longLots < 20)
+            //{
+            //    longSide.IncreaseLotSize = 2 * lotSize;
+            //    shortSide.IncreaseLotSize = lotSize;
+            //}
+            //else if( shortLots < 20 && longLots > 20)
+            //{
+            //    shortSide.IncreaseLotSize = 2 * lotSize;
+            //    longSide.IncreaseLotSize = lotSize;
+            //} else
+            //{
+            //    shortSide.IncreaseLotSize = lotSize;
+            //    longSide.IncreaseLotSize = lotSize;
+            //}
             return true;
         }
 

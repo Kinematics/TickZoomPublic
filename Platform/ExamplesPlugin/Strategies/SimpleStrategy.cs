@@ -31,8 +31,7 @@ namespace TickZoom.Examples
         private int reduceSpreadInTicks = 5;
         private double reduceSpread;
         private double increaseSpread;
-        private int lotSize = 1000;
-        private int increaseLotSize = 1000;
+        private int lotSize = 2000;
         double ask, marketAsk;
         double bid, marketBid;
         private Action<SimpleStrategy> onDirectionChange;
@@ -230,16 +229,16 @@ namespace TickZoom.Examples
             var levels = Math.Min(maxLots - lots, maxLevels);
             if(comboTrades.Count == 0 || comboTrades.Tail.Completed)
             {
-                Orders.Enter.ActiveNow.BuyLimit(bid, increaseLotSize);
-                Orders.Change.ActiveNow.BuyLimit(bid - increaseSpread, increaseLotSize, levels - 1, increaseSpreadInTicks);
+                Orders.Enter.ActiveNow.BuyLimit(bid, lotSize);
+                Orders.Change.ActiveNow.BuyLimit(bid - increaseSpread, lotSize, levels - 1, increaseSpreadInTicks);
 
-                Orders.Enter.ActiveNow.SellLimit(ask, increaseLotSize);
-                Orders.Change.ActiveNow.SellLimit(ask+increaseSpread, increaseLotSize, levels-1, increaseSpreadInTicks);
+                Orders.Enter.ActiveNow.SellLimit(ask, lotSize);
+                Orders.Change.ActiveNow.SellLimit(ask+increaseSpread, lotSize, levels-1, increaseSpreadInTicks);
             }
             else
             {
-                Orders.Change.ActiveNow.BuyLimit(bid, increaseLotSize, levels, increaseSpreadInTicks);
-                Orders.Change.ActiveNow.SellLimit(ask, increaseLotSize, levels, increaseSpreadInTicks);
+                Orders.Change.ActiveNow.BuyLimit(bid, lotSize, levels, increaseSpreadInTicks);
+                Orders.Change.ActiveNow.SellLimit(ask, lotSize, levels, increaseSpreadInTicks);
             }
         }
 
@@ -294,7 +293,7 @@ namespace TickZoom.Examples
             var levels = Math.Min(maxLots - lots, maxLevels);
             if (lots < maxLots)
             {
-                Orders.Change.ActiveNow.BuyLimit(bid, increaseLotSize, levels, increaseSpreadInTicks);
+                Orders.Change.ActiveNow.BuyLimit(bid, lotSize, levels, increaseSpreadInTicks);
             }
         }
 
@@ -310,7 +309,7 @@ namespace TickZoom.Examples
             var levels = Math.Min(maxLots + lots, maxLevels);
             if (lots > -maxLots)
             {
-                Orders.Change.ActiveNow.SellLimit(ask, increaseLotSize, levels, increaseSpreadInTicks);
+                Orders.Change.ActiveNow.SellLimit(ask, lotSize, levels, increaseSpreadInTicks);
             }
         }
 
@@ -320,16 +319,16 @@ namespace TickZoom.Examples
             var levels = Math.Min(maxLots - lots, maxLevels);
             if( levels > 0)
             {
-                Orders.Change.ActiveNow.BuyLimit(bid, increaseLotSize, levels, increaseSpreadInTicks);
+                Orders.Change.ActiveNow.BuyLimit(bid, lotSize, levels, increaseSpreadInTicks);
             }
             if (lots == 1)
             {
-                Orders.Reverse.ActiveNow.SellLimit(ask, increaseLotSize);
-                Orders.Change.ActiveNow.SellLimit(ask+reduceSpread, increaseLotSize, maxLevels-1, reduceSpreadInTicks);
+                Orders.Reverse.ActiveNow.SellLimit(ask, lotSize);
+                Orders.Change.ActiveNow.SellLimit(ask+reduceSpread, lotSize, maxLevels-1, reduceSpreadInTicks);
             }
             else
             {
-                Orders.Change.ActiveNow.SellLimit(ask, increaseLotSize, maxLevels, reduceSpreadInTicks);
+                Orders.Change.ActiveNow.SellLimit(ask, lotSize, maxLevels, reduceSpreadInTicks);
             }
         }
 
@@ -339,16 +338,16 @@ namespace TickZoom.Examples
             var levels = Math.Min(maxLots - lots, maxLevels);
             if( levels > 0)
             {
-                Orders.Change.ActiveNow.SellLimit(ask, increaseLotSize, levels, increaseSpreadInTicks);
+                Orders.Change.ActiveNow.SellLimit(ask, lotSize, levels, increaseSpreadInTicks);
             }
             if (lots == 1)
             {
-                Orders.Reverse.ActiveNow.BuyLimit(bid, increaseLotSize);
-                Orders.Change.ActiveNow.BuyLimit(bid - reduceSpread, increaseLotSize, maxLevels - 1, reduceSpreadInTicks);
+                Orders.Reverse.ActiveNow.BuyLimit(bid, lotSize);
+                Orders.Change.ActiveNow.BuyLimit(bid - reduceSpread, lotSize, maxLevels - 1, reduceSpreadInTicks);
             }
             else
             {
-                Orders.Change.ActiveNow.BuyLimit(bid, increaseLotSize, maxLevels, reduceSpreadInTicks);
+                Orders.Change.ActiveNow.BuyLimit(bid, lotSize, maxLevels, reduceSpreadInTicks);
             }
         }
 
@@ -486,12 +485,6 @@ namespace TickZoom.Examples
         {
             get { return isVisible; }
             set { isVisible = value; }
-        }
-
-        public int IncreaseLotSize
-        {
-            get { return increaseLotSize; }
-            set { increaseLotSize = value; }
         }
 
         public Bars Seconds
