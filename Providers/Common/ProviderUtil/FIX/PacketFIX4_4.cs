@@ -41,7 +41,6 @@ namespace TickZoom.FIX
 		
 		string massStatusRequestId = null;
 		string orderStatus = null;
-		string text = null;
 		string destination = null;
 		int orderQuantity = 0;
 		double averagePrice = 0D;
@@ -73,7 +72,6 @@ namespace TickZoom.FIX
 
             massStatusRequestId = null;
             orderStatus = null;
-            text = null;
             destination = null;
             orderQuantity = 0;
             averagePrice = 0D;
@@ -153,9 +151,6 @@ namespace TickZoom.FIX
 				case 55:
 					result = GetString(out symbol);
 					break;
-				case 58:
-					result = GetString(out text);
-					break;
 				case 59:
 					result = GetString(out timeInForce);
 					break;
@@ -223,13 +218,6 @@ namespace TickZoom.FIX
 		/// </summary>
 		public string OrderStatus {
 			get { return orderStatus; }
-		}
-		
-		/// <summary>
-		/// 58 Error or other message text from FIX server.
-		/// </summary>
-		public string Text {
-			get { return text; }
 		}
 		
 		/// <summary>

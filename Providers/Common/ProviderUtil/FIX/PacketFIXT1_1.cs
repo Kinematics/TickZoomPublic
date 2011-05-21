@@ -58,12 +58,14 @@ namespace TickZoom.FIX
 		private string version = null;
 		private int begSeqNum;
 		private int endSeqNum;
-		private int length = 0;
+        string text = null;
+        private int length = 0;
 		private string messageType = null;
 		private string sender = null;
 		private string target = null;
 		private int sequence = 0;
-		private string timeStamp = null;
+        private int referenceSequence = 0;
+        private string timeStamp = null;
 		private int checkSum = 0;
 		private bool isPossibleDuplicate = false;
 		public static bool IsQuietRecovery = false;
@@ -90,7 +92,8 @@ namespace TickZoom.FIX
             isResetSeqNum = false;
             encryption = null;
 		    version = null;
-		    begSeqNum = 0;
+            text = null;
+            begSeqNum = 0;
 		    endSeqNum = 0;
 		    length = 0;
 		    messageType = null;
@@ -374,18 +377,20 @@ namespace TickZoom.FIX
 					result = GetString(out target);
 					break;
 				case 34:
-                    //if( !sequenceLocker.TryLock())
-                    //{
-                    //    throw new InvalidOperationException("Unable to lock message from " + sender + " sequence " + sequence + "?");
-                    //}
 					result = GetInt(out sequence);
                     break;
-				case 52:
+                case 45:
+                    result = GetInt(out referenceSequence);
+                    break;
+                case 52:
 					result = GetString(out timeStamp);
 					if( result) {
 						sendUtcTime = new TimeStamp(timeStamp).Internal;
 					}
 					break;
+                case 58:
+                    result = GetString(out text);
+                    break;
                 case 98:
                     result = GetString(out encryption);
                     break;
@@ -429,6 +434,11 @@ namespace TickZoom.FIX
 		public int Sequence {
 			get { return sequence; }
 		}
+
+        public int ReferenceSequence
+        {
+            get { return referenceSequence; }
+        }
 
         public string Encryption
         {
@@ -507,6 +517,14 @@ namespace TickZoom.FIX
         public bool IsGapFill
         {
             get { return isGapFill; }
+        }
+
+        /// <summary>
+        /// 58 Error or other message text from FIX server.
+        /// </summary>
+        public string Text
+        {
+            get { return text; }
         }
 
         public bool IsResetSeqNum

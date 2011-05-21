@@ -351,6 +351,9 @@ namespace TickZoom.FIX
                                         case "4": // gap fill
                                             HandleGapFill(messageFIX);
                                             break;
+                                        case "3": // reject
+                                            HandleReject(messageFIX);
+                                            break;
                                         default:
                                             ReceiveMessage(messageFIX);
                                             break;
@@ -422,6 +425,24 @@ namespace TickZoom.FIX
             isResendComplete = true;
             TryRequestResend(packetFIX);
             if (debug) log.Debug("Received gap fill. Setting next sequence = " + remoteSequence);
+        }
+
+        private void HandleReject(MessageFIXT1_1 packetFIX)
+        {
+            if (packetFIX.Text.Contains("Sending Time Accuracy problem"))
+            {
+                if (debug) log.Debug("Found Sending Time Accuracy message request for message: " + packetFIX.ReferenceSequence );
+                FIXTMessage1_1 textMessage;
+                if (!fixFactory.TryGetHistory(packetFIX.ReferenceSequence, out textMessage))
+                {
+                    log.Warn("Unable to find message " + packetFIX.ReferenceSequence + ". This is probably due to before prior to recent restart. Ignoring.");
+                }
+                else
+                {
+                    SendMessageInternal( textMessage);
+                }
+            }  // ResetSeqNo
+            throw new ApplicationException("Received administrative reject message with unrecognized error message: " + packetFIX);
         }
 
         private bool CheckFailedLoginFile()
