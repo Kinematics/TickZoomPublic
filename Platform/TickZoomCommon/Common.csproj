@@ -83,6 +83,7 @@
     <Compile Include="Interceptors\FillHandlerDefault.cs" />
     <Compile Include="Interceptors\FillManager.cs" />
     <Compile Include="Interceptors\FillSimulatorPhysical.cs" />
+    <Compile Include="Interceptors\InternalOrders.cs" />
     <Compile Include="Interceptors\PhysicalFillDefault.cs" />
     <Compile Include="Interceptors\StrategyInterceptor.cs" />
     <Compile Include="ProviderUtilities\Arguments.cs" />

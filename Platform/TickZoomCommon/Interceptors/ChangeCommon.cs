@@ -134,24 +134,29 @@ namespace TickZoom.Interceptors
 	        public void BuyLimit( double price) {
 	        	BuyLimit( price, 1);
 	        }
-	        	
-	        /// <summary>
+
+            public void BuyLimit(double price, int lots)
+            {
+                BuyLimit(price, lots, 1, 1);
+            }
+
+            /// <summary>
 	        /// Create a active buy limit order.
 	        /// </summary>
 	        /// <param name="price">Order price.</param>
 	        /// <param name="positions">Number of positions as in 1, 2, 3, etc. To set the size of a single position, 
 	        ///  use PositionSize.Size.</param>
 	
-	        public void BuyLimit( double price, double lots) {
-	        	if( Strategy.Performance.ComboTrades.Count == 0) {
-	        		throw new TickZoomException("Strategy must have an open combo trade to set a change sell limit.");
-	        	}
-	        	var trade = Strategy.Performance.ComboTrades.Tail;
-	        	if( trade.Completed ) {
-	        		throw new TickZoomException("A current combo trade must be open to set a change sell limit.");
-	        	}
+	        public void BuyLimit( double price, double lots, int levels, int increment) {
+                //if( Strategy.Performance.ComboTrades.Count == 0) {
+                //    throw new TickZoomException("Strategy must have an open combo trade to set a change sell limit.");
+                //}
+                //var trade = Strategy.Performance.ComboTrades.Tail;
+                //if( trade.Completed ) {
+                //    throw new TickZoomException("A current combo trade must be open to set a change sell limit.");
+                //}
 	        	orders.BuyLimit.Price = price;
-	        	orders.BuyLimit.Position = (int) lots;
+                orders.BuyLimit.SetMultiLevels((int) lots, levels,increment);
 	        	if( isNextBar && !orders.BuyLimit.IsActive) {
 	        	orders.BuyLimit.Status = OrderStatus.NextBar;
 	        	} else {
@@ -162,24 +167,29 @@ namespace TickZoom.Interceptors
 	        public void SellLimit( double price) {
 	        	SellLimit( price, 1);
 	        }
-	        	
-	        /// <summary>
+
+            public void SellLimit(double price, int lots)
+            {
+                SellLimit(price, lots, 1, 1);
+            }
+
+            /// <summary>
 	        /// Create a active sell limit order.
 	        /// </summary>
 	        /// <param name="price">Order price.</param>
 	        /// <param name="positions">Number of positions as in 1, 2, 3, etc. To set the size of a single position, 
 	        ///  use PositionSize.Size.</param>
 	
-	        public void SellLimit( double price, double lots) {
-	        	if( Strategy.Performance.ComboTrades.Count == 0) {
-	        		throw new TickZoomException("Strategy must have an open combo trade to set a change sell limit.");
-	        	}
-	        	var trade = Strategy.Performance.ComboTrades[Strategy.Performance.ComboTrades.Current];
-	        	if( trade.Completed ) {
-	        		throw new TickZoomException("Strategy must have an open combo trade to set a change sell limit.");
-	        	}
+	        public void SellLimit( double price, double lots, int levels, int increment) {
+                //if( Strategy.Performance.ComboTrades.Count == 0) {
+                //    throw new TickZoomException("Strategy must have an open combo trade to set a change sell limit.");
+                //}
+                //var trade = Strategy.Performance.ComboTrades[Strategy.Performance.ComboTrades.Current];
+                //if( trade.Completed ) {
+                //    throw new TickZoomException("Strategy must have an open combo trade to set a change sell limit.");
+                //}
 	        	orders.SellLimit.Price = price;
-	        	orders.SellLimit.Position = (int) lots;
+                orders.SellLimit.SetMultiLevels((int)lots, levels,increment);
 	        	if( isNextBar && !orders.SellLimit.IsActive) {
 	        	orders.SellLimit.Status = OrderStatus.NextBar;
 	        	} else {

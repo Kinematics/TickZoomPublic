@@ -82,13 +82,13 @@ namespace TickZoom.Common
 			return sb.ToString();
 		}
 		
-		public PhysicalOrderDefault(OrderState orderState, SymbolInfo symbol, LogicalOrder logical, OrderSide side, int size) {
+		public PhysicalOrderDefault(OrderState orderState, SymbolInfo symbol, LogicalOrder logical, OrderSide side, int size, double price) {
 			this.orderState = orderState;
 		    this.lastStateChange = TimeStamp.UtcNow;
 			this.symbol = symbol;
 			this.side = side;
 			this.type = logical.Type;
-			this.price = logical.Price;
+			this.price = price;
 			this.size = size;
 			this.logicalOrderId = logical.Id;
 			this.logicalSerialNumber = logical.SerialNumber;

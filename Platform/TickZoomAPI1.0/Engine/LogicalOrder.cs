@@ -38,74 +38,104 @@ namespace TickZoom.Api
 	/// <summary>
 	/// Description of OrderCommon.
 	/// </summary>
-	public interface LogicalOrder :  Serializable, IComparable
-	{
-		Action<LogicalOrder> OnModified { get; set; }
-		
-		object Strategy {
-			get;
-		}
-		
-		int StrategyId {
-			get;
-			set;
-		}
-		
-		int StrategyPosition {
-			get;
-			set;
-		}
+    public interface LogicalOrder : Serializable, IComparable
+    {
+        Action<LogicalOrder> OnModified { get; set; }
 
-		OrderType Type {
-			get;
-			set;
-		}
-		
-		TradeDirection TradeDirection {
-			get;
-			set;
-		}
-		
-		double Price {
-			get;
-			set;
-		}
-		
-		int Position {
-			get;
-			set;
-		}
-		
-		OrderStatus Status {
-			get;
-			set;
-		}
-		
-		bool IsActive {
-			get;
-		}
-		
-		bool IsNextBar {
-			get;
-		}
-		
-		string Tag {
-			get;
-			set;
-		}
-		
-		int Id {
-			get;
-		}
-		
-		long SerialNumber {
-			get;
-		}
+        object Strategy
+        {
+            get;
+        }
 
-	    long Recency { get; }
+        int StrategyId
+        {
+            get;
+            set;
+        }
 
-	    TimeStamp UtcChangeTime { get; }
+        int StrategyPosition
+        {
+            get;
+            set;
+        }
+
+        OrderType Type
+        {
+            get;
+            set;
+        }
+
+        TradeDirection TradeDirection
+        {
+            get;
+            set;
+        }
+
+        double Price
+        {
+            get;
+            set;
+        }
+
+        int Position
+        {
+            get;
+            set;
+        }
+
+        OrderStatus Status
+        {
+            get;
+            set;
+        }
+
+        bool IsActive
+        {
+            get;
+        }
+
+        bool IsNextBar
+        {
+            get;
+        }
+
+        string Tag
+        {
+            get;
+            set;
+        }
+
+        int Id
+        {
+            get;
+        }
+
+        long SerialNumber
+        {
+            get;
+        }
+
+        long Recency { get; }
+
+        TimeStamp UtcChangeTime { get; }
 
         bool IsAutoCancel { get; }
+
+	    void SetMultiLevels(int size, int levels, int increment);
+
+        /// <summary>
+        /// How mahy levels for multiple level orders.
+        /// </summary>
+        int Levels { get; }
+
+        /// <summary>
+        /// What size at each level?
+        /// </summary>
+        int LevelSize { get; }
+
+        /// <summary>
+        /// How many minimum ticks between levels of multiple level orders.
+        /// </summary>
+        int LevelIncrement { get; }
     }
 }

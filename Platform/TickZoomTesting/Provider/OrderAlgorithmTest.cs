@@ -66,19 +66,50 @@ namespace Orders
                 }
             }
         }
-		
-		public int CreateLogicalEntry(OrderType type, double price, int size) {
-			LogicalOrder logical = Factory.Engine.LogicalOrder(symbol,strategy);
+
+        public int CreateLogicalEntry(OrderType type, double price, int size)
+        {
+            return CreateLogicalEntry(type, price, size, 1, 0).Id;
+        }
+
+	    public LogicalOrder CreateLogicalEntry(OrderType type, double price, int size, int levels, int increment) {
+			var logical = Factory.Engine.LogicalOrder(symbol,strategy);
 			logical.Status = OrderStatus.Active;
 			logical.TradeDirection = TradeDirection.Entry;
 			logical.Type = type;
 			logical.Price = price;
 			logical.Position = size;
+            if( levels > 1)
+            {
+                logical.SetMultiLevels((int) size, levels, increment);
+            }
 			orders.AddLast(logical);
-			return logical.Id;
+			return logical;
 		}
-		
-		public int CreateLogicalExit(OrderType type, double price) {
+
+        public int CreateLogicalChange(OrderType type, double price, int size)
+        {
+            return CreateLogicalChange(type, price, size, 1, 0).Id;
+        }
+
+        public LogicalOrder CreateLogicalChange(OrderType type, double price, int size, int levels, int increment)
+        {
+            var logical = Factory.Engine.LogicalOrder(symbol, strategy);
+            logical.Status = OrderStatus.Active;
+            logical.TradeDirection = TradeDirection.Change;
+            logical.Type = type;
+            logical.Price = price;
+            logical.Position = size;
+            if (levels > 0)
+            {
+                logical.SetMultiLevels((int) size, levels, increment);
+            }
+            orders.AddLast(logical);
+            return logical;
+        }
+
+        public int CreateLogicalExit(OrderType type, double price)
+        {
 			LogicalOrder logical = Factory.Engine.LogicalOrder(symbol,strategy);
 			logical.Status = OrderStatus.Active;
 			logical.TradeDirection = TradeDirection.Exit;
@@ -87,8 +118,129 @@ namespace Orders
 			orders.AddLast(logical);
 			return logical.Id;
 		}
-		
-		[Test]
+
+        public int CreateLogicalReverse(OrderType type, double price, int size)
+        {
+            return CreateLogicalReverse(type, price, size, 1, 0).Id;
+        }
+
+        public LogicalOrder CreateLogicalReverse(OrderType type, double price, int size, int levels, int increment)
+        {
+            var logical = Factory.Engine.LogicalOrder(symbol, strategy);
+            logical.Status = OrderStatus.Active;
+            logical.TradeDirection = TradeDirection.Reverse;
+            logical.Type = type;
+            logical.Price = price;
+            logical.Position = size;
+            if (levels > 0)
+            {
+                logical.SetMultiLevels((int) size, levels, increment);
+            }
+            orders.AddLast(logical);
+            return logical;
+        }
+
+        private void AssertOrder(OrderType type, int index, int size, double price)
+        {
+            var order = handler.Orders.CreatedOrders[index];
+            Assert.AreEqual(type, order.Type);
+            Assert.AreEqual(price, order.Price);
+            Assert.AreEqual(size, order.Size);
+            AssertBrokerOrder(order.BrokerOrder);
+        }
+
+        [Test]
+        public void TestMultipleLevelChanges()
+        {
+            handler.ClearPhysicalOrders();
+            handler.TrySyncPosition();
+            var sellLimit = CreateLogicalChange(OrderType.SellLimit, 157.12, 1000, 5, 5);
+            var buyLimit = CreateLogicalChange(OrderType.BuyLimit, 154.12, 1000, 5, 5);
+
+            var position = 0;
+            handler.SetActualPosition(position);
+            handler.SetDesiredPosition(position);
+            handler.SetLogicalOrders(orders);
+            handler.PerformCompare();
+
+            Assert.AreEqual(0, handler.Orders.CanceledOrders.Count);
+            Assert.AreEqual(0, handler.Orders.ChangedOrders.Count);
+            Assert.AreEqual(10, handler.Orders.CreatedOrders.Count);
+
+            handler.Orders.CreatedOrders.Sort( (a,b) => a.Price == b.Price ? 0 : a.Price < b.Price ? 1 : -1);
+
+            var price = 157.12.ToLong();
+            var minimumTick = symbol.MinimumTick.ToLong();
+            var count = 0;
+            for (var i = 4; i >= 0; i--)
+            {
+                var levelPrice = price + 5 * minimumTick * i;
+                AssertOrder(OrderType.SellLimit, count, 1000, levelPrice.ToDouble());
+                count++;
+            }
+
+            price = 154.12.ToLong();
+            for (var i = 0; i < 5; i++)
+            {
+                var levelPrice = price - 5*minimumTick*i;
+                AssertOrder(OrderType.BuyLimit, count, 1000, levelPrice.ToDouble());
+                count++;
+            }
+        }
+
+        [Test]
+        public void TestMultipleLevelChangesRolled()
+        {
+            handler.ClearPhysicalOrders();
+            handler.TrySyncPosition();
+            var sellLimit = CreateLogicalChange(OrderType.SellLimit, 157.12, 1000, 5, 5);
+            var buyLimit = CreateLogicalChange(OrderType.BuyLimit, 154.12, 1000, 5, 5);
+
+            var position = 0;
+            handler.SetActualPosition(position);
+            handler.SetDesiredPosition(position);
+            handler.SetLogicalOrders(orders);
+            handler.PerformCompare();
+
+            Assert.AreEqual(0, handler.Orders.CanceledOrders.Count);
+            Assert.AreEqual(0, handler.Orders.ChangedOrders.Count);
+            Assert.AreEqual(10, handler.Orders.CreatedOrders.Count);
+
+            handler.Orders.CreatedOrders.Sort((a, b) => a.Price == b.Price ? 0 : a.Price < b.Price ? 1 : -1);
+
+            var price = 157.12.ToLong();
+            var minimumTick = symbol.MinimumTick.ToLong();
+            var count = 0;
+            for (var i = 4; i >= 0; i--)
+            {
+                var levelPrice = price + 5 * minimumTick * i;
+                AssertOrder(OrderType.SellLimit, count, 1000, levelPrice.ToDouble());
+                count++;
+            }
+
+            price = 154.12.ToLong();
+            for (var i = 0; i < 5; i++)
+            {
+                var levelPrice = price - 5 * minimumTick * i;
+                AssertOrder(OrderType.BuyLimit, count, 1000, levelPrice.ToDouble());
+                count++;
+            }
+
+            sellLimit.Price = 157.17;
+            buyLimit.Price = 154.17;
+
+            handler.Orders.ClearOutputOrders();
+            handler.SetActualPosition(position);
+            handler.SetDesiredPosition(position);
+            handler.SetLogicalOrders(orders);
+            handler.PerformCompare();
+
+            Assert.AreEqual(0, handler.Orders.CanceledOrders.Count);
+            Assert.AreEqual(2, handler.Orders.ChangedOrders.Count);
+            Assert.AreEqual(0, handler.Orders.CreatedOrders.Count);
+        }
+
+        [Test]
 		public void Test01FlatZeroOrders() {
 			handler.ClearPhysicalOrders();
             handler.TrySyncPosition();
@@ -1332,7 +1484,13 @@ namespace Orders
 				CreatedOrders.Clear();
 				inputOrders.Clear();
 			}
-			public void AddPhysicalOrder(PhysicalOrder order)
+            public void ClearOutputOrders()
+            {
+                CanceledOrders.Clear();
+                ChangedOrders.Clear();
+                CreatedOrders.Clear();
+            }
+            public void AddPhysicalOrder(PhysicalOrder order)
 			{
 				inputOrders.Add(order);
 			}

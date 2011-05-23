@@ -34,118 +34,6 @@ using TickZoom.Common;
 
 namespace TickZoom.Interceptors
 {
-    public class InternalOrders
-    {
-        private Strategy strategy;
-        private TradeDirection direction;
-        public InternalOrders(Strategy strategy, TradeDirection direction)
-        {
-            this.strategy = strategy;
-            this.direction = direction;
-        }
-
-        private LogicalOrder buyMarket;
-        public LogicalOrder BuyMarket
-        {
-            get
-            {
-                if (buyMarket == null)
-                {
-                    buyMarket = Factory.Engine.LogicalOrder(strategy.Data.SymbolInfo, strategy);
-                    buyMarket.TradeDirection = direction;
-                    buyMarket.Type = OrderType.BuyMarket;
-                    strategy.AddOrder(buyMarket);
-                }
-                return buyMarket;
-            }
-        }
-        private LogicalOrder sellMarket;
-        public LogicalOrder SellMarket
-        {
-            get
-            {
-                if (sellMarket == null)
-                {
-                    sellMarket = Factory.Engine.LogicalOrder(strategy.Data.SymbolInfo, strategy);
-                    sellMarket.TradeDirection = direction;
-                    sellMarket.Type = OrderType.SellMarket;
-                    strategy.AddOrder(sellMarket);
-                }
-                return sellMarket;
-            }
-        }
-        private LogicalOrder buyStop;
-        public LogicalOrder BuyStop
-        {
-            get
-            {
-                if (buyStop == null)
-                {
-                    buyStop = Factory.Engine.LogicalOrder(strategy.Data.SymbolInfo, strategy);
-                    buyStop.TradeDirection = direction;
-                    buyStop.Type = OrderType.BuyStop;
-                    strategy.AddOrder(buyStop);
-                }
-                return buyStop;
-            }
-        }
-
-        private LogicalOrder sellStop;
-        public LogicalOrder SellStop
-        {
-            get
-            {
-                if (sellStop == null)
-                {
-                    sellStop = Factory.Engine.LogicalOrder(strategy.Data.SymbolInfo, strategy);
-                    sellStop.TradeDirection = direction;
-                    sellStop.Type = OrderType.SellStop;
-                    strategy.AddOrder(sellStop);
-                }
-                return sellStop;
-            }
-        }
-        private LogicalOrder buyLimit;
-        public LogicalOrder BuyLimit
-        {
-            get
-            {
-                if (buyLimit == null)
-                {
-                    buyLimit = Factory.Engine.LogicalOrder(strategy.Data.SymbolInfo, strategy);
-                    buyLimit.TradeDirection = direction;
-                    buyLimit.Type = OrderType.BuyLimit;
-                    strategy.AddOrder(buyLimit);
-                }
-                return buyLimit;
-            }
-        }
-        private LogicalOrder sellLimit;
-        public LogicalOrder SellLimit
-        {
-            get
-            {
-                if (sellLimit == null)
-                {
-                    sellLimit = Factory.Engine.LogicalOrder(strategy.Data.SymbolInfo, strategy);
-                    sellLimit.TradeDirection = direction;
-                    sellLimit.Type = OrderType.SellLimit;
-                    strategy.AddOrder(sellLimit);
-                }
-                return sellLimit;
-            }
-        }
-        public void CancelOrders()
-        {
-            if( buyMarket != null) buyMarket.Status = OrderStatus.AutoCancel;
-            if (sellMarket != null) sellMarket.Status = OrderStatus.AutoCancel;
-            if (buyStop != null) buyStop.Status = OrderStatus.AutoCancel;
-            if (sellStop != null) sellStop.Status = OrderStatus.AutoCancel;
-            if (buyLimit != null) buyLimit.Status = OrderStatus.AutoCancel;
-            if (sellLimit != null) sellLimit.Status = OrderStatus.AutoCancel;
-
-        }
-    }
     public class EnterCommon : StrategySupport
 	{
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(EnterCommon));
@@ -258,27 +146,49 @@ namespace TickZoom.Interceptors
         ///  use PositionSize.Size.</param>
 
         public void BuyLimit( double price, double lots) {
-        	if( Strategy.Position.HasPosition) {
-        		throw new TickZoomException("Strategy must be flat before setting a long limit entry.");
-        	}
+            BuyLimit(price, lots, 1, 1);
+		}
+
+        /// <summary>
+        /// Create a multi-level active buy limit order.
+        /// </summary>
+        /// <param name="price">Order price.</param>
+        /// <param name="positions">Number of positions as in 1, 2, 3, etc. To set the size of a single position, 
+        ///  use PositionSize.Size.</param>
+
+        public void BuyLimit(double price, double lots, int levels, int levelIncrement)
+        {
+            if (Strategy.Position.HasPosition)
+            {
+                throw new TickZoomException("Strategy must be flat before setting a long limit entry.");
+            }
             var trades = Strategy.Performance.ComboTrades;
             if (trades.Count > 0 && !trades.Tail.Completed)
             {
                 throw new TickZoomException("Combo trade must be completed before setting a long limit entry.");
             }
             orders.BuyLimit.Price = price;
-        	orders.BuyLimit.Position = (int) lots;
-        	if( isNextBar && !orders.BuyLimit.IsActive) {
-	        	orders.BuyLimit.Status = OrderStatus.NextBar;
-        	} else {
-        		orders.BuyLimit.Status = OrderStatus.Active;
-        	}
-		}
-        
-        public void SellLimit( double price) {
+            orders.BuyLimit.Position = (int)lots;
+            if (isNextBar && !orders.BuyLimit.IsActive)
+            {
+                orders.BuyLimit.Status = OrderStatus.NextBar;
+            }
+            else
+            {
+                orders.BuyLimit.Status = OrderStatus.Active;
+            }
+        }
+
+        public void SellLimit(double price)
+        {
         	SellLimit( price, 1);
         }
-        	
+
+        public void SellLimit(double price, int lots)
+        {
+            SellLimit(price, lots, 1, 1);
+        }
+
         /// <summary>
         /// Create a active sell limit order.
         /// </summary>
@@ -286,7 +196,7 @@ namespace TickZoom.Interceptors
         /// <param name="positions">Number of positions as in 1, 2, 3, etc. To set the size of a single position, 
         ///  use PositionSize.Size.</param>
 
-        public void SellLimit( double price, double lots) {
+        public void SellLimit( double price, double lots, int levels, int increment) {
         	if( Strategy.Position.HasPosition) {
         		throw new TickZoomException("Strategy must be flat before setting a short limit entry.");
         	}
