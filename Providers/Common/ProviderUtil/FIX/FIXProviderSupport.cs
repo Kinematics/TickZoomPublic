@@ -360,7 +360,6 @@ namespace TickZoom.FIX
                                     }
                                     orderStore.UpdateSequence(remoteSequence, fixFactory.LastSequence);
                                 }
-                                //messageFIX.sequenceLocker.Unlock();
                                 Socket.MessageFactory.Release(message);
                                 IncreaseRetryTimeout();
 								return Yield.DidWork.Repeat;
@@ -435,14 +434,21 @@ namespace TickZoom.FIX
                 FIXTMessage1_1 textMessage;
                 if (!fixFactory.TryGetHistory(packetFIX.ReferenceSequence, out textMessage))
                 {
-                    log.Warn("Unable to find message " + packetFIX.ReferenceSequence + ". This is probably due to before prior to recent restart. Ignoring.");
+                    log.Warn("Unable to find message " + packetFIX.ReferenceSequence + ". This is probably due to being prior to recent restart. Ignoring.");
                 }
                 else
                 {
+                    log.Warn("Sending Time Accuracy Problem -- Resending Message.");
+                    textMessage.Sequence = fixFactory.GetNextSequence();
+                    textMessage.SetDuplicate(true);
                     SendMessageInternal( textMessage);
                 }
-            }  // ResetSeqNo
-            throw new ApplicationException("Received administrative reject message with unrecognized error message: " + packetFIX);
+                return;
+            }
+            else
+            {
+                throw new ApplicationException("Received administrative reject message with unrecognized error message: '" + packetFIX.Text + "'");
+            }
         }
 
         private bool CheckFailedLoginFile()

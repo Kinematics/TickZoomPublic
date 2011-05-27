@@ -218,13 +218,13 @@ namespace TickZoom.MBTFIX
 			}
 		}
 	
-
 		private void RequestPositions() {
 			var fixMsg = (FIXMessage4_4) FixFactory.Create();
 			fixMsg.SetSubscriptionRequestType(0);
 			fixMsg.SetAccount(AccountNumber);
 			fixMsg.SetPositionRequestId(1);
 			fixMsg.SetPositionRequestType(0);
+            //fixMsg.SetSubscriptionRequestType(1);
 			fixMsg.AddHeader("AN");
 			SendMessage(fixMsg);
 		}

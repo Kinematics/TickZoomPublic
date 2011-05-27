@@ -31,7 +31,7 @@ namespace TickZoom.Examples
         private int reduceSpreadInTicks = 5;
         private double reduceSpread;
         private double increaseSpread;
-        private int lotSize = 2000;
+        private int lotSize = 1000;
         double ask, marketAsk;
         double bid, marketBid;
         private Action<SimpleStrategy> onDirectionChange;

@@ -293,8 +293,7 @@ namespace TickZoom.Common
 				physical.Size : - physical.Size;
 			var delta = logicalPosition - strategyPosition;
 			var difference = delta - physicalPosition;
-			if( delta == 0 || strategyPosition == 0 ||
-			  strategyPosition > 0 && logicalPosition > 0 ||
+			if( delta == 0 || strategyPosition > 0 && logicalPosition > 0 ||
 			  strategyPosition < 0 && logicalPosition < 0) {
 				TryCancelBrokerOrder(physical);
 			} else if( difference != 0) {
