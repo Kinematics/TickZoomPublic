@@ -35,55 +35,33 @@ namespace TickZoom.Api
 		Suspended,
 		Filled
 	}
-	public interface PhysicalOrder
-	{
+
+    public enum OrderAction
+    {
+        Create = 1,
+        Change = 2,
+        Cancel = 4
+    }
+
+    public interface PhysicalOrder
+    {
+        OrderAction Action { get; }
+
+        SymbolInfo Symbol { get; }
+
         OrderState OrderState
         {
-            get; set; }
-		
-		SymbolInfo Symbol {
-			get;
-		}
-		
-		OrderSide Side {
-			get;
-		}
-		
-		OrderType Type {
-			get;
-		}
-		
-		double Price {
-			get;
-		}
-		
-		int Size {
-			get;
-			set;
-		}
-		
-		int LogicalOrderId {
-			get;
-		}
-		
-		long LogicalSerialNumber {
-			get;
-		}
+            get;
+            set;
+        }
 
-		string BrokerOrder {
-			get;
-			set;
-		}
-		
-		PhysicalOrder Replace {
-			get;
-			set;
-		}
-
-        string Tag
+        string BrokerOrder
         {
             get;
+            set;
         }
+
+        string Tag { get; }
 
         object Reference
         {
@@ -91,8 +69,33 @@ namespace TickZoom.Api
             set;
         }
 
-	    TimeStamp LastStateChange { get; }
+        CreateOrChangeOrder OriginalOrder
+        {
+            get;
+            set;
+        }
 
-	    TimeStamp UtcCreateTime { get; }
+        TimeStamp LastStateChange { get; }
+
+        TimeStamp UtcCreateTime { get; }
+    }
+
+	public interface CreateOrChangeOrder : PhysicalOrder
+	{
+
+	    OrderSide Side { get; }
+
+	    OrderType Type { get; }
+
+	    double Price { get; }
+		
+		int Size {
+			get;
+			set;
+		}
+
+	    int LogicalOrderId { get; }
+
+	    long LogicalSerialNumber { get; }
     }
 }

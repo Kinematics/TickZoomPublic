@@ -141,7 +141,7 @@
     <Compile Include="ProviderUtilities\OrderAlgorithmDefault.cs" />
     <Compile Include="ProviderUtilities\AssemblyAttributes.cs" />
     <Compile Include="ProviderUtilities\CommandLine.cs" />
-    <Compile Include="ProviderUtilities\PhysicalOrderDefault.cs" />
+    <Compile Include="ProviderUtilities\CreateOrChangeOrderDefault.cs" />
     <Compile Include="ProviderUtilities\ProjectInstaller.cs">
       <SubType>Component</SubType>
     </Compile>

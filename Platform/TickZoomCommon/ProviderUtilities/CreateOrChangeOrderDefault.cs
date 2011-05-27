@@ -35,7 +35,9 @@ using TickZoom.Api;
 
 namespace TickZoom.Common
 {
-	public struct PhysicalOrderDefault : PhysicalOrder {
+	public struct CreateOrChangeOrderDefault : CreateOrChangeOrder
+	{
+	    private OrderAction action;
 		private OrderState orderState;
 	    private TimeStamp lastStateChange;
 		private SymbolInfo symbol;
@@ -48,7 +50,7 @@ namespace TickZoom.Common
 		private string brokerOrder;
 		private string tag;
         private object reference;
-		private PhysicalOrder replace;
+		private CreateOrChangeOrder _originalOrder;
 	    private TimeStamp utcCreateTime;
 		
 		public override string ToString()
@@ -81,8 +83,29 @@ namespace TickZoom.Common
 			}
 			return sb.ToString();
 		}
+
+        public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, CreateOrChangeOrder origOrder)
+        {
+            this.action = OrderAction.Cancel;
+            this.orderState = orderState;
+            this.lastStateChange = TimeStamp.UtcNow;
+            this.symbol = symbol;
+            this.side = default(OrderSide);
+            this.type = default(OrderType);
+            this.price = 0D;
+            this.size = 0;
+            this.logicalOrderId = 0;
+            this.logicalSerialNumber = 0L;
+            this.tag = null;
+            this.reference = null;
+            this._originalOrder = origOrder;
+            this.brokerOrder = CreateBrokerOrderId(logicalOrderId);
+            this.utcCreateTime = TimeStamp.UtcNow;
+        }
 		
-		public PhysicalOrderDefault(OrderState orderState, SymbolInfo symbol, LogicalOrder logical, OrderSide side, int size, double price) {
+		public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, LogicalOrder logical, OrderSide side, int size, double price)
+		{
+		    this.action = OrderAction.Create;
 			this.orderState = orderState;
 		    this.lastStateChange = TimeStamp.UtcNow;
 			this.symbol = symbol;
@@ -94,18 +117,20 @@ namespace TickZoom.Common
 			this.logicalSerialNumber = logical.SerialNumber;
 			this.tag = logical.Tag;
 			this.reference = null;
-			this.replace = null;
+			this._originalOrder = null;
 			this.brokerOrder = CreateBrokerOrderId(logicalOrderId);
 		    this.utcCreateTime = logical.UtcChangeTime;
 		}
 
-        public PhysicalOrderDefault(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag)
+        public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag)
             : this( orderState, symbol, side, type, price, size, logicalOrderId, logicalSerialNumber, brokerOrder, tag, TimeStamp.UtcNow)
         {
 
         }
 
-	    public PhysicalOrderDefault(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag, TimeStamp utcCreateTime) {
+	    public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag, TimeStamp utcCreateTime)
+	    {
+	        this.action = OrderAction.Create;
 			this.orderState = orderState;
 		    this.lastStateChange = TimeStamp.UtcNow;
 			this.symbol = symbol;
@@ -118,7 +143,7 @@ namespace TickZoom.Common
 			this.tag = tag;
 			this.brokerOrder = brokerOrder;
 			this.reference = null;
-			this.replace = null;
+			this._originalOrder = null;
 			if( this.brokerOrder == null) {
 				this.brokerOrder = CreateBrokerOrderId(logicalOrderId);
 			}
@@ -186,9 +211,15 @@ namespace TickZoom.Common
 			set { reference = value; }
 		}
 		
-		public PhysicalOrder Replace {
-			get { return replace; }
-			set { replace = value; }
+		public CreateOrChangeOrder OriginalOrder {
+			get { return _originalOrder; }
+			set {
+                if( value != null)
+                {
+                    action = OrderAction.Change;
+                }
+                _originalOrder = value;
+            }
 		}
 
 	    public TimeStamp LastStateChange
@@ -199,6 +230,11 @@ namespace TickZoom.Common
 	    public TimeStamp UtcCreateTime
 	    {
 	        get { return utcCreateTime; }
+	    }
+
+	    public OrderAction Action
+	    {
+	        get { return action; }
 	    }
 	}
 }

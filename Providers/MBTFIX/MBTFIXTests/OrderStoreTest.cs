@@ -175,7 +175,7 @@ namespace Test
             type = OrderType.BuyLimit;
             var order2 = Factory.Utility.PhysicalOrder(state, symbolInfo, side, type,
                                                       price, size, logicalId, logicalSerial, clientId2, null);
-            order1.Replace = order2;
+            order1.OriginalOrder = order2;
 
             using (var store = new PhysicalOrderStore("OrderStoreTest"))
             {
@@ -219,7 +219,7 @@ namespace Test
                 Assert.AreEqual(order2.Side, result2.Side);
                 Assert.AreEqual(order2.Type, result2.Type);
                 Assert.AreEqual(order2.LogicalSerialNumber, result2.LogicalSerialNumber);
-                Assert.IsTrue(object.ReferenceEquals(result1.Replace,result2));
+                Assert.IsTrue(object.ReferenceEquals(result1.OriginalOrder,result2));
             }
         }
 
@@ -254,7 +254,7 @@ namespace Test
             type = OrderType.BuyLimit;
             var order2 = Factory.Utility.PhysicalOrder(state, symbolInfo, side, type,
                                                       price, size, logicalId, logicalSerial, clientId2, null);
-            order1.Replace = order2;
+            order1.OriginalOrder = order2;
 
             using (var store = new PhysicalOrderStore("OrderStoreTest"))
             {
@@ -303,7 +303,7 @@ namespace Test
                 Assert.AreEqual(order2.Side, result2.Side);
                 Assert.AreEqual(order2.Type, result2.Type);
                 Assert.AreEqual(order2.LogicalSerialNumber, result2.LogicalSerialNumber);
-                Assert.IsTrue(object.ReferenceEquals(result1.Replace, result2));
+                Assert.IsTrue(object.ReferenceEquals(result1.OriginalOrder, result2));
             }
         }
     }

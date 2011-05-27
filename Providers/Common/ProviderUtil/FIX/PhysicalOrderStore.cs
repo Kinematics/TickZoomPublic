@@ -10,7 +10,7 @@ namespace TickZoom.FIX
     public class LogicalOrderReference
     {
         public long LogicalSerialNumber;
-        public PhysicalOrder PhysicalOrder;
+        public CreateOrChangeOrder CreateOrChangeOrder;
     }
     public class PhysicalOrderStore : IDisposable
     {
@@ -18,8 +18,8 @@ namespace TickZoom.FIX
         private static readonly bool info = log.IsDebugEnabled;
         private static readonly bool debug = log.IsDebugEnabled;
         private static readonly bool trace = log.IsTraceEnabled;
-        private Dictionary<string, PhysicalOrder> ordersByBrokerId = new Dictionary<string, PhysicalOrder>();
-        private Dictionary<long, PhysicalOrder> ordersBySerial = new Dictionary<long, PhysicalOrder>();
+        private Dictionary<string, CreateOrChangeOrder> ordersByBrokerId = new Dictionary<string, CreateOrChangeOrder>();
+        private Dictionary<long, CreateOrChangeOrder> ordersBySerial = new Dictionary<long, CreateOrChangeOrder>();
         private TaskLock ordersLocker = new TaskLock();
         private int pendingExpireSeconds = 3;
         private string databasePath;
@@ -27,8 +27,8 @@ namespace TickZoom.FIX
         private MemoryStream memory = null;
         private BinaryWriter writer = null;
         private BinaryReader reader = null;
-        private Dictionary<PhysicalOrder, int> unique = new Dictionary<PhysicalOrder, int>();
-        private Dictionary<int,PhysicalOrder> uniqueIds = new Dictionary<int,PhysicalOrder>();
+        private Dictionary<CreateOrChangeOrder, int> unique = new Dictionary<CreateOrChangeOrder, int>();
+        private Dictionary<int,CreateOrChangeOrder> uniqueIds = new Dictionary<int,CreateOrChangeOrder>();
         private Dictionary<int,int> replaceIds = new Dictionary<int,int>();
         private int uniqueId = 0;
         private long snapshotTimer;
@@ -85,7 +85,7 @@ namespace TickZoom.FIX
             get { return localSequence; }
         }
 
-        private void AddUniqueOrder(PhysicalOrder order)
+        private void AddUniqueOrder(CreateOrChangeOrder order)
         {
             int id;
             if( !unique.TryGetValue(order, out id))
@@ -226,9 +226,9 @@ namespace TickZoom.FIX
                 {
                     var order = kvp.Value;
                     AddUniqueOrder(order);
-                    if (order.Replace != null)
+                    if (order.OriginalOrder != null)
                     {
-                        AddUniqueOrder(order.Replace);
+                        AddUniqueOrder(order.OriginalOrder);
                     }
                 }
 
@@ -236,9 +236,9 @@ namespace TickZoom.FIX
                 {
                     var order = kvp.Value;
                     AddUniqueOrder(order);
-                    if (order.Replace != null)
+                    if (order.OriginalOrder != null)
                     {
-                        AddUniqueOrder(order.Replace);
+                        AddUniqueOrder(order.OriginalOrder);
                     }
                 }
 
@@ -253,9 +253,9 @@ namespace TickZoom.FIX
                     writer.Write(order.LogicalSerialNumber);
                     writer.Write((int)order.OrderState);
                     writer.Write(order.Price);
-                    if (order.Replace != null)
+                    if (order.OriginalOrder != null)
                     {
-                        writer.Write(unique[order.Replace]);
+                        writer.Write(unique[order.OriginalOrder]);
                     }
                     else
                     {
@@ -420,7 +420,7 @@ namespace TickZoom.FIX
                 {
                     var orderId = kvp.Key;
                     var replaceId = kvp.Value;
-                    uniqueIds[orderId].Replace = uniqueIds[replaceId];
+                    uniqueIds[orderId].OriginalOrder = uniqueIds[replaceId];
                 }
 
                 using (ordersLocker.Using())
@@ -461,7 +461,7 @@ namespace TickZoom.FIX
             }
         }
 
-        public bool TryGetOrderById(string brokerOrder, out PhysicalOrder order)
+        public bool TryGetOrderById(string brokerOrder, out CreateOrChangeOrder order)
         {
             if( brokerOrder == null)
             {
@@ -474,11 +474,11 @@ namespace TickZoom.FIX
             }
         }
 
-        public PhysicalOrder GetOrderById(string brokerOrder)
+        public CreateOrChangeOrder GetOrderById(string brokerOrder)
         {
             using (ordersLocker.Using())
             {
-                PhysicalOrder order;
+                CreateOrChangeOrder order;
                 if (!ordersByBrokerId.TryGetValue((string) brokerOrder, out order))
                 {
                     throw new ApplicationException("Unable to find order for id: " + brokerOrder);
@@ -487,7 +487,7 @@ namespace TickZoom.FIX
             }
         }
 
-        public PhysicalOrder RemoveOrder(string clientOrderId)
+        public CreateOrChangeOrder RemoveOrder(string clientOrderId)
         {
             if (string.IsNullOrEmpty(clientOrderId))
             {
@@ -496,12 +496,12 @@ namespace TickZoom.FIX
             using (ordersLocker.Using())
             {
                 TrySnapshot();
-                PhysicalOrder order = null;
+                CreateOrChangeOrder order = null;
                 if (ordersByBrokerId.TryGetValue(clientOrderId, out order))
                 {
                     var result = ordersByBrokerId.Remove(clientOrderId);
                     if( trace) log.Trace("Removed " + clientOrderId);
-                    PhysicalOrder orderBySerial;
+                    CreateOrChangeOrder orderBySerial;
                     if( ordersBySerial.TryGetValue(order.LogicalSerialNumber, out orderBySerial))
                     {
                         if( orderBySerial.BrokerOrder.Equals(clientOrderId))
@@ -515,7 +515,7 @@ namespace TickZoom.FIX
             }
         }
 
-        public bool TryGetOrderBySerial(long logicalSerialNumber, out PhysicalOrder order)
+        public bool TryGetOrderBySerial(long logicalSerialNumber, out CreateOrChangeOrder order)
         {
             using (ordersLocker.Using())
             {
@@ -523,11 +523,11 @@ namespace TickZoom.FIX
             }
         }
 
-        public PhysicalOrder GetOrderBySerial(long logicalSerialNumber)
+        public CreateOrChangeOrder GetOrderBySerial(long logicalSerialNumber)
         {
             using (ordersLocker.Using())
             {
-                PhysicalOrder order;
+                CreateOrChangeOrder order;
                 if (!ordersBySerial.TryGetValue(logicalSerialNumber, out order))
                 {
                     throw new ApplicationException("Unable to find order by serial for id: " + logicalSerialNumber);
@@ -546,7 +546,7 @@ namespace TickZoom.FIX
             }
         }
 
-        public void AssignById(PhysicalOrder order, int remoteSequence, int localSequence)
+        public void AssignById(CreateOrChangeOrder order, int remoteSequence, int localSequence)
         {
             using (ordersLocker.Using())
             {
@@ -564,7 +564,7 @@ namespace TickZoom.FIX
 
         public void ClearPendingOrders(SymbolInfo symbol)
         {
-            var remove = new List<PhysicalOrder>();
+            var remove = new List<CreateOrChangeOrder>();
             using (ordersLocker.Using())
             {
                 foreach (var kvp in ordersByBrokerId)
@@ -583,10 +583,10 @@ namespace TickZoom.FIX
             }
         }
 
-        public List<PhysicalOrder> GetOrders(Func<PhysicalOrder,bool> select)
+        public List<CreateOrChangeOrder> GetOrders(Func<CreateOrChangeOrder,bool> select)
         {
-            var list = new List<PhysicalOrder>();
-            var remove = new List<PhysicalOrder>();
+            var list = new List<CreateOrChangeOrder>();
+            var remove = new List<CreateOrChangeOrder>();
             using (ordersLocker.Using())
             {
                 foreach (var kvp in ordersByBrokerId)

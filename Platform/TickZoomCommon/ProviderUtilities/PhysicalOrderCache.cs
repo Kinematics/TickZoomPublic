@@ -8,7 +8,7 @@ namespace TickZoom.Common
         private readonly bool trace = staticLog.IsTraceEnabled;
         private readonly bool debug = staticLog.IsDebugEnabled;
         private Log log;
-        private ActiveList<PhysicalOrder> createOrderQueue = new ActiveList<PhysicalOrder>();
+        private ActiveList<CreateOrChangeOrder> createOrderQueue = new ActiveList<CreateOrChangeOrder>();
         private ActiveList<string> cancelOrderQueue = new ActiveList<string>();
 
         public PhysicalOrderCache(string name, SymbolInfo symbol)
@@ -16,12 +16,12 @@ namespace TickZoom.Common
             this.log = Factory.SysLog.GetLogger(typeof(PhysicalOrderCache).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name);
         }
 
-        public Iterable<PhysicalOrder> CreateOrderQueue
+        public Iterable<CreateOrChangeOrder> CreateOrderQueue
         {
             get { return createOrderQueue; }
         }
 
-        private bool HasCreateOrder(PhysicalOrder order)
+        private bool HasCreateOrder(CreateOrChangeOrder order)
         {
             for (var current = CreateOrderQueue.First; current != null; current = current.Next)
             {
@@ -49,7 +49,7 @@ namespace TickZoom.Common
             return false;
         }
 
-        public bool AddCreateOrder(PhysicalOrder order)
+        public bool AddCreateOrder(CreateOrChangeOrder order)
         {
             var result = !HasCreateOrder(order);
             if( !result)

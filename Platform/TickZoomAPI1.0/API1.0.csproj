@@ -212,7 +212,7 @@
     <Compile Include="Provider\Message.cs" />
     <Compile Include="Provider\MessageFactory.cs" />
     <Compile Include="Provider\FillSimulator.cs" />
-    <Compile Include="Provider\PhysicalOrder.cs" />
+    <Compile Include="Provider\CreateOrChangeOrder.cs" />
     <Compile Include="Provider\PhysicalOrderHandler.cs" />
     <Compile Include="Provider\Provider.cs" />
     <Compile Include="Provider\ProviderService.cs" />

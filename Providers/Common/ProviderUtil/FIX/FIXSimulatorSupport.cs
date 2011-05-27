@@ -606,7 +606,7 @@ namespace TickZoom.FIX
 			return realTimeOffset;
 		}
 
-		public void AddSymbol(string symbol, Action<Message, SymbolInfo, Tick> onTick, Action<PhysicalFill,int,int,int> onPhysicalFill, Action<PhysicalOrder,string> onOrderReject)
+		public void AddSymbol(string symbol, Action<Message, SymbolInfo, Tick> onTick, Action<PhysicalFill,int,int,int> onPhysicalFill, Action<CreateOrChangeOrder,string> onOrderReject)
 		{
 			var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
 			if (!symbolHandlers.ContainsKey(symbolInfo.BinaryIdentifier)) {
@@ -621,13 +621,13 @@ namespace TickZoom.FIX
 			return symbolHandler.ActualPosition;
 		}
 
-		public void CreateOrder(PhysicalOrder order)
+		public void CreateOrder(CreateOrChangeOrder order)
 		{
 			var symbolHandler = symbolHandlers[order.Symbol.BinaryIdentifier];
 			symbolHandler.CreateOrder(order);
 		}
 
-		public void ChangeOrder(PhysicalOrder order, string origBrokerOrder)
+		public void ChangeOrder(CreateOrChangeOrder order, string origBrokerOrder)
 		{
 			var symbolHandler = symbolHandlers[order.Symbol.BinaryIdentifier];
 			symbolHandler.ChangeOrder(order, origBrokerOrder);
@@ -639,7 +639,7 @@ namespace TickZoom.FIX
 			symbolHandler.CancelOrder( origBrokerOrder);
 		}
 		
-		public PhysicalOrder GetOrderById(SymbolInfo symbol, string clientOrderId) {
+		public CreateOrChangeOrder GetOrderById(SymbolInfo symbol, string clientOrderId) {
 			var symbolHandler = symbolHandlers[symbol.BinaryIdentifier];
 			return symbolHandler.GetOrderById(clientOrderId);
 		}

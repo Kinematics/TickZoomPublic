@@ -58,7 +58,7 @@ namespace TickZoom.FIX
 		    bool isPlayBack, string symbolString,
 		    Action<Message,SymbolInfo,Tick> onTick,
 		    Action<PhysicalFill, int,int,int> onPhysicalFill,
-		    Action<PhysicalOrder,string> onRejectOrder) {
+		    Action<CreateOrChangeOrder,string> onRejectOrder) {
 			this.fixSimulatorSupport = fixSimulatorSupport;
 			this.isPlayBack = isPlayBack;
 			this.onTick = onTick;
@@ -113,13 +113,13 @@ namespace TickZoom.FIX
 			}
 		}
 		
-		public void CreateOrder(PhysicalOrder order) {
+		public void CreateOrder(CreateOrChangeOrder order) {
 			FillSimulator.OnCreateBrokerOrder( order);
             //log.Info("Previously Called ProcessOrders.");
             //FillSimulator.ProcessOrders();
 		}
 		
-		public void ChangeOrder(PhysicalOrder order, string origBrokerOrder) {
+		public void ChangeOrder(CreateOrChangeOrder order, string origBrokerOrder) {
 			FillSimulator.OnChangeBrokerOrder( order, origBrokerOrder);
             //log.Info("Previously Called ProcessOrders.");
             //FillSimulator.ProcessOrders();
@@ -132,7 +132,7 @@ namespace TickZoom.FIX
             //FillSimulator.ProcessOrders();
         }
 		
-		public PhysicalOrder GetOrderById(string clientOrderId) {
+		public CreateOrChangeOrder GetOrderById(string clientOrderId) {
 			return FillSimulator.GetOrderById( clientOrderId);
 		}
 		

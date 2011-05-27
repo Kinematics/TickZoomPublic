@@ -33,13 +33,13 @@ namespace TickZoom.Common
 	[Diagram(AttributeExclude=true)]
 	public class UtilityFactoryDefault : UtilityFactory
 	{
-		public PhysicalOrder PhysicalOrder( OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, object brokerOrder, object tag) {
-			return new PhysicalOrderDefault(orderState, symbol,side,type,price,size,logicalOrderId,logicalSerialNumber,(string) brokerOrder,(string) tag);
+		public CreateOrChangeOrder PhysicalOrder( OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, object brokerOrder, object tag) {
+			return new CreateOrChangeOrderDefault(orderState, symbol,side,type,price,size,logicalOrderId,logicalSerialNumber,(string) brokerOrder,(string) tag);
 		}
 
-        public PhysicalOrder PhysicalOrder(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, object brokerOrder, object tag, TimeStamp utcCreateTime)
+        public CreateOrChangeOrder PhysicalOrder(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, object brokerOrder, object tag, TimeStamp utcCreateTime)
         {
-            return new PhysicalOrderDefault(orderState, symbol, side, type, price, size, logicalOrderId, logicalSerialNumber, (string)brokerOrder, (string)tag, utcCreateTime);
+            return new CreateOrChangeOrderDefault(orderState, symbol, side, type, price, size, logicalOrderId, logicalSerialNumber, (string)brokerOrder, (string)tag, utcCreateTime);
         }
 
         public ProviderService CommandLineProcess()
@@ -75,7 +75,7 @@ namespace TickZoom.Common
 			return new PositionCommon(model);
 		}
 		
-		public PhysicalFill PhysicalFill(int size, double price, TimeStamp time, TimeStamp utcTime, PhysicalOrder order, bool isSimulated) {
+		public PhysicalFill PhysicalFill(int size, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order, bool isSimulated) {
 			return new PhysicalFillDefault(size,price,time,utcTime,order,isSimulated);
 		}
 		

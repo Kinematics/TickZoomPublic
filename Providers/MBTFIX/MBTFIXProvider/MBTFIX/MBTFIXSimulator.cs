@@ -127,7 +127,7 @@ namespace TickZoom.MBTFIX
 		
 		private void FIXChangeOrder(MessageFIX4_4 packet) {
 			var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
-			PhysicalOrder origOrder = null;
+			CreateOrChangeOrder origOrder = null;
 			if( debug) log.Debug( "FIXChangeOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId + ". Original client id: " + packet.OriginalClientOrderId);
 			try {
 				origOrder = GetOrderById( symbol, packet.OriginalClientOrderId);
@@ -162,7 +162,7 @@ namespace TickZoom.MBTFIX
 		private Yield FIXCancelOrder(MessageFIX4_4 packet) {
 			var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
 			if( debug) log.Debug( "FIXCancelOrder() for " + packet.Symbol + ". Original client id: " + packet.OriginalClientOrderId);
-			PhysicalOrder order = null;
+			CreateOrChangeOrder order = null;
 			try {
 				order = GetOrderById( symbol, packet.OriginalClientOrderId);
 			} catch( ApplicationException) {
@@ -197,7 +197,7 @@ namespace TickZoom.MBTFIX
 			return Yield.DidWork.Repeat;
 		}
 		
-		private PhysicalOrder ConstructOrder(MessageFIX4_4 packet, string clientOrderId) {
+		private CreateOrChangeOrder ConstructOrder(MessageFIX4_4 packet, string clientOrderId) {
 			if( string.IsNullOrEmpty(clientOrderId)) {
 				var message = "Client order id was null or empty. FIX Message is: " + packet;
 				log.Error(message);
@@ -283,7 +283,7 @@ namespace TickZoom.MBTFIX
 			SendExecutionReport( fill.Order, orderStatus, "F", fill.Price, totalSize, cumulativeSize, fill.Size, remainingSize, fill.UtcTime, null);
 		}
 
-		private void OnRejectOrder( PhysicalOrder order, string error)
+		private void OnRejectOrder( CreateOrChangeOrder order, string error)
 		{
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetAccount( "33006566");
@@ -310,12 +310,12 @@ namespace TickZoom.MBTFIX
 			if(debug) log.Debug("Sending position update: " + mbtMsg);
         }	
 
-		private void SendExecutionReport(PhysicalOrder order, string status, double price, int orderQty, int cumQty, int lastQty, int leavesQty, TimeStamp time, MessageFIX4_4 packet)
+		private void SendExecutionReport(CreateOrChangeOrder order, string status, double price, int orderQty, int cumQty, int lastQty, int leavesQty, TimeStamp time, MessageFIX4_4 packet)
 		{
 		    SendExecutionReport(order, status, status, price, orderQty, cumQty, lastQty, leavesQty, time, packet);
 		}
 
-	    private void SendExecutionReport(PhysicalOrder order, string status, string executionType, double price, int orderQty, int cumQty, int lastQty, int leavesQty, TimeStamp time, MessageFIX4_4 packet) {
+	    private void SendExecutionReport(CreateOrChangeOrder order, string status, string executionType, double price, int orderQty, int cumQty, int lastQty, int leavesQty, TimeStamp time, MessageFIX4_4 packet) {
 			int orderType = 0;
 			switch( order.Type) {
 				case OrderType.BuyMarket:

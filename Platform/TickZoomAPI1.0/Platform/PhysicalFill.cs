@@ -34,7 +34,7 @@ namespace TickZoom.Api
 		TimeStamp UtcTime { get; }
 		double Price { get; }
 		int Size { get; }
-		PhysicalOrder Order { get; }
+		CreateOrChangeOrder Order { get; }
 		bool IsSimulated { get; }
 	}
 }

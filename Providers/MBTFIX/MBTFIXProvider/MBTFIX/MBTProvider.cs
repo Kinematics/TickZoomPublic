@@ -95,12 +95,12 @@ namespace TickZoom.MBTFIX
     		}
 	    }
 		
-		public void OnChangeBrokerOrder(PhysicalOrder order, string origBrokerOrder)
+		public void OnChangeBrokerOrder(CreateOrChangeOrder order, string origBrokerOrder)
 		{
 			fixProvider.OnChangeBrokerOrder(order, origBrokerOrder);
 		}
 		
-		public void OnCreateBrokerOrder(PhysicalOrder order)
+		public void OnCreateBrokerOrder(CreateOrChangeOrder order)
 		{
 			fixProvider.OnCreateBrokerOrder(order);
 		}
@@ -115,12 +115,12 @@ namespace TickZoom.MBTFIX
 			fixProvider.OnCancelBrokerOrder(symbol, origBrokerOrder);
 		}
 		
-		public Iterable<PhysicalOrder> GetActiveOrders(SymbolInfo symbol)
+		public Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol)
 		{
 			return fixProvider.GetActiveOrders(symbol);
 		}
 
-        public bool HasBrokerOrder( PhysicalOrder order)
+        public bool HasBrokerOrder( CreateOrChangeOrder order)
         {
             return fixProvider.HasBrokerOrder(order);
         }

@@ -188,7 +188,7 @@ namespace TickZoom.Api
             }
         }
 
-        public void AddPhysicalOrder(PhysicalOrder order)
+        public void AddPhysicalOrder(CreateOrChangeOrder order)
         {
             var value = Interlocked.Increment(ref state.physicalOrders);
             RollbackPhysicalOrders();
