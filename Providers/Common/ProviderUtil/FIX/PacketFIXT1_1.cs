@@ -384,8 +384,17 @@ namespace TickZoom.FIX
                     break;
                 case 52:
 					result = GetString(out timeStamp);
-					if( result) {
-						sendUtcTime = new TimeStamp(timeStamp).Internal;
+					if( result)
+					{
+					    try
+					    {
+                            sendUtcTime = new TimeStamp(timeStamp).Internal;
+                        }
+                        catch( Exception ex)
+                        {
+                            log.Warn("Sending time accuracy problem: " + sendUtcTime + "  Ignoring by using current time instead.\n" + ToHex());
+                            sendUtcTime = TickZoom.Api.TimeStamp.UtcNow.Internal;
+                        }
 					}
 					break;
                 case 58:

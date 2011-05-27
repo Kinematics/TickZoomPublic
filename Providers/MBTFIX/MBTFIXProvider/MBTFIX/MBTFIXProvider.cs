@@ -568,15 +568,18 @@ namespace TickZoom.MBTFIX
 			if( packetFIX.LeavesQuantity == 0) {
                 if (debug) log.Debug("TryHandlePiggyBackFill found completely filled so removing " + packetFIX.ClientOrderId);
                 var order = OrderStore.RemoveOrder(packetFIX.ClientOrderId);
-                if (order != null && order.Replace != null)
+                if( order != null)
                 {
-                    if (debug) log.Debug("Found this order in the replace property. Removing it also: " + order.Replace);
-                    OrderStore.RemoveOrder(order.Replace.BrokerOrder.ToString());
-                }
-                if (IsRecovered)
-                {
-                    var algorithm = GetAlgorithm(order.Symbol.BinaryIdentifier);
-                    algorithm.ProcessOrders();
+                    if (order.Replace != null)
+                    {
+                        if (debug) log.Debug("Found this order in the replace property. Removing it also: " + order.Replace);
+                        OrderStore.RemoveOrder(order.Replace.BrokerOrder.ToString());
+                    }
+                    if (IsRecovered)
+                    {
+                        var algorithm = GetAlgorithm(order.Symbol.BinaryIdentifier);
+                        algorithm.ProcessOrders();
+                    }
                 }
 			}
 		}
