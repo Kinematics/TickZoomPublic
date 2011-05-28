@@ -54,37 +54,6 @@ namespace TickZoom.Common
         private CreateOrChangeOrder replacedBy;
         private TimeStamp utcCreateTime;
 		
-		public override string ToString()
-		{
-			StringBuilder sb = new StringBuilder();
-			sb.Append(orderState);
-			sb.Append(" ");
-			sb.Append(side);
-			sb.Append(" ");
-			sb.Append(size);
-			sb.Append(" ");
-			sb.Append(type);
-			sb.Append(" ");
-			sb.Append(symbol);
-			if( type != OrderType.BuyMarket && type != OrderType.SellMarket) {
-				sb.Append(" at ");
-				sb.Append(price);
-			}
-			sb.Append(" and logical id: ");
-			sb.Append( logicalOrderId);
-			sb.Append( "-");
-			sb.Append( logicalSerialNumber);
-			if( brokerOrder != null) {
-				sb.Append(" broker: ");
-				sb.Append( brokerOrder);
-			}
-			if( tag != null) {
-				sb.Append(" ");
-				sb.Append(tag);
-			}
-			return sb.ToString();
-		}
-
         public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, CreateOrChangeOrder origOrder)
         {
             this.action = OrderAction.Cancel;
@@ -126,15 +95,9 @@ namespace TickZoom.Common
 		    this.utcCreateTime = logical.UtcChangeTime;
 		}
 
-        public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag)
-            : this( orderState, symbol, side, type, price, size, logicalOrderId, logicalSerialNumber, brokerOrder, tag, TimeStamp.UtcNow)
-        {
-
-        }
-
-	    public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag, TimeStamp utcCreateTime)
+	    public CreateOrChangeOrderDefault(OrderAction action, OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag, TimeStamp utcCreateTime)
 	    {
-            this.action = OrderAction.Create;
+            this.action = action;
 			this.orderState = orderState;
 		    this.lastStateChange = TimeStamp.UtcNow;
 			this.symbol = symbol;
@@ -155,7 +118,41 @@ namespace TickZoom.Common
 	        this.utcCreateTime = utcCreateTime;
 	    }
 
-	    private static long lastId = TimeStamp.UtcNow.Internal;
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append(orderState);
+            sb.Append(" ");
+            sb.Append(side);
+            sb.Append(" ");
+            sb.Append(size);
+            sb.Append(" ");
+            sb.Append(type);
+            sb.Append(" ");
+            sb.Append(symbol);
+            if (type != OrderType.BuyMarket && type != OrderType.SellMarket)
+            {
+                sb.Append(" at ");
+                sb.Append(price);
+            }
+            sb.Append(" and logical id: ");
+            sb.Append(logicalOrderId);
+            sb.Append("-");
+            sb.Append(logicalSerialNumber);
+            if (brokerOrder != null)
+            {
+                sb.Append(" broker: ");
+                sb.Append(brokerOrder);
+            }
+            if (tag != null)
+            {
+                sb.Append(" ");
+                sb.Append(tag);
+            }
+            return sb.ToString();
+        }
+
+        private static long lastId = TimeStamp.UtcNow.Internal;
 		private static string CreateBrokerOrderId(int logicalId) {
 			var longId = Interlocked.Increment(ref lastId);
 			return logicalId + "." + longId;

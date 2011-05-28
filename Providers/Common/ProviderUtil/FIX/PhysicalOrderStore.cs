@@ -30,6 +30,7 @@ namespace TickZoom.FIX
         private Dictionary<CreateOrChangeOrder, int> unique = new Dictionary<CreateOrChangeOrder, int>();
         private Dictionary<int,CreateOrChangeOrder> uniqueIds = new Dictionary<int,CreateOrChangeOrder>();
         private Dictionary<int,int> replaceIds = new Dictionary<int,int>();
+        private Dictionary<int, int> originalIds = new Dictionary<int, int>();
         private int uniqueId = 0;
         private long snapshotTimer;
         private int snapshotSeconds = 60;
@@ -248,6 +249,7 @@ namespace TickZoom.FIX
                     var order = kvp.Key;
                     var id = kvp.Value;
                     writer.Write(id);
+                    writer.Write((int)order.Action);
                     writer.Write(order.BrokerOrder);
                     writer.Write(order.LogicalOrderId);
                     writer.Write(order.LogicalSerialNumber);
@@ -256,6 +258,14 @@ namespace TickZoom.FIX
                     if (order.ReplacedBy != null)
                     {
                         writer.Write(unique[order.ReplacedBy]);
+                    }
+                    else
+                    {
+                        writer.Write((int)0);
+                    }
+                    if (order.OriginalOrder != null)
+                    {
+                        writer.Write(unique[order.OriginalOrder]);
                     }
                     else
                     {
@@ -382,6 +392,7 @@ namespace TickZoom.FIX
             {
                 uniqueIds.Clear();
                 replaceIds.Clear();
+                originalIds.Clear();
 
                 memory.Position = snapshot.Offset + sizeof(Int32); // Skip the snapshot length;
 
@@ -393,12 +404,14 @@ namespace TickZoom.FIX
                 {
 
                     var id = reader.ReadInt32();
+                    var action = (OrderAction) reader.ReadInt32();
                     var brokerOrder = reader.ReadString();
                     var logicalOrderId = reader.ReadInt32();
                     var logicalSerialNumber = reader.ReadInt64();
                     var orderState = (OrderState)reader.ReadInt32();
                     var price = reader.ReadDouble();
                     var replaceId = reader.ReadInt32();
+                    var originalId = reader.ReadInt32();
                     var side = (OrderSide)reader.ReadInt32();
                     var size = reader.ReadInt32();
                     var symbol = reader.ReadString();
@@ -407,12 +420,16 @@ namespace TickZoom.FIX
                     var type = (OrderType)reader.ReadInt32();
                     var utcCreateTime= new TimeStamp(reader.ReadInt64());
                     var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
-                    var order = Factory.Utility.PhysicalOrder(orderState, symbolInfo, side, type, price, size,
+                    var order = Factory.Utility.PhysicalOrder(action, orderState, symbolInfo, side, type, price, size,
                                                               logicalOrderId, logicalSerialNumber, brokerOrder, tag, utcCreateTime);
                     uniqueIds.Add(id, order);
                     if (replaceId != 0)
                     {
                         replaceIds.Add(id, replaceId);
+                    }
+                    if( originalId != 0)
+                    {
+                        originalIds.Add(id, originalId);
                     }
                 }
 
@@ -421,6 +438,13 @@ namespace TickZoom.FIX
                     var orderId = kvp.Key;
                     var replaceId = kvp.Value;
                     uniqueIds[orderId].ReplacedBy = uniqueIds[replaceId];
+                }
+
+                foreach (var kvp in originalIds)
+                {
+                    var orderId = kvp.Key;
+                    var originalId = kvp.Value;
+                    uniqueIds[orderId].OriginalOrder = uniqueIds[originalId];
                 }
 
                 using (ordersLocker.Using())

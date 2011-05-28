@@ -1497,7 +1497,7 @@ namespace Orders
 			
 			public void AddPhysicalOrder(OrderState orderState, OrderSide side, OrderType type, double price, int size, int logicalOrderId, string brokerOrder)
 			{
-				var order = Factory.Utility.PhysicalOrder( orderState, symbol, side, type, price, size, logicalOrderId, 0, brokerOrder, null);
+                var order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbol, side, type, price, size, logicalOrderId, 0, brokerOrder, null, TimeStamp.UtcNow);
 				inputOrders.Add(order);
 				
 			}

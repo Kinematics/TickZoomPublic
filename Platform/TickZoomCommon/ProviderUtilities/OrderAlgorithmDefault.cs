@@ -867,7 +867,7 @@ namespace TickZoom.Common
                 log.Notice("SyncPositionInternal() found position currently synced. With expected " + desiredPosition + " and actual " + actualPosition + " plus pending adjustments " + pendingAdjustments);
             }
 			if( delta > 0) {
-				createOrChange = new CreateOrChangeOrderDefault(OrderState.Active, symbol,OrderSide.Buy,OrderType.BuyMarket,0,delta,0,0,null,null,default(TimeStamp));
+				createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Active, symbol,OrderSide.Buy,OrderType.BuyMarket,0,delta,0,0,null,null,default(TimeStamp));
                 log.Info("Sending adjustment order to position: " + createOrChange);
                 TryCreateBrokerOrder(createOrChange);
                 if (SyncTicks.Enabled)
@@ -885,7 +885,7 @@ namespace TickZoom.Common
 					side = OrderSide.SellShort;
 				}
 				side = actualPosition >= Math.Abs(delta) ? OrderSide.Sell : OrderSide.SellShort;
-                createOrChange = new CreateOrChangeOrderDefault(OrderState.Active, symbol, side, OrderType.SellMarket, 0, Math.Abs(delta), 0, 0, null, null,default(TimeStamp));
+                createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Active, symbol, side, OrderType.SellMarket, 0, Math.Abs(delta), 0, 0, null, null,default(TimeStamp));
                 log.Info("Sending adjustment order to correct position: " + createOrChange);
                 TryCreateBrokerOrder(createOrChange);
                 if( SyncTicks.Enabled)
