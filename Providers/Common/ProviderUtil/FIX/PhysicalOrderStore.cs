@@ -226,9 +226,9 @@ namespace TickZoom.FIX
                 {
                     var order = kvp.Value;
                     AddUniqueOrder(order);
-                    if (order.OriginalOrder != null)
+                    if (order.ReplacedBy != null)
                     {
-                        AddUniqueOrder(order.OriginalOrder);
+                        AddUniqueOrder(order.ReplacedBy);
                     }
                 }
 
@@ -236,9 +236,9 @@ namespace TickZoom.FIX
                 {
                     var order = kvp.Value;
                     AddUniqueOrder(order);
-                    if (order.OriginalOrder != null)
+                    if (order.ReplacedBy != null)
                     {
-                        AddUniqueOrder(order.OriginalOrder);
+                        AddUniqueOrder(order.ReplacedBy);
                     }
                 }
 
@@ -253,9 +253,9 @@ namespace TickZoom.FIX
                     writer.Write(order.LogicalSerialNumber);
                     writer.Write((int)order.OrderState);
                     writer.Write(order.Price);
-                    if (order.OriginalOrder != null)
+                    if (order.ReplacedBy != null)
                     {
-                        writer.Write(unique[order.OriginalOrder]);
+                        writer.Write(unique[order.ReplacedBy]);
                     }
                     else
                     {
@@ -420,7 +420,7 @@ namespace TickZoom.FIX
                 {
                     var orderId = kvp.Key;
                     var replaceId = kvp.Value;
-                    uniqueIds[orderId].OriginalOrder = uniqueIds[replaceId];
+                    uniqueIds[orderId].ReplacedBy = uniqueIds[replaceId];
                 }
 
                 using (ordersLocker.Using())

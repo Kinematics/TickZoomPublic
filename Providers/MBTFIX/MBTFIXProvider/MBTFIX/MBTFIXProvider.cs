@@ -485,9 +485,10 @@ namespace TickZoom.MBTFIX
 							var algorithm = GetAlgorithm( order.Symbol.BinaryIdentifier);
 							algorithm.ProcessOrders();
 						}
-						if( order != null && order.OriginalOrder != null) {
-							if( debug) log.Debug( "Found this order in the replace property. Removing it also: " + order.OriginalOrder);
-                            OrderStore.RemoveOrder(order.OriginalOrder.BrokerOrder.ToString());
+						if( order != null && order.ReplacedBy != null)
+                        {
+							if( debug) log.Debug( "Found this order in the replace property. Removing it also: " + order.ReplacedBy);
+                            OrderStore.RemoveOrder(order.ReplacedBy.BrokerOrder.ToString());
 						}
 						break;
 					case "5": // Replaced
@@ -570,10 +571,10 @@ namespace TickZoom.MBTFIX
                 var order = OrderStore.RemoveOrder(packetFIX.ClientOrderId);
                 if( order != null)
                 {
-                    if (order.OriginalOrder != null)
+                    if (order.ReplacedBy != null)
                     {
-                        if (debug) log.Debug("Found this order in the replace property. Removing it also: " + order.OriginalOrder);
-                        OrderStore.RemoveOrder(order.OriginalOrder.BrokerOrder.ToString());
+                        if (debug) log.Debug("Found this order in the replace property. Removing it also: " + order.ReplacedBy);
+                        OrderStore.RemoveOrder(order.ReplacedBy.BrokerOrder.ToString());
                     }
                     if (IsRecovered)
                     {
@@ -909,13 +910,13 @@ namespace TickZoom.MBTFIX
 			var type = GetOrderType( packetFIX);
 			var side = GetOrderSide( packetFIX);
 			var logicalId = GetLogicalOrderId( packetFIX);
-		    var replace = order != null ? order.OriginalOrder : null;
+		    var replace = order != null ? order.ReplacedBy : null;
 			order = Factory.Utility.PhysicalOrder(orderState, symbolInfo, side, type, packetFIX.Price, packetFIX.LeavesQuantity, logicalId, logicalSerialNumber, newClientOrderId, null);
-		    order.OriginalOrder = replace;
+		    order.ReplacedBy = replace;
             if( oldOrder != null)
             {
                 if( debug && (LogRecovery || !IsRecovery)) log.Debug("Setting replace property of " + oldOrder.BrokerOrder + " to be replaced by " + order.BrokerOrder);
-                oldOrder.OriginalOrder = order;
+                oldOrder.ReplacedBy = order;
             }
 		    if( quantity > 0) {
 				if( info && (LogRecovery || !IsRecovery) ) {
@@ -1059,7 +1060,7 @@ namespace TickZoom.MBTFIX
 				fixMsg.SetOriginalClientOrderId((string)origBrokerOrder);
 				var origOrder = OrderStore.GetOrderById((string) origBrokerOrder);
 				if( origOrder != null) {
-					origOrder.OriginalOrder = createOrChangeOrder;
+					origOrder.ReplacedBy = createOrChangeOrder;
 					if( debug) log.Debug("Setting replace property of " + origBrokerOrder + " to " + createOrChangeOrder.BrokerOrder);
 				}
 			} else {

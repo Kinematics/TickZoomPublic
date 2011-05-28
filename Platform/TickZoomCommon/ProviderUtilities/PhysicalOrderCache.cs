@@ -9,7 +9,7 @@ namespace TickZoom.Common
         private readonly bool debug = staticLog.IsDebugEnabled;
         private Log log;
         private ActiveList<CreateOrChangeOrder> createOrderQueue = new ActiveList<CreateOrChangeOrder>();
-        private ActiveList<string> cancelOrderQueue = new ActiveList<string>();
+        private ActiveList<PhysicalOrder> cancelOrderQueue = new ActiveList<PhysicalOrder>();
 
         public PhysicalOrderCache(string name, SymbolInfo symbol)
         {
@@ -35,12 +35,12 @@ namespace TickZoom.Common
             return false;
         }
 
-        private bool HasCancelOrder(string order)
+        private bool HasCancelOrder(PhysicalOrder order)
         {
             for (var current = cancelOrderQueue.First; current != null; current = current.Next)
             {
                 var clientId = current.Value;
-                if (order == clientId)
+                if (order.OriginalOrder.BrokerOrder == clientId.OriginalOrder.BrokerOrder)
                 {
                     if (debug) log.Debug("Cancel or Changed ignored because pervious order order working for: " + order);
                     return true;
@@ -59,7 +59,7 @@ namespace TickZoom.Common
             return result;
         }
 
-        public bool AddCancelOrder(string order)
+        public bool AddCancelOrder(PhysicalOrder order)
         {
             var result = !HasCancelOrder(order);
             if (!result)

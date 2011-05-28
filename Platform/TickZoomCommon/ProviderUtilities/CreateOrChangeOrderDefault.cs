@@ -50,8 +50,9 @@ namespace TickZoom.Common
 		private string brokerOrder;
 		private string tag;
         private object reference;
-		private CreateOrChangeOrder _originalOrder;
-	    private TimeStamp utcCreateTime;
+        private CreateOrChangeOrder originalOrder;
+        private CreateOrChangeOrder replacedBy;
+        private TimeStamp utcCreateTime;
 		
 		public override string ToString()
 		{
@@ -98,14 +99,16 @@ namespace TickZoom.Common
             this.logicalSerialNumber = 0L;
             this.tag = null;
             this.reference = null;
-            this._originalOrder = origOrder;
             this.brokerOrder = CreateBrokerOrderId(logicalOrderId);
             this.utcCreateTime = TimeStamp.UtcNow;
+            this.originalOrder = default(CreateOrChangeOrder);
+            this.replacedBy = default(CreateOrChangeOrder);
+            this.OriginalOrder = origOrder;
         }
 		
 		public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, LogicalOrder logical, OrderSide side, int size, double price)
 		{
-		    this.action = OrderAction.Create;
+            this.action = OrderAction.Create;
 			this.orderState = orderState;
 		    this.lastStateChange = TimeStamp.UtcNow;
 			this.symbol = symbol;
@@ -117,7 +120,8 @@ namespace TickZoom.Common
 			this.logicalSerialNumber = logical.SerialNumber;
 			this.tag = logical.Tag;
 			this.reference = null;
-			this._originalOrder = null;
+			this.replacedBy = null;
+		    this.originalOrder = null;
 			this.brokerOrder = CreateBrokerOrderId(logicalOrderId);
 		    this.utcCreateTime = logical.UtcChangeTime;
 		}
@@ -130,7 +134,7 @@ namespace TickZoom.Common
 
 	    public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag, TimeStamp utcCreateTime)
 	    {
-	        this.action = OrderAction.Create;
+            this.action = OrderAction.Create;
 			this.orderState = orderState;
 		    this.lastStateChange = TimeStamp.UtcNow;
 			this.symbol = symbol;
@@ -143,7 +147,8 @@ namespace TickZoom.Common
 			this.tag = tag;
 			this.brokerOrder = brokerOrder;
 			this.reference = null;
-			this._originalOrder = null;
+			this.replacedBy = null;
+	        this.originalOrder = null;
 			if( this.brokerOrder == null) {
 				this.brokerOrder = CreateBrokerOrderId(logicalOrderId);
 			}
@@ -171,8 +176,12 @@ namespace TickZoom.Common
 		
 		public string BrokerOrder {
 			get { return brokerOrder; }
-			set { brokerOrder = value; }
+			set
+			{
+			    brokerOrder = value;
+			}
 		}
+
 		
 		public SymbolInfo Symbol {
 			get { return symbol; }
@@ -210,17 +219,36 @@ namespace TickZoom.Common
 			get { return reference; }
 			set { reference = value; }
 		}
-		
-		public CreateOrChangeOrder OriginalOrder {
-			get { return _originalOrder; }
-			set {
-                if( value != null)
-                {
-                    action = OrderAction.Change;
-                }
-                _originalOrder = value;
-            }
+
+		public CreateOrChangeOrder ReplacedBy {
+			get { return replacedBy; }
+			set { replacedBy = value; }
 		}
+
+        public override bool Equals(object obj)
+        {
+            if( ! (obj is CreateOrChangeOrder))
+            {
+                return false;
+            }
+            var other = (CreateOrChangeOrder) obj;
+            return logicalOrderId == other.LogicalOrderId && logicalSerialNumber == other.LogicalSerialNumber &&
+                   action == other.Action && orderState == other.OrderState &&
+                   lastStateChange == other.LastStateChange && symbol == other.Symbol &&
+                   type == other.Type && price == other.Price &&
+                   size == other.Size && side == other.Side &&
+                   brokerOrder == other.BrokerOrder && utcCreateTime == other.UtcCreateTime;
+        }
+
+        public override int GetHashCode()
+        {
+            return action.GetHashCode() ^ orderState.GetHashCode() ^
+                   lastStateChange.GetHashCode() ^ symbol.GetHashCode() ^
+                   type.GetHashCode() ^ price.GetHashCode() ^
+                   size.GetHashCode() ^ side.GetHashCode() ^
+                   logicalOrderId.GetHashCode() ^ logicalSerialNumber.GetHashCode() ^
+                   brokerOrder.GetHashCode() ^ utcCreateTime.GetHashCode();
+        }
 
 	    public TimeStamp LastStateChange
 	    {
@@ -235,6 +263,12 @@ namespace TickZoom.Common
 	    public OrderAction Action
 	    {
 	        get { return action; }
+	    }
+
+        public CreateOrChangeOrder OriginalOrder
+	    {
+	        get { return originalOrder; }
+	        set { originalOrder = value; }
 	    }
 	}
 }

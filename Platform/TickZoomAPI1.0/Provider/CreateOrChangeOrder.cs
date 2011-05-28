@@ -69,6 +69,12 @@ namespace TickZoom.Api
             set;
         }
 
+        CreateOrChangeOrder ReplacedBy
+        {
+            get;
+            set;
+        }
+
         CreateOrChangeOrder OriginalOrder
         {
             get;
