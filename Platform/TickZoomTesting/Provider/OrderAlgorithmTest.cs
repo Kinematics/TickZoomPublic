@@ -624,9 +624,9 @@ namespace Orders
 			int buyLimitId = CreateLogicalExit(OrderType.BuyLimit,124.12);
 			int buyStopId = CreateLogicalExit(OrderType.BuyStop,194.12);
 			
-			string buyOrder1 = "abc";
+			string buyOrder1 = "abc1";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,124.12,1000,buyLimitId,buyOrder1);
-			string buyOrder2 = "abc";
+			string buyOrder2 = "abc2";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyStop,194.12,1000,buyStopId,buyOrder2);
 			
 			handler.SetLogicalOrders(orders);
@@ -662,9 +662,9 @@ namespace Orders
 			CreateLogicalExit(OrderType.BuyLimit,124.12);
 			CreateLogicalExit(OrderType.BuyStop,194.12);
 			
-			string buyOrder = "abc";
+			string buyOrder = "abc1";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,234.12,1000,buyLimitId,buyOrder);
-			string sellOrder = "abc";
+			string sellOrder = "abc2";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellStop,154.12,1000,sellStopId,sellOrder);
 			
 			var position = 0; // Pretend we're flat.
@@ -705,9 +705,9 @@ namespace Orders
 			CreateLogicalExit(OrderType.BuyLimit,194.12);
 			CreateLogicalExit(OrderType.BuyStop,104.12);
 			
-			string buyOrder = "abc";
+			string buyOrder = "abc1";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,234.12,1000,buyLimitId,buyOrder);
-			string sellOrder = "abc";
+			string sellOrder = "abc2";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellStop,154.12,1000,sellStopId,sellOrder);
 			
 			var position = 0;
@@ -751,9 +751,9 @@ namespace Orders
 			CreateLogicalExit(OrderType.BuyStop,104.12);
 
 
-            string sellOrder1 = "abc";
+            string sellOrder1 = "abc1";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellStop,134.12,1000,sellStopId,sellOrder1);
-			string sellOrder2 = "abc";
+			string sellOrder2 = "abc2";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellLimit,334.12,1000,sellLimitId,sellOrder2);
 			
 
@@ -794,9 +794,9 @@ namespace Orders
 			CreateLogicalExit(OrderType.BuyLimit,194.12);
 			CreateLogicalExit(OrderType.BuyStop,104.12);
 			
-			string sellOrder1 = "abc";
+			string sellOrder1 = "abc1";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellStop,184.12,700,sellStopId,sellOrder1);
-			string sellOrder2 = "abc";
+			string sellOrder2 = "abc2";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellLimit,374.12,800,sellLimitId,sellOrder2);
 			
 			handler.SetDesiredPosition(position);
@@ -1444,12 +1444,12 @@ namespace Orders
                 return 1;
             }
 
-			public void OnCancelBrokerOrder(SymbolInfo symbol, string brokerOrder)
+			public void OnCancelBrokerOrder(CreateOrChangeOrder order)
 			{
-				CanceledOrders.Add(brokerOrder);
-				RemoveByBrokerOrder(brokerOrder);
+				CanceledOrders.Add(order.OriginalOrder.BrokerOrder);
+				RemoveByBrokerOrder(order.OriginalOrder.BrokerOrder);
 				if( confirmOrders != null) {
-					confirmOrders.OnCancelBrokerOrder(symbol, brokerOrder);
+					confirmOrders.OnCancelBrokerOrder(order);
 				}
 			}
 			private void RemoveByBrokerOrder(string brokerOrder) {
@@ -1460,13 +1460,13 @@ namespace Orders
 					}
 				}
 			}
-			public void OnChangeBrokerOrder(CreateOrChangeOrder order, string origBrokerOrder)
+			public void OnChangeBrokerOrder(CreateOrChangeOrder order)
 			{
-				ChangedOrders.Add(new Change( order, origBrokerOrder));
-				RemoveByBrokerOrder(origBrokerOrder);
+				ChangedOrders.Add(new Change( order, order.OriginalOrder.BrokerOrder));
+                RemoveByBrokerOrder(order.OriginalOrder.BrokerOrder);
 				inputOrders.Add( order);
 				if( confirmOrders != null) {
-					confirmOrders.OnChangeBrokerOrder(order, origBrokerOrder);
+					confirmOrders.OnChangeBrokerOrder(order);
 				}
 			}
 			public void OnCreateBrokerOrder(CreateOrChangeOrder order)

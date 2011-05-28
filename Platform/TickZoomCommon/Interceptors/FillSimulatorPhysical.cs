@@ -109,12 +109,12 @@ namespace TickZoom.Interceptors
 			return activeOrders;
 		}
 	
-		public void OnChangeBrokerOrder(CreateOrChangeOrder order, string origBrokerOrder)
+		public void OnChangeBrokerOrder(CreateOrChangeOrder order)
 		{
 			if( debug) log.Debug("OnChangeBrokerOrder( " + order + ")");
-            CancelBrokerOrder((string) origBrokerOrder);
+            CancelBrokerOrder((string) order.OriginalOrder.BrokerOrder);
             CreateBrokerOrder( order);
-			if( confirmOrders != null) confirmOrders.OnChangeBrokerOrder(order, origBrokerOrder);
+            if (confirmOrders != null) confirmOrders.OnChangeBrokerOrder(order);
 		}
 
         public bool TryGetOrderById(string orderId, out CreateOrChangeOrder createOrChangeOrder)
@@ -216,11 +216,11 @@ namespace TickZoom.Interceptors
             if (confirmOrders != null) confirmOrders.OnCreateBrokerOrder(order);
 		}
 		
-		public void OnCancelBrokerOrder(SymbolInfo symbol, string origBrokerOrder)
+		public void OnCancelBrokerOrder(CreateOrChangeOrder order)
 		{
-			if( debug) log.Debug("OnCancelBrokerOrder( " + origBrokerOrder + ")");
-            CancelBrokerOrder((string) origBrokerOrder);
-            if (confirmOrders != null) confirmOrders.OnCancelBrokerOrder(symbol, origBrokerOrder);
+            if (debug) log.Debug("OnCancelBrokerOrder( " + order.OriginalOrder.BrokerOrder + ")");
+            CancelBrokerOrder((string)order.OriginalOrder.BrokerOrder);
+            if (confirmOrders != null) confirmOrders.OnCancelBrokerOrder(order);
         }
 
 		public int ProcessOrders() {

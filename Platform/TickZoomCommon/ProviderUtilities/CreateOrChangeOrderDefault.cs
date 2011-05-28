@@ -121,6 +121,8 @@ namespace TickZoom.Common
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
+            sb.Append(action);
+            sb.Append(" ");
             sb.Append(orderState);
             sb.Append(" ");
             sb.Append(side);
@@ -143,6 +145,16 @@ namespace TickZoom.Common
             {
                 sb.Append(" broker: ");
                 sb.Append(brokerOrder);
+            }
+            if( originalOrder != null)
+            {
+                sb.Append(" original: ");
+                sb.Append(originalOrder.BrokerOrder);
+            }
+            if (replacedBy != null)
+            {
+                sb.Append(" replaced by: ");
+                sb.Append(replacedBy.BrokerOrder);
             }
             if (tag != null)
             {
@@ -229,22 +241,24 @@ namespace TickZoom.Common
                 return false;
             }
             var other = (CreateOrChangeOrder) obj;
-            return logicalOrderId == other.LogicalOrderId && logicalSerialNumber == other.LogicalSerialNumber &&
-                   action == other.Action && orderState == other.OrderState &&
-                   lastStateChange == other.LastStateChange && symbol == other.Symbol &&
-                   type == other.Type && price == other.Price &&
-                   size == other.Size && side == other.Side &&
-                   brokerOrder == other.BrokerOrder && utcCreateTime == other.UtcCreateTime;
+            return brokerOrder == other.BrokerOrder;
+            //return logicalOrderId == other.LogicalOrderId && logicalSerialNumber == other.LogicalSerialNumber &&
+            //       action == other.Action && orderState == other.OrderState &&
+            //       lastStateChange == other.LastStateChange && symbol == other.Symbol &&
+            //       type == other.Type && price == other.Price &&
+            //       size == other.Size && side == other.Side &&
+            //       brokerOrder == other.BrokerOrder && utcCreateTime == other.UtcCreateTime;
         }
 
         public override int GetHashCode()
         {
-            return action.GetHashCode() ^ orderState.GetHashCode() ^
-                   lastStateChange.GetHashCode() ^ symbol.GetHashCode() ^
-                   type.GetHashCode() ^ price.GetHashCode() ^
-                   size.GetHashCode() ^ side.GetHashCode() ^
-                   logicalOrderId.GetHashCode() ^ logicalSerialNumber.GetHashCode() ^
-                   brokerOrder.GetHashCode() ^ utcCreateTime.GetHashCode();
+            return brokerOrder.GetHashCode();
+            //return action.GetHashCode() ^ orderState.GetHashCode() ^
+            //       lastStateChange.GetHashCode() ^ symbol.GetHashCode() ^
+            //       type.GetHashCode() ^ price.GetHashCode() ^
+            //       size.GetHashCode() ^ side.GetHashCode() ^
+            //       logicalOrderId.GetHashCode() ^ logicalSerialNumber.GetHashCode() ^
+            //       brokerOrder.GetHashCode() ^ utcCreateTime.GetHashCode();
         }
 
 	    public TimeStamp LastStateChange

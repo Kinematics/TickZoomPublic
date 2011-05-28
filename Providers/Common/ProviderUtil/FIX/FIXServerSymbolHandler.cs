@@ -115,21 +115,15 @@ namespace TickZoom.FIX
 		
 		public void CreateOrder(CreateOrChangeOrder order) {
 			FillSimulator.OnCreateBrokerOrder( order);
-            //log.Info("Previously Called ProcessOrders.");
-            //FillSimulator.ProcessOrders();
 		}
 		
-		public void ChangeOrder(CreateOrChangeOrder order, string origBrokerOrder) {
-			FillSimulator.OnChangeBrokerOrder( order, origBrokerOrder);
-            //log.Info("Previously Called ProcessOrders.");
-            //FillSimulator.ProcessOrders();
+		public void ChangeOrder(CreateOrChangeOrder order) {
+			FillSimulator.OnChangeBrokerOrder( order);
         }
 
-        public void CancelOrder(string origBrokerOrder)
+        public void CancelOrder(CreateOrChangeOrder order)
         {
-			FillSimulator.OnCancelBrokerOrder( Symbol, origBrokerOrder);
-            //log.Info("Previously Called ProcessOrders.");
-            //FillSimulator.ProcessOrders();
+			FillSimulator.OnCancelBrokerOrder(order);
         }
 		
 		public CreateOrChangeOrder GetOrderById(string clientOrderId) {

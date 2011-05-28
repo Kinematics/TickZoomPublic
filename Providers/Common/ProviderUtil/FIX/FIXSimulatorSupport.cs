@@ -627,16 +627,16 @@ namespace TickZoom.FIX
 			symbolHandler.CreateOrder(order);
 		}
 
-		public void ChangeOrder(CreateOrChangeOrder order, string origBrokerOrder)
+		public void ChangeOrder(CreateOrChangeOrder order)
 		{
 			var symbolHandler = symbolHandlers[order.Symbol.BinaryIdentifier];
-			symbolHandler.ChangeOrder(order, origBrokerOrder);
+			symbolHandler.ChangeOrder(order);
 		}
 
-		public void CancelOrder(SymbolInfo symbol, string origBrokerOrder)
+		public void CancelOrder(CreateOrChangeOrder order)
 		{
-			var symbolHandler = symbolHandlers[symbol.BinaryIdentifier];
-			symbolHandler.CancelOrder( origBrokerOrder);
+			var symbolHandler = symbolHandlers[order.Symbol.BinaryIdentifier];
+			symbolHandler.CancelOrder( order);
 		}
 		
 		public CreateOrChangeOrder GetOrderById(SymbolInfo symbol, string clientOrderId) {

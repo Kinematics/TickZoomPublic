@@ -30,9 +30,9 @@ using System.Collections.Generic;
 namespace TickZoom.Api
 {	
 	public interface PhysicalOrderHandler {
-		void OnChangeBrokerOrder(CreateOrChangeOrder order, string origBrokerOrder);		
+		void OnChangeBrokerOrder(CreateOrChangeOrder order);		
 		void OnCreateBrokerOrder(CreateOrChangeOrder order);
-        void OnCancelBrokerOrder(SymbolInfo symbol, string origBrokerOrder);
+        void OnCancelBrokerOrder(CreateOrChangeOrder order);
 		Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol);
         //bool HasBrokerOrder(PhysicalOrder order);
         int ProcessOrders();

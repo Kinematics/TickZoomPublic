@@ -140,6 +140,7 @@ namespace TickZoom.MBTFIX
 				return;
 			}
 			var order = ConstructOrder( packet, packet.ClientOrderId);
+		    order.OriginalOrder = origOrder;
 			if( order.Side != origOrder.Side) {
 				var message = "Cannot change " + origOrder.Side + " to " + order.Side;
 				log.Error( message);
@@ -156,7 +157,7 @@ namespace TickZoom.MBTFIX
 			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
 			SendExecutionReport( order, "5", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow, packet);
 			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
-			ChangeOrder(order, packet.OriginalClientOrderId);
+			ChangeOrder(order);
 		}
 		
 		private Yield FIXCancelOrder(MessageFIX4_4 packet) {
@@ -173,8 +174,8 @@ namespace TickZoom.MBTFIX
 				}
 				return Yield.DidWork.Return;
 			}
-//			log.Info( Message.Symbol + ": Canceling order for client id: " + Message.OriginalClientOrderId);
-			CancelOrder( symbol, order.BrokerOrder);
+		    var cancelOrder = Factory.Utility.PhysicalOrder(OrderState.Active, symbol, order);
+			CancelOrder( cancelOrder);
 			SendExecutionReport( order, "6", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow, packet);
 			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
 			SendExecutionReport( order, "4", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow, packet);

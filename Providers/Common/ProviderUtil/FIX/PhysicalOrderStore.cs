@@ -231,6 +231,10 @@ namespace TickZoom.FIX
                     {
                         AddUniqueOrder(order.ReplacedBy);
                     }
+                    if (order.OriginalOrder!= null)
+                    {
+                        AddUniqueOrder(order.OriginalOrder);
+                    }
                 }
 
                 foreach (var kvp in ordersBySerial)
@@ -241,6 +245,29 @@ namespace TickZoom.FIX
                     {
                         AddUniqueOrder(order.ReplacedBy);
                     }
+                    if (order.OriginalOrder != null)
+                    {
+                        AddUniqueOrder(order.OriginalOrder);
+                    }
+                }
+
+                var list = new List<CreateOrChangeOrder>();
+                foreach (var kvp in unique)
+                {
+                    var order = kvp.Key;
+                    if (order.ReplacedBy != null)
+                    {
+                        list.Add(order.ReplacedBy);
+                    }
+                    if (order.OriginalOrder != null)
+                    {
+                        list.Add(order.OriginalOrder);
+                    }
+                }
+
+                foreach (var order in list)
+                {
+                    AddUniqueOrder(order);
                 }
 
                 writer.Write(unique.Count);
@@ -257,7 +284,13 @@ namespace TickZoom.FIX
                     writer.Write(order.Price);
                     if (order.ReplacedBy != null)
                     {
-                        writer.Write(unique[order.ReplacedBy]);
+                        try
+                        {
+                            writer.Write(unique[order.ReplacedBy]);
+                        } catch( KeyNotFoundException ex)
+                        {
+                            throw new ApplicationException("Can't find " + order.ReplacedBy, ex);
+                        }
                     }
                     else
                     {
@@ -265,7 +298,14 @@ namespace TickZoom.FIX
                     }
                     if (order.OriginalOrder != null)
                     {
-                        writer.Write(unique[order.OriginalOrder]);
+                        try
+                        {
+                            writer.Write(unique[order.OriginalOrder]);
+                        }
+                        catch (KeyNotFoundException ex)
+                        {
+                            throw new ApplicationException("Can't find " + order.ReplacedBy, ex);
+                        }
                     }
                     else
                     {
