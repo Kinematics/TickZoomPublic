@@ -721,8 +721,8 @@ namespace TickZoom.MBTFIX
 			rejectReason = packetFIX.Text.Contains("not accepted this session") ? true : rejectReason;
 			rejectReason = packetFIX.Text.Contains("Pending live orders") ? true : rejectReason;
 			rejectReason = packetFIX.Text.Contains("Trading temporarily unavailable") ? true : rejectReason;
-			rejectReason = packetFIX.Text.Contains("improper setting") ? true : rejectReason;			
-			rejectReason = packetFIX.Text.Contains("No position to close") ? true : rejectReason;			
+			rejectReason = packetFIX.Text.Contains("improper setting") ? true : rejectReason;
+		    rejectReason = packetFIX.Text.Contains("No position to close") ? true : rejectReason;
 			OrderStore.RemoveOrder( packetFIX.ClientOrderId);
 			OrderStore.RemoveOrder( packetFIX.OriginalClientOrderId);
 		    if( IsRecovered && !rejectReason ) {
@@ -734,6 +734,13 @@ namespace TickZoom.MBTFIX
 		    } else if( LogRecovery || IsRecovered) {
 			    log.Info( "RejectOrder(" + packetFIX.Text + ") Removed cancel order: " + packetFIX.ClientOrderId + " and original order: " + packetFIX.OriginalClientOrderId);
 		    }
+            if (SyncTicks.Enabled)
+            {
+                var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+                var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+                tickSync.RemovePhysicalOrder();
+            }
+
 		}
 		
 		private static readonly char[] DOT_SEPARATOR = new char[] { '.' };

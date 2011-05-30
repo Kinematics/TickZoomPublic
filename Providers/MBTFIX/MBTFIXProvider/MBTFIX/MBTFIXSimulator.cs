@@ -127,19 +127,21 @@ namespace TickZoom.MBTFIX
 		
 		private void FIXChangeOrder(MessageFIX4_4 packet) {
 			var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
-			CreateOrChangeOrder origOrder = null;
+            var order = ConstructOrder(packet, packet.ClientOrderId);
+            CreateOrChangeOrder origOrder = null;
 			if( debug) log.Debug( "FIXChangeOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId + ". Original client id: " + packet.OriginalClientOrderId);
 			try {
 				origOrder = GetOrderById( symbol, packet.OriginalClientOrderId);
 			} catch( ApplicationException) {
-				log.Warn( symbol + ": Cannot change order by client id: " + packet.OriginalClientOrderId + ". Probably already filled or canceled. Should send a reject in this case.");
-				if( SyncTicks.Enabled) {
-					var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-					tickSync.RemovePhysicalOrder();
-				}
+				log.Warn( symbol + ": Rejected " + packet.ClientOrderId + ". Cannot change order: " + packet.OriginalClientOrderId + ". Already filled or canceled.");
+                OnRejectOrder(order,symbol + ": Cannot change order. Probably already filled or canceled." );
+                //if (SyncTicks.Enabled)
+                //{
+                //    var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+                //    tickSync.RemovePhysicalOrder();
+                //}
 				return;
 			}
-			var order = ConstructOrder( packet, packet.ClientOrderId);
 		    order.OriginalOrder = origOrder;
 			if( order.Side != origOrder.Side) {
 				var message = "Cannot change " + origOrder.Side + " to " + order.Side;
@@ -291,6 +293,7 @@ namespace TickZoom.MBTFIX
 			mbtMsg.SetClientOrderId( order.BrokerOrder.ToString());
 			mbtMsg.SetOrderStatus("8");
 			mbtMsg.SetText(error);
+            mbtMsg.SetSymbol(order.Symbol.Symbol);
 			mbtMsg.AddHeader("8");
             if (debug) log.Debug("Sending position update: " + mbtMsg);
             SendMessage(mbtMsg);

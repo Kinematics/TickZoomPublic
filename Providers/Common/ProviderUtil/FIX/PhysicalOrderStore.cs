@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -86,13 +87,15 @@ namespace TickZoom.FIX
             get { return localSequence; }
         }
 
-        private void AddUniqueOrder(CreateOrChangeOrder order)
+        private bool AddUniqueOrder(CreateOrChangeOrder order)
         {
             int id;
             if( !unique.TryGetValue(order, out id))
             {
                 unique.Add(order,++uniqueId);
+                return true;
             }
+            return false;
         }
 
         public void TrySnapshot()
@@ -208,6 +211,38 @@ namespace TickZoom.FIX
             }
         }
 
+        public IEnumerable<CreateOrChangeOrder> OrderReferences(CreateOrChangeOrder order)
+        {
+            if( order.ReplacedBy != null)
+            {
+                if( AddUniqueOrder(order.ReplacedBy))
+                {
+                    yield return order.ReplacedBy;
+                    foreach (var sub in OrderReferences(order.ReplacedBy))
+                    {
+                        if (AddUniqueOrder(sub))
+                        {
+                            yield return sub;
+                        }
+                    }
+                }
+            }
+            if( order.OriginalOrder != null)
+            {
+                if( AddUniqueOrder(order.OriginalOrder))
+                {
+                    yield return order.OriginalOrder;
+                    foreach (var sub in OrderReferences(order.OriginalOrder))
+                    {
+                        if (AddUniqueOrder(sub))
+                        {
+                            yield return sub;
+                        }
+                    }
+                }
+            }
+        }
+
         private void SnapShot()
         {
             CheckSnapshotRollover();
@@ -227,13 +262,9 @@ namespace TickZoom.FIX
                 {
                     var order = kvp.Value;
                     AddUniqueOrder(order);
-                    if (order.ReplacedBy != null)
+                    foreach( var reference in OrderReferences(order))
                     {
-                        AddUniqueOrder(order.ReplacedBy);
-                    }
-                    if (order.OriginalOrder!= null)
-                    {
-                        AddUniqueOrder(order.OriginalOrder);
+                        AddUniqueOrder(reference);
                     }
                 }
 
@@ -241,33 +272,10 @@ namespace TickZoom.FIX
                 {
                     var order = kvp.Value;
                     AddUniqueOrder(order);
-                    if (order.ReplacedBy != null)
+                    foreach (var reference in OrderReferences(order))
                     {
-                        AddUniqueOrder(order.ReplacedBy);
+                        AddUniqueOrder(reference);
                     }
-                    if (order.OriginalOrder != null)
-                    {
-                        AddUniqueOrder(order.OriginalOrder);
-                    }
-                }
-
-                var list = new List<CreateOrChangeOrder>();
-                foreach (var kvp in unique)
-                {
-                    var order = kvp.Key;
-                    if (order.ReplacedBy != null)
-                    {
-                        list.Add(order.ReplacedBy);
-                    }
-                    if (order.OriginalOrder != null)
-                    {
-                        list.Add(order.OriginalOrder);
-                    }
-                }
-
-                foreach (var order in list)
-                {
-                    AddUniqueOrder(order);
                 }
 
                 writer.Write(unique.Count);
@@ -289,7 +297,14 @@ namespace TickZoom.FIX
                             writer.Write(unique[order.ReplacedBy]);
                         } catch( KeyNotFoundException ex)
                         {
-                            throw new ApplicationException("Can't find " + order.ReplacedBy, ex);
+                            var sb = new StringBuilder();
+                            foreach( var kvp2 in unique)
+                            {
+                                var temp = kvp2.Value;
+                                var temp2 = kvp2.Key;
+                                sb.AppendLine(temp.ToString() + ": " + temp2.ToString());
+                            }
+                            throw new ApplicationException("Can't find " + order.ReplacedBy + "\n" + sb, ex);
                         }
                     }
                     else
@@ -642,7 +657,7 @@ namespace TickZoom.FIX
             }
             foreach (var order in remove)
             {
-                log.Warn("Removing pending order due recovery from snapshot: " + order);
+                log.Warn("Removing pending order due to recovery from snapshot: " + order);
                 RemoveOrder(order.BrokerOrder);
             }
         }
@@ -651,6 +666,7 @@ namespace TickZoom.FIX
         {
             var list = new List<CreateOrChangeOrder>();
             var remove = new List<CreateOrChangeOrder>();
+            var now = TimeStamp.UtcNow;
             using (ordersLocker.Using())
             {
                 foreach (var kvp in ordersByBrokerId)
@@ -658,7 +674,7 @@ namespace TickZoom.FIX
                     var order = kvp.Value;
                     if( order.OrderState == OrderState.Pending)
                     {
-                        var elapsed = TimeStamp.UtcNow - order.LastStateChange;
+                        var elapsed = now - order.LastStateChange;
                         if( elapsed.TotalSeconds >= pendingExpireSeconds)
                         {
                             remove.Add(order);

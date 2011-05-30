@@ -86,31 +86,32 @@ namespace TickZoom.Common
 		    this.minimumTick = symbol.MinimumTick.ToLong();
 		}
 		
-        private List<CreateOrChangeOrder> physicalOrderMatches = new List<CreateOrChangeOrder>();
-		private bool TryMatchId( LogicalOrder logical)
+		private List<CreateOrChangeOrder> TryMatchId( ActiveList<CreateOrChangeOrder> list, LogicalOrder logical, bool remove)
 		{
 		    var result = false;
-            physicalOrderMatches.Clear();
-		    for (var current = physicalOrders.First; current != null; current = current.Next)
+            var physicalOrderMatches = new List<CreateOrChangeOrder>();
+            for (var current = list.First; current != null; current = current.Next)
 		    {
 		        var physical = current.Value;
 				if( logical.Id == physical.LogicalOrderId) {
-                    if (physical.OrderState == OrderState.Suspended)
+                    switch( physical.OrderState)
                     {
-                        if (debug) log.Trace("Cannot change a suspended order: " + physical);
-                    } else
-                    {
-                        physicalOrderMatches.Add(physical);
-                        physicalOrders.Remove(current);
-                        result = true;
+                        case OrderState.Suspended:
+                            if (debug) log.Debug("Cannot change a suspended order: " + physical);
+                            break;
+                        case OrderState.Filled:
+                            if (debug) log.Debug("Cannot change a filled order: " + physical);
+                            break;
+                        default:
+                            physicalOrderMatches.Add(physical);
+                            list.Remove(current);
+                            result = true;
+                            break;
                     }
 				}
 			}
-            if( result)
-            {
-                ProcessMatch(logical, physicalOrderMatches);
-            }
-			return result;
+
+			return physicalOrderMatches;
 		}
 		
 		private bool TryMatchTypeOnly( LogicalOrder logical, out CreateOrChangeOrder createOrChangeOrder) {
@@ -677,7 +678,7 @@ namespace TickZoom.Common
 						logical.Type == OrderType.BuyStop ?
 						position : - position;
 					size = Math.Abs(logicalPosition - logical.StrategyPosition);
-                    if( size != 0) {
+                    if( size != 0 && Math.Sign(logicalPosition) != Math.Sign(logical.StrategyPosition)) {
 						ProcessMissingReverse( logical, size, price);
                     }
 					break;
@@ -974,16 +975,22 @@ namespace TickZoom.Common
                 return;
             }
             if (debug) log.Debug("ProcessFill() physical: " + physical);
-            //log.warn("processfill() physical: " + physical);
-            //physicalOrders.Remove(physical.Order);
 		    var beforePosition = actualPosition;
             actualPosition += physical.Size;
             if( debug) log.Debug("Updating actual position from " + beforePosition + " to " + actualPosition + " from fill size " + physical.Size);
 			var isCompletePhysicalFill = remainingSize == 0;
 			if( isCompletePhysicalFill) {
 				if( debug) log.Debug("Physical order completely filled: " + physical.Order);
-				physicalOrders.Remove(physical.Order);
-			} else {
+				originalPhysicals.Remove(physical.Order);
+                physicalOrders.Remove(physical.Order);
+                if (physical.Order.ReplacedBy != null)
+                {
+                    originalPhysicals.Remove(physical.Order.ReplacedBy);
+                    physicalOrders.Remove(physical.Order.ReplacedBy);
+                }
+            }
+            else
+            {
 				if( debug) log.Debug("Physical order partially filled: " + physical.Order);
 			}
 			LogicalFillBinary fill;
@@ -1104,8 +1111,13 @@ namespace TickZoom.Common
                 }
                 else 
                 {
-                    if (debug) log.Debug("Found complete physical fill but incomplete logical fill.");
-                    if( !TryMatchId(filledOrder))
+                    if (debug) log.Debug("Found complete physical fill but incomplete logical fill. Physical orders...");
+                    var matches = TryMatchId(originalPhysicals, filledOrder, false);
+                    if( matches.Count > 0)
+                    {
+                        ProcessMatch(filledOrder, matches);
+                    }
+                    else
                     {
                         ProcessMissingPhysical(filledOrder);
                     }
@@ -1310,8 +1322,14 @@ namespace TickZoom.Common
 			extraLogicals.Clear();
 			while( logicalOrders.Count > 0) {
 				var logical = logicalOrders.First.Value;
-				if( !TryMatchId(logical)) {
-					extraLogicals.Add(logical);
+			    var matches = TryMatchId(physicalOrders, logical, true);
+                if( matches.Count > 0)
+                {
+                    ProcessMatch( logical, matches);
+                }
+                else
+                {
+                    extraLogicals.Add(logical);
 				}
 				logicalOrders.Remove(logical);
 			}
@@ -1346,22 +1364,25 @@ namespace TickZoom.Common
 
 		public void SetActualPosition( int position)
 		{
-		    Interlocked.Exchange(ref actualPosition, position);
-		}
+		    var value = Interlocked.Exchange(ref actualPosition, position);
+            if (debug) log.Debug("SetActualPosition(" + value + ")");
+        }
 
         public void IncreaseActualPosition( int position)
         {
             var count = Math.Abs(position);
+            var result = actualPosition;
             for( var i=0; i<count; i++)
             {
                 if (position > 0)
                 {
-                    Interlocked.Increment(ref actualPosition);
+                    result = Interlocked.Increment(ref actualPosition);
                 } else
                 {
-                    Interlocked.Decrement(ref actualPosition);
+                    result = Interlocked.Decrement(ref actualPosition);
                 }
             }
+            if( debug) log.Debug("Changed actual postion to " + result);
         }
 
 		public PhysicalOrderHandler PhysicalOrderHandler {
