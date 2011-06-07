@@ -224,8 +224,8 @@ namespace TickZoom.Api
             // so all the common models and modelloaders get loaded.
             files.AddRange(Directory.GetFiles(currentDirectory, "*plugin*.dll", SearchOption.AllDirectories));
             files.AddRange(Directory.GetFiles(currentDirectory, "*common*.dll", SearchOption.AllDirectories));
-            //files.AddRange(Directory.GetFiles(currentDirectory, "*test*.dll", SearchOption.AllDirectories));
-            //files.AddRange(Directory.GetFiles(currentDirectory, "*test*.exe", SearchOption.AllDirectories));
+            files.AddRange(Directory.GetFiles(currentDirectory, "*test*.dll", SearchOption.AllDirectories));
+            files.AddRange(Directory.GetFiles(currentDirectory, "*test*.exe", SearchOption.AllDirectories));
 
 
             foreach (String filename in files)
