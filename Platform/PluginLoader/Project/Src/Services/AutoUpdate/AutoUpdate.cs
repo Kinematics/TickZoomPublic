@@ -56,10 +56,19 @@ namespace TickZoom.Update
 		
 		public bool UpdateAll() {
 			bool retVal = false;
-			string[] lines = GetFileList();
+			string[] allVersions = GetFileList();
 			log.Notice( "Attempting AutoUpdate...");
-			if( lines == null) return false;
-			foreach( string line in lines) {
+            if (allVersions == null) return false;
+		    var lines = new List<string>();
+            foreach (var path in allVersions)
+            {
+                if (path.Contains(currentVersion))
+                {
+                    lines.Add(path);
+                }
+            }
+
+		    foreach( string line in lines) {
 				string[] parts = line.Split(' ');
 				string file = parts[0];
 				string compareFile = file;

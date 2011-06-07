@@ -79,9 +79,14 @@ namespace TickZoom.Api
             serializers = new List<Type>();
         }
 
-        private void Initialize()
+        private void TryInitialize()
         {
             if( isInitialized) return;
+            ForceInitialize();
+        }
+
+        private void ForceInitialize()
+        {
             string appData = Factory.Settings["AppDataFolder"];
             if (appData == null)
             {
@@ -98,7 +103,7 @@ namespace TickZoom.Api
             var loader = SearchLoaders(name);
             if( loader == null)
             {
-                Initialize();
+                TryInitialize();
                 loader = SearchLoaders(name);
             }
             if( loader == null)
@@ -155,7 +160,7 @@ namespace TickZoom.Api
                 // from AutoUpdate to the ShadowCopy Folder since it includes
                 // some serializers.
                 var providerFactory = Factory.Provider;
-                Initialize();
+                ForceInitialize();
                 serializer = SearchSerializers(eventType);
             }
             if (serializer == null)
@@ -192,7 +197,7 @@ namespace TickZoom.Api
 
         public ModelInterface GetModel(string name)
         {
-            Initialize();
+            TryInitialize();
             for (int i = 0; i < models.Count; i++)
             {
                 if (models[i].Name.Equals(name))
@@ -219,8 +224,8 @@ namespace TickZoom.Api
             // so all the common models and modelloaders get loaded.
             files.AddRange(Directory.GetFiles(currentDirectory, "*plugin*.dll", SearchOption.AllDirectories));
             files.AddRange(Directory.GetFiles(currentDirectory, "*common*.dll", SearchOption.AllDirectories));
-            files.AddRange(Directory.GetFiles(currentDirectory, "*test*.dll", SearchOption.AllDirectories));
-            files.AddRange(Directory.GetFiles(currentDirectory, "*test*.exe", SearchOption.AllDirectories));
+            //files.AddRange(Directory.GetFiles(currentDirectory, "*test*.dll", SearchOption.AllDirectories));
+            //files.AddRange(Directory.GetFiles(currentDirectory, "*test*.exe", SearchOption.AllDirectories));
 
 
             foreach (String filename in files)
@@ -300,7 +305,7 @@ namespace TickZoom.Api
         {
             if (modelLoaders.Count == 0)
             {
-                Initialize();
+                TryInitialize();
             }
             List<ModelLoaderInterface> loaders = new List<ModelLoaderInterface>();
             for (int i = 0; i < modelLoaders.Count; i++)
