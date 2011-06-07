@@ -6,14 +6,15 @@ using System.Text;
 using System.Threading;
 using TickZoom.Api;
 
-namespace TickZoom.FIX
+namespace TickZoom.Common
 {
     public class LogicalOrderReference
     {
         public long LogicalSerialNumber;
         public CreateOrChangeOrder CreateOrChangeOrder;
     }
-    public class PhysicalOrderStore : IDisposable
+
+    public class PhysicalOrderStoreDefault : IDisposable, PhysicalOrderCache, PhysicalOrderStore
     {
         private static readonly Log log = Factory.SysLog.GetLogger(typeof(PhysicalOrderStore));
         private static readonly bool info = log.IsDebugEnabled;
@@ -46,7 +47,7 @@ namespace TickZoom.FIX
         private int remoteSequence = 0;
         private int localSequence = 0;
 
-        public PhysicalOrderStore(string name)
+        public PhysicalOrderStoreDefault(string name)
         {
             storeName = name;
             writeFileAction = SnapShot;
@@ -54,10 +55,9 @@ namespace TickZoom.FIX
             dbFolder = Path.Combine(appData, "DataBase");
             Directory.CreateDirectory(dbFolder);
             databasePath = Path.Combine(dbFolder, name + ".dat");
-            OpenSnapShot();
         }
 
-        private void OpenSnapShot()
+        public void OpenFile()
         {
             fs = new FileStream(databasePath, FileMode.Append, FileAccess.Write, FileShare.Read, 1024, FileOptions.WriteThrough);
             snapshotLength = fs.Length;
@@ -198,7 +198,7 @@ namespace TickZoom.FIX
                     }
                 }
             }
-            OpenSnapShot();
+            OpenFile();
         }
 
         private void CheckSnapshotRollover()
@@ -625,12 +625,16 @@ namespace TickZoom.FIX
             }
         }
 
-        public void AssignById(CreateOrChangeOrder order, int remoteSequence, int localSequence)
+        public void SetSequences(int remoteSequence, int localSequence)
+        {
+            this.remoteSequence = remoteSequence;
+            this.localSequence = localSequence;
+        }
+
+        public void AddOrder(CreateOrChangeOrder order)
         {
             using (ordersLocker.Using())
             {
-                this.remoteSequence = remoteSequence;
-                this.localSequence = localSequence;
                 if (trace) log.Trace("Assigning order " + order.BrokerOrder + " with " + order.LogicalSerialNumber);
                 ordersByBrokerId[order.BrokerOrder] = order;
                 if( order.LogicalSerialNumber != 0)

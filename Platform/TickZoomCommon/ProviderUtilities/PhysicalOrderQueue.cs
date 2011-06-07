@@ -2,18 +2,18 @@ using TickZoom.Api;
 
 namespace TickZoom.Common
 {
-    public class PhysicalOrderCache
+    public class PhysicalOrderQueue
     {
-        private static readonly Log staticLog = Factory.SysLog.GetLogger(typeof(PhysicalOrderCache));
+        private static readonly Log staticLog = Factory.SysLog.GetLogger(typeof(PhysicalOrderQueue));
         private readonly bool trace = staticLog.IsTraceEnabled;
         private readonly bool debug = staticLog.IsDebugEnabled;
         private Log log;
         private ActiveList<CreateOrChangeOrder> createOrderQueue = new ActiveList<CreateOrChangeOrder>();
         private ActiveList<PhysicalOrder> cancelOrderQueue = new ActiveList<PhysicalOrder>();
 
-        public PhysicalOrderCache(string name, SymbolInfo symbol)
+        public PhysicalOrderQueue(string name, SymbolInfo symbol)
         {
-            this.log = Factory.SysLog.GetLogger(typeof(PhysicalOrderCache).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name);
+            this.log = Factory.SysLog.GetLogger(typeof(PhysicalOrderQueue).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name);
         }
 
         public Iterable<CreateOrChangeOrder> CreateOrderQueue

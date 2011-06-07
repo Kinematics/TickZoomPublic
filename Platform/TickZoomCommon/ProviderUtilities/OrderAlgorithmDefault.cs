@@ -59,10 +59,11 @@ namespace TickZoom.Common
 		private TickSync tickSync;
 		private Dictionary<long,long> filledOrders = new Dictionary<long,long>();
 	    private LogicalOrderCache logicalOrderCache;
-	    private PhysicalOrderCache physicalOrderCache;
+	    private PhysicalOrderQueue _physicalOrderQueue;
         private bool isPositionSynced = false;
         private long minimumTick;
         private List<MissingLevel> missingLevels = new List<MissingLevel>();
+        private PhysicalOrderCache physicalOrderCache;
 
         public struct MissingLevel
         {
@@ -70,11 +71,12 @@ namespace TickZoom.Common
             public long Price;
         }
 		
-		public OrderAlgorithmDefault(string name, SymbolInfo symbol, PhysicalOrderHandler brokerOrders, LogicalOrderCache logicalOrderCache) {
+		public OrderAlgorithmDefault(string name, SymbolInfo symbol, PhysicalOrderHandler brokerOrders, LogicalOrderCache logicalOrderCache, PhysicalOrderCache physicalOrderCache) {
 			this.log = Factory.SysLog.GetLogger(typeof(OrderAlgorithmDefault).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name );
 			this.symbol = symbol;
 		    this.logicalOrderCache = logicalOrderCache;
-            this.physicalOrderCache = new PhysicalOrderCache(name,symbol);
+		    this.physicalOrderCache = physicalOrderCache;
+            this._physicalOrderQueue = new PhysicalOrderQueue(name,symbol);
 			this.tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			this.physicalOrderHandler = brokerOrders;
             this.canceledLogicals = new ActiveList<LogicalOrder>();
@@ -149,7 +151,7 @@ namespace TickZoom.Common
                 physical.Type != OrderType.SellMarket)
             {
                 var cancelOrder = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, physical);
-                if (!physicalOrderCache.AddCancelOrder(cancelOrder))
+                if (!_physicalOrderQueue.AddCancelOrder(cancelOrder))
                 {
                     if (debug) log.Debug("Ignoring cancel broker order " + physical.BrokerOrder + " as physical order cache has it already.");
                     result = false;
@@ -170,7 +172,7 @@ namespace TickZoom.Common
             if (createOrChange.OrderState == OrderState.Active)
             {
                 createOrChange.OriginalOrder = origOrder;
-                if (!physicalOrderCache.AddCancelOrder(createOrChange))
+                if (!_physicalOrderQueue.AddCancelOrder(createOrChange))
                 {
                     if (debug) log.Debug("Ignoring broker order " + origOrder.BrokerOrder + " as physical order cache has it already.");
                     return;
@@ -193,7 +195,7 @@ namespace TickZoom.Common
             {
                 throw new ApplicationException("Sorry, order size must be greater than or equal to zero.");
             }
-            if (!physicalOrderCache.AddCreateOrder(physical))
+            if (!_physicalOrderQueue.AddCreateOrder(physical))
             {
                 if( debug) log.Debug("Ignoring broker order as physical order cache has it already.");
                 return;
@@ -794,7 +796,7 @@ namespace TickZoom.Common
 
             originalPhysicals.Clear();
             originalPhysicals.AddLast(physicalOrderHandler.GetActiveOrders(symbol));
-            originalPhysicals.AddLast(physicalOrderCache.CreateOrderQueue);
+            originalPhysicals.AddLast(_physicalOrderQueue.CreateOrderQueue);
 
 			var next = originalPhysicals.First;
 			for( var node = next; node != null; node = next) {
@@ -1036,7 +1038,7 @@ namespace TickZoom.Common
                         }
                         PerformCompareInternal();
                         physicalOrderHandler.ProcessOrders();
-                        physicalOrderCache.Clear();
+                        _physicalOrderQueue.Clear();
                         if( SyncTicks.Enabled)
                         {
                             tickSync.RollbackPhysicalOrders();
@@ -1264,7 +1266,7 @@ namespace TickZoom.Common
 				
             originalPhysicals.Clear();
             originalPhysicals.AddLast(physicalOrderHandler.GetActiveOrders(symbol));
-            originalPhysicals.AddLast(physicalOrderCache.CreateOrderQueue);
+            originalPhysicals.AddLast(_physicalOrderQueue.CreateOrderQueue);
 
             if (CheckForPending())
             {

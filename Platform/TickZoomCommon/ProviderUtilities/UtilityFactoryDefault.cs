@@ -33,6 +33,10 @@ namespace TickZoom.Common
 	[Diagram(AttributeExclude=true)]
 	public class UtilityFactoryDefault : UtilityFactory
 	{
+        public PhysicalOrderStore PhyscalOrderStore(string name)
+        {
+            return new PhysicalOrderStoreDefault(name);
+        }
         public CreateOrChangeOrder PhysicalOrder(OrderState orderState, SymbolInfo symbol, CreateOrChangeOrder origOrder)
         {
             return new CreateOrChangeOrderDefault(orderState, symbol, origOrder);
@@ -49,8 +53,9 @@ namespace TickZoom.Common
 		public ProviderService WindowsService() {
 			return new WindowsService();
 		}
-		public OrderAlgorithm OrderAlgorithm(string name, SymbolInfo symbol, PhysicalOrderHandler handler, LogicalOrderCache orderCache) {
-			return new OrderAlgorithmDefault(name,symbol,handler, orderCache);
+
+		public OrderAlgorithm OrderAlgorithm(string name, SymbolInfo symbol, PhysicalOrderHandler handler, LogicalOrderCache logicalCache, PhysicalOrderCache physicalQueue) {
+			return new OrderAlgorithmDefault(name,symbol,handler, logicalCache, physicalQueue);
 		}
 		public SymbolHandler SymbolHandler(SymbolInfo symbol, Receiver receiver) {
 			return new SymbolHandlerDefault(symbol,receiver);
@@ -82,5 +87,10 @@ namespace TickZoom.Common
 		public StrategyInterface Strategy() {
 			return new Strategy();
 		}
-	}
+
+        #region UtilityFactory Members
+
+
+        #endregion
+    }
 }

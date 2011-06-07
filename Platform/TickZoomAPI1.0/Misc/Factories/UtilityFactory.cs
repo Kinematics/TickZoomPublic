@@ -31,10 +31,12 @@ using System.Reflection;
 namespace TickZoom.Api
 {
 	[CLSCompliant(false)]
-	public interface UtilityFactory {
+	public interface UtilityFactory
+	{
+	    PhysicalOrderStore PhyscalOrderStore(string name);
 		ProviderService CommandLineProcess();
 		ProviderService WindowsService();
-		OrderAlgorithm OrderAlgorithm(string name, SymbolInfo symbol, PhysicalOrderHandler handler, LogicalOrderCache orderCache);
+		OrderAlgorithm OrderAlgorithm(string name, SymbolInfo symbol, PhysicalOrderHandler handler, LogicalOrderCache logicalCache, PhysicalOrderCache physicalCache);
 	    CreateOrChangeOrder PhysicalOrder(OrderState orderState, SymbolInfo symbol, CreateOrChangeOrder origOrder);
         CreateOrChangeOrder PhysicalOrder(OrderAction action, OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, object brokerOrder, object tag, TimeStamp utcCreateTime);
         SymbolHandler SymbolHandler(SymbolInfo symbol, Receiver receiver);

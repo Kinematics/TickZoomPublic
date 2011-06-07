@@ -26,13 +26,14 @@ namespace Test
         [Test]
         public void WriteAndReadByIdTest()
         {
-            using( var store = new PhysicalOrderStore("OrderStoreTest"))
+            using( var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 var symbolInfo = Factory.Symbol.LookupSymbol("EUR/USD");
                 var clientId = "TestString";
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit,
                                                           124.34, 1234, 14, 100000334, clientId, null, TimeStamp.UtcNow);
-                store.AssignById(order,1,1);
+                store.AddOrder(order);
+                store.SetSequences(1,1);
                 var result = store.GetOrderById(clientId);
                 Assert.AreEqual(order.LogicalSerialNumber, result.LogicalSerialNumber);
             }
@@ -41,7 +42,7 @@ namespace Test
         [Test]
         public void WriteAndReadBySerialTest()
         {
-            using (var store = new PhysicalOrderStore("OrderStoreTest"))
+            using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 var symbolInfo = Factory.Symbol.LookupSymbol("EUR/USD");
                 var clientId = "TestString";
@@ -49,7 +50,8 @@ namespace Test
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
                                                           OrderType.BuyLimit,
                                                           124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
-                store.AssignById(order, 1, 1);
+                store.AddOrder(order);
+                store.SetSequences(1, 1);
                 var result = store.GetOrderBySerial(logicalSerial);
                 Assert.AreEqual(order.BrokerOrder, result.BrokerOrder);
             }
@@ -58,7 +60,7 @@ namespace Test
         [Test]
         public void ReplaceAndReadIdTest()
         {
-            using (var store = new PhysicalOrderStore("OrderStoreTest"))
+            using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 var symbolInfo = Factory.Symbol.LookupSymbol("EUR/USD");
                 var clientId = "TestString";
@@ -66,10 +68,10 @@ namespace Test
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
                                                           OrderType.BuyLimit,
                                                           124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
-                store.AssignById(order, 1, 1);
+                store.AddOrder(order);
                 order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit,
                                                       124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
-                store.AssignById(order, 1, 1);
+                store.AddOrder(order);
                 var result = store.GetOrderBySerial(logicalSerial);
                 Assert.AreEqual(order.BrokerOrder, result.BrokerOrder);
             }
@@ -78,7 +80,7 @@ namespace Test
         [Test]
         public void DumpDataBase()
         {
-            using (var store = new PhysicalOrderStore("MBTFIXProvider"))
+            using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 var list = store.GetOrders((x) => true);
                 foreach (var order in list)
@@ -91,7 +93,7 @@ namespace Test
         [Test]
         public void ReplaceAndReadSerialTest()
         {
-            using (var store = new PhysicalOrderStore("OrderStoreTest"))
+            using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 var symbolInfo = Factory.Symbol.LookupSymbol("EUR/USD");
                 var clientId = "TestString";
@@ -99,11 +101,11 @@ namespace Test
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
                                                           OrderType.BuyLimit,
                                                           124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
-                store.AssignById(order, 1, 1);
+                store.AddOrder(order);
                 clientId = "TestString2";
                 order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit,
                                                       124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
-                store.AssignById(order, 1, 1);
+                store.AddOrder(order);
                 var result = store.GetOrderBySerial(logicalSerial);
                 Assert.AreEqual(clientId, result.BrokerOrder);
             }
@@ -112,7 +114,7 @@ namespace Test
         [Test]
         public void SelectBySymbolTest()
         {
-            using (var store = new PhysicalOrderStore("OrderStoreTest"))
+            using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 var symbolInfo = Factory.Symbol.LookupSymbol("EUR/USD");
                 var clientId = "TestString";
@@ -120,10 +122,10 @@ namespace Test
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
                                                           OrderType.BuyLimit,
                                                           124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
-                store.AssignById(order, 1, 1);
+                store.AddOrder(order);
                 order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit,
                                                       124.34, 1234, 14, logicalSerial + 1, clientId, null, TimeStamp.UtcNow);
-                store.AssignById(order, 1, 1);
+                store.AddOrder(order);
                 var list = store.GetOrders((o) => o.Symbol.Symbol == "EUR/USD");
                 Assert.AreEqual(1, list.Count);
                 Assert.AreEqual(order.BrokerOrder, list[0].BrokerOrder);
@@ -134,7 +136,7 @@ namespace Test
         [Test]
         public void ReadOrders()
         {
-            using (var store = new PhysicalOrderStore("OrderStoreTest"))
+            using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 var list = store.GetOrders((x) => true);
                 foreach (var order in list)
@@ -148,7 +150,7 @@ namespace Test
         public void WriteSnapShotTest()
         {
             string dbpath;
-            using (var store = new PhysicalOrderStore("OrderStoreTest"))
+            using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 dbpath = store.DatabasePath;
             }
@@ -177,14 +179,14 @@ namespace Test
                                                       price, size, logicalId, logicalSerial, clientId2, null, TimeStamp.UtcNow);
             order1.ReplacedBy = order2;
 
-            using (var store = new PhysicalOrderStore("OrderStoreTest"))
+            using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
-                store.AssignById(order1, 1, 1);
+                store.AddOrder(order1);
                 store.ForceSnapShot();
                 store.WaitForSnapshot();
 
                 // Replace order in store to make new snapshot.
-                store.AssignById(order2, 1, 1);
+                store.AddOrder(order2);
                 store.ForceSnapShot();
                 store.WaitForSnapshot();
             }
@@ -194,7 +196,7 @@ namespace Test
                 Console.WriteLine("File size = " + fs.Length);
             }
 
-            using (var store = new PhysicalOrderStore("OrderStoreTest"))
+            using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 store.Recover();
 
@@ -227,7 +229,7 @@ namespace Test
         public void SnapShotRollOverTest()
         {
             string dbpath;
-            using (var store = new PhysicalOrderStore("OrderStoreTest"))
+            using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 dbpath = store.DatabasePath;
             }
@@ -256,15 +258,15 @@ namespace Test
                                                       price, size, logicalId, logicalSerial, clientId2, null, TimeStamp.UtcNow);
             order1.ReplacedBy = order2;
 
-            using (var store = new PhysicalOrderStore("OrderStoreTest"))
+            using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 store.SnapshotRolloverSize = 1000;
-                store.AssignById(order1, 1, 1);
+                store.AddOrder(order1);
                 store.ForceSnapShot();
                 store.WaitForSnapshot();
 
                 // Replace order in store to make new snapshot.
-                store.AssignById(order2, 1, 1);
+                store.AddOrder(order2);
                 store.ForceSnapShot();
                 store.WaitForSnapshot();
 
@@ -278,7 +280,7 @@ namespace Test
             File.Delete(dbpath);
             File.WriteAllText(dbpath,"This is a test for corrupt snapshot file.");
 
-            using (var store = new PhysicalOrderStore("OrderStoreTest"))
+            using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 store.Recover();
 

@@ -875,7 +875,8 @@ namespace TickZoom.MBTFIX
             {
                 throw new InvalidOperationException("client order id mismatch with broker order property.");
             }
-            OrderStore.AssignById(order,RemoteSequence,FixFactory.LastSequence);
+		    OrderStore.AddOrder(order);
+            OrderStore.SetSequences(RemoteSequence,FixFactory.LastSequence);
 			if( trace) {
 				log.Trace("Updated order list:");
 			    var logOrders = OrderStore.LogOrders();
@@ -935,7 +936,8 @@ namespace TickZoom.MBTFIX
 					if( debug) log.Debug("Order completely filled or canceled. Id: " + packetFIX.ClientOrderId + ".  Executed: " + packetFIX.CumulativeQuantity);
 				}
 			}
-            OrderStore.AssignById(order, RemoteSequence, FixFactory.LastSequence);
+            OrderStore.AddOrder(order);
+            OrderStore.SetSequences(RemoteSequence,FixFactory.LastSequence);
 			if( trace) {
 				log.Trace("Updated order list:");
 			    var logOrders = OrderStore.LogOrders();
@@ -977,7 +979,8 @@ namespace TickZoom.MBTFIX
                 order = Factory.Utility.PhysicalOrder(orderState, symbolInfo, oldOrder);
                 order.BrokerOrder = newClientOrderId;
             }
-            OrderStore.AssignById(order, RemoteSequence, FixFactory.LastSequence);
+            OrderStore.AddOrder(order);
+            OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
             if (oldOrder != null)
             {
                 if (debug && (LogRecovery || !IsRecovery)) log.Debug("Setting replace property of " + oldOrder.BrokerOrder + " to be replaced by " + order.BrokerOrder);
@@ -1032,7 +1035,7 @@ namespace TickZoom.MBTFIX
 				if( !orderAlgorithms.TryGetValue(symbol, out algorithm)) {
 					var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
 				    var orderCache = Factory.Engine.LogicalOrderCache(symbolInfo, false);
-					algorithm = Factory.Utility.OrderAlgorithm( "mbtfix", symbolInfo, this, orderCache);
+					algorithm = Factory.Utility.OrderAlgorithm( "mbtfix", symbolInfo, this, orderCache, OrderStore);
 					orderAlgorithms.Add(symbol,algorithm);
 					algorithm.OnProcessFill = ProcessFill;
 				}
@@ -1109,7 +1112,8 @@ namespace TickZoom.MBTFIX
 		private void OnCreateOrChangeBrokerOrder(CreateOrChangeOrder createOrChangeOrder, object origBrokerOrder, bool isChange)
 		{
 			var fixMsg = (FIXMessage4_4) FixFactory.Create();
-            OrderStore.AssignById(createOrChangeOrder, RemoteSequence, FixFactory.LastSequence);
+		    OrderStore.AddOrder(createOrChangeOrder);
+            OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
 			
 			if( debug) log.Debug( "Adding Order to open order list: " + createOrChangeOrder);
 			if( isChange) {
@@ -1205,8 +1209,9 @@ namespace TickZoom.MBTFIX
 		public void OnCancelBrokerOrder(CreateOrChangeOrder order)
 		{
 			if( debug) log.Debug( "OnCancelBrokerOrder " + order);
-            OrderStore.AssignById(order, RemoteSequence, FixFactory.LastSequence);
-			CreateOrChangeOrder createOrChangeOrder;
+            OrderStore.AddOrder(order);
+            OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
+            CreateOrChangeOrder createOrChangeOrder;
 			try {
                 createOrChangeOrder = OrderStore.GetOrderById(order.OriginalOrder.BrokerOrder);
 			} catch( ApplicationException ex) {

@@ -280,7 +280,8 @@ namespace TickZoom.FIX
 						case Status.Connected:
                             if( orderStore == null)
                             {
-                                orderStore = new PhysicalOrderStore(ProviderName);
+                                orderStore = Factory.Utility.PhyscalOrderStore(ProviderName);
+                                orderStore.OpenFile();
                             }
                             isResendComplete = true;
                             if (debug) log.Debug("Set resend complete: " + IsResendComplete);

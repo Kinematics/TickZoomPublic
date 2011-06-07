@@ -81,8 +81,8 @@ namespace TickZoom.Api
 		TimeSyncGenerator TimeSyncGenerator(SymbolInfo symbol);
 		
 		BinaryStore PageStore(string baseName);
-		
-        ProviderSimulator ProviderSimulator(string name, SymbolInfo symbol, Action<SymbolInfo,LogicalFillBinary> processFill);
+
+        ProviderSimulator ProviderSimulator(string name, SymbolInfo symbol, Action<SymbolInfo, LogicalFillBinary> processFill, PhysicalOrderCache physicalOrderCache);
 
         LogicalOrderCache LogicalOrderCache(SymbolInfo symbol, bool createSimulatedFills);
 		

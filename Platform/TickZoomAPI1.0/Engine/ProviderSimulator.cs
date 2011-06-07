@@ -28,7 +28,7 @@ using System;
 
 namespace TickZoom.Api
 {
-	public interface ProviderSimulator
+	public interface ProviderSimulator : IDisposable
 	{
 		void StartTick(Tick tick);
 		void FinishTick(Tick tick);

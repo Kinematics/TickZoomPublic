@@ -1525,14 +1525,15 @@ namespace Orders
 			private SymbolInfo symbol;
 			private Strategy strategy;
 			public TestOrderAlgorithm(SymbolInfo symbol, Strategy strategy, Action<SymbolInfo, LogicalFillBinary> onProcessFill) {
-				this.symbol = symbol;
-				this.strategy = strategy;
-				orders = new MockPhysicalOrderHandler(symbol);
-			    var orderCache = Factory.Engine.LogicalOrderCache(symbol, false);
-				orderAlgorithm = Factory.Utility.OrderAlgorithm("test",symbol,orders,orderCache);
-			    orderAlgorithm.OnProcessFill = onProcessFill;
+                this.symbol = symbol;
+                this.strategy = strategy;
+                orders = new MockPhysicalOrderHandler(symbol);
+                var logicalCache = Factory.Engine.LogicalOrderCache(symbol, false);
+                var physicalCache = Factory.Utility.PhyscalOrderStore("TestProvider");
+                orderAlgorithm = Factory.Utility.OrderAlgorithm("test", symbol, orders, logicalCache, physicalCache);
+                orderAlgorithm.OnProcessFill = onProcessFill;
                 orderAlgorithm.TrySyncPosition(new ActiveList<StrategyPosition>());
-				orders.ConfirmOrders = orderAlgorithm;
+                orders.ConfirmOrders = orderAlgorithm;
 			}
 			public void ClearPhysicalOrders() {
 				orders.ClearPhysicalOrders();
