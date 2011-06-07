@@ -61,7 +61,7 @@ namespace TickZoom.Interceptors
 		private int actualPosition = 0;
 		private TickSync tickSync;
 		private TickIO currentTick = Factory.TickUtil.TickIO();
-		private PhysicalOrderHandler confirmOrders;
+        private PhysicalOrderConfirm confirmOrders;
 		private bool isBarData = false;
 		private bool createSimulatedFills = false;
 	    private LimitOrderQuoteSimulation limitOrderQuoteSimulation;
@@ -114,7 +114,7 @@ namespace TickZoom.Interceptors
 			if( debug) log.Debug("OnChangeBrokerOrder( " + order + ")");
             CancelBrokerOrder((string) order.OriginalOrder.BrokerOrder);
             CreateBrokerOrder( order);
-            if (confirmOrders != null) confirmOrders.OnChangeBrokerOrder(order);
+            if (confirmOrders != null) confirmOrders.ConfirmChange(order,true);
 		}
 
         public bool TryGetOrderById(string orderId, out CreateOrChangeOrder createOrChangeOrder)
@@ -213,14 +213,14 @@ namespace TickZoom.Interceptors
 				throw new ApplicationException("Sorry, Size of order must be greater than zero: " + order);
 			}
             CreateBrokerOrder(order);
-            if (confirmOrders != null) confirmOrders.OnCreateBrokerOrder(order);
+            if (confirmOrders != null) confirmOrders.ConfirmCreate(order, true);
 		}
 		
 		public void OnCancelBrokerOrder(CreateOrChangeOrder order)
 		{
             if (debug) log.Debug("OnCancelBrokerOrder( " + order.OriginalOrder.BrokerOrder + ")");
             CancelBrokerOrder((string)order.OriginalOrder.BrokerOrder);
-            if (confirmOrders != null) confirmOrders.OnCancelBrokerOrder(order);
+            if (confirmOrders != null) confirmOrders.ConfirmCancel(order, true);
         }
 
 		public int ProcessOrders() {
@@ -736,7 +736,7 @@ namespace TickZoom.Interceptors
 			set { onPositionChange = value; }
 		}
 		
-		public PhysicalOrderHandler ConfirmOrders {
+		public PhysicalOrderConfirm ConfirmOrders {
 			get { return confirmOrders; }
 			set { confirmOrders = value;
 				if( confirmOrders == this) {

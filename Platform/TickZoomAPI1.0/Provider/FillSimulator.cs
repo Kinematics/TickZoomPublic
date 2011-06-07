@@ -37,7 +37,7 @@ namespace TickZoom.Api
 		Action<PhysicalFill,int,int,int> OnPhysicalFill { get; set; }
 		Action<CreateOrChangeOrder,string> OnRejectOrder { get; set; }
 		Action<int> OnPositionChange { get; set; }
-		PhysicalOrderHandler ConfirmOrders { get; set; }
+		PhysicalOrderConfirm ConfirmOrders { get; set; }
 		bool IsBarData { get; set; }
 	    TimeStamp CurrentTick { get; }
     }

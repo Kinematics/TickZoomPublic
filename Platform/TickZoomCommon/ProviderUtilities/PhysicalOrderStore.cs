@@ -245,6 +245,8 @@ namespace TickZoom.Common
 
         private void SnapShot()
         {
+            if (fs == null) return;
+
             CheckSnapshotRollover();
 
             memory.SetLength(0);

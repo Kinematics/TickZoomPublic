@@ -159,6 +159,7 @@ namespace TickZoom.Common
                 else
                 {
                     if (debug) log.Debug("Cancel Broker Order: " + physical);
+                    physicalOrderCache.AddOrder(cancelOrder);
                     sentPhysicalOrders++;
                     TryAddPhysicalOrder(physical);
                     physicalOrderHandler.OnCancelBrokerOrder(cancelOrder);
@@ -179,6 +180,7 @@ namespace TickZoom.Common
                 }
                 if (debug) log.Debug("Change Broker Order: " + createOrChange);
 				sentPhysicalOrders++;
+                physicalOrderCache.AddOrder(createOrChange);
 				TryAddPhysicalOrder(createOrChange);
                 physicalOrderHandler.OnChangeBrokerOrder(createOrChange);
 			}
@@ -200,6 +202,7 @@ namespace TickZoom.Common
                 if( debug) log.Debug("Ignoring broker order as physical order cache has it already.");
                 return;
             }
+            physicalOrderCache.AddOrder(physical);
             sentPhysicalOrders++;
             TryAddPhysicalOrder(physical);
             physicalOrderHandler.OnCreateBrokerOrder(physical);
@@ -990,6 +993,12 @@ namespace TickZoom.Common
                     originalPhysicals.Remove(physical.Order.ReplacedBy);
                     physicalOrders.Remove(physical.Order.ReplacedBy);
                 }
+                physicalOrderCache.RemoveOrder(physical.Order.BrokerOrder);
+                if (physical.Order.ReplacedBy != null)
+                {
+                    if (debug) log.Debug("Found this order in the replace property. Removing it also: " + physical.Order.ReplacedBy);
+                    physicalOrderCache.RemoveOrder(physical.Order.ReplacedBy.BrokerOrder);
+                }
             }
             else
             {
@@ -1413,12 +1422,18 @@ namespace TickZoom.Common
 	    }
 
 	    // This is a callback to confirm order was properly placed.
-		public void OnChangeBrokerOrder(CreateOrChangeOrder order)
-		{
-			PerformCompareProtected();
-			if( SyncTicks.Enabled) {
-                tickSync.SetReprocessPhysicalOrders();
-                tickSync.RemovePhysicalOrder(order);
+        public void ConfirmChange(CreateOrChangeOrder order, bool isRealTime)
+        {
+            physicalOrderCache.AddOrder(order);
+            physicalOrderCache.RemoveOrder(order.OriginalOrder.BrokerOrder);
+            if( isRealTime)
+            {
+                PerformCompareProtected();
+                if (SyncTicks.Enabled)
+                {
+                    tickSync.SetReprocessPhysicalOrders();
+                    tickSync.RemovePhysicalOrder(order.OriginalOrder);
+                }
             }
 		}
 
@@ -1426,22 +1441,32 @@ namespace TickZoom.Common
         {
             return false;
         }
-		
-		public void OnCreateBrokerOrder(CreateOrChangeOrder order)
-		{
-			PerformCompareProtected();
-            if( SyncTicks.Enabled) {
-                tickSync.SetReprocessPhysicalOrders();
-                tickSync.RemovePhysicalOrder(order);
+
+        public void ConfirmCreate(CreateOrChangeOrder order, bool isRealTime)
+        {
+            physicalOrderCache.AddOrder(order);
+            if( isRealTime)
+            {
+                PerformCompareProtected();
+                if (SyncTicks.Enabled)
+                {
+                    tickSync.SetReprocessPhysicalOrders();
+                    tickSync.RemovePhysicalOrder(order);
+                }
             }
 		}
 		
-		public void OnCancelBrokerOrder(CreateOrChangeOrder order)
+		public void ConfirmCancel(CreateOrChangeOrder order, bool isRealTime)
 		{
-			PerformCompareProtected();
-			if( SyncTicks.Enabled) {
-                tickSync.SetReprocessPhysicalOrders();
-                tickSync.RemovePhysicalOrder(order.OriginalOrder.BrokerOrder);
+		    physicalOrderCache.RemoveOrder(order.BrokerOrder);
+	        var origOrder = physicalOrderCache.RemoveOrder(order.OriginalOrder.BrokerOrder);
+            if( isRealTime)
+            {
+			    PerformCompareProtected();
+			    if( SyncTicks.Enabled) {
+                    tickSync.SetReprocessPhysicalOrders();
+                    tickSync.RemovePhysicalOrder(origOrder);
+                }
             }
 		}
 		

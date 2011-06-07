@@ -294,9 +294,9 @@ namespace Orders
 			CreateLogicalExit(OrderType.BuyLimit,124.12);
 			CreateLogicalExit(OrderType.BuyStop,194.12);
 			
-			string buyOrder = "abc";
+			string buyOrder = "abc1";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,234.12,1000,buyLimitId,buyOrder);
-			string sellOrder = "abc";
+			string sellOrder = "abc2";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellStop,154.12,1000,sellStopId,sellOrder);
 			
 			var position = 0;
@@ -377,13 +377,13 @@ namespace Orders
 			int sellStopId = CreateLogicalExit(OrderType.SellStop,134.12);
 			CreateLogicalExit(OrderType.BuyLimit,124.12);
 			CreateLogicalExit(OrderType.BuyStop,194.12);
+            handler.SetLogicalOrders(orders);
 
-		    string sellOrder1 = "abc";
+		    string sellOrder1 = "abc1";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellStop,134.12,1000,sellStopId,sellOrder1);
-		    string sellOrder2 = "abc";
+		    string sellOrder2 = "abc2";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellLimit,334.12,1000,sellLimitId,sellOrder2);
 			
-			handler.SetLogicalOrders(orders);
 			handler.PerformCompare();
 			
 			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
@@ -485,9 +485,9 @@ namespace Orders
 			CreateLogicalExit(OrderType.BuyLimit,124.12);
 			CreateLogicalExit(OrderType.BuyStop,194.12);
 
-		    string sellOrder1 = "abc";
+		    string sellOrder1 = "abc1";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellStop,134.12,1000,sellStopId,sellOrder1);
-		    string sellOrder2 = "abc";
+		    string sellOrder2 = "abc2";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Sell,OrderType.SellLimit,334.12,500,sellLimitId,sellOrder2);
 			
 			handler.SetLogicalOrders(orders);
@@ -556,9 +556,9 @@ namespace Orders
 			int buyLimitId = CreateLogicalExit(OrderType.BuyLimit,124.12);
 			int buyStopId = CreateLogicalExit(OrderType.BuyStop,194.12);
 			
-			string buyOrder1 = "abc";
+			string buyOrder1 = "abc1";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,124.12,1000,buyLimitId,buyOrder1);
-			string buyOrder2 = "abc";
+			string buyOrder2 = "abc2";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyStop,194.12,1000,buyStopId,buyOrder2);
 			
 			handler.SetLogicalOrders(orders);
@@ -584,9 +584,9 @@ namespace Orders
 			int buyLimit2Id = CreateLogicalExit(OrderType.BuyLimit,124.12);
 			int buyStopId = CreateLogicalExit(OrderType.BuyStop,194.12);
 			
-			string buyOrder = "abc";
+			string buyOrder = "abc1";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,234.12,1000,buyLimitId,buyOrder);
-			string sellOrder = "abc";
+			string sellOrder = "abc2";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellStop,154.12,500,sellStopId,sellOrder);
 			
 			handler.SetLogicalOrders(orders);
@@ -889,7 +889,7 @@ namespace Orders
             var order = handler.Orders.CreatedOrders[0];
             Assert.AreEqual(0, handler.Orders.CanceledOrders.Count);
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
-			Assert.AreEqual(2,handler.Orders.CreatedOrders.Count);
+			Assert.AreEqual(3,handler.Orders.CreatedOrders.Count);
 			
 			Assert.AreEqual(OrderType.SellMarket,order.Type);
 			Assert.AreEqual(OrderSide.Sell,order.Side);
@@ -913,7 +913,7 @@ namespace Orders
 			
 			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
-			Assert.AreEqual(1,handler.Orders.CreatedOrders.Count);
+			Assert.AreEqual(2,handler.Orders.CreatedOrders.Count);
 			
 			order = handler.Orders.CreatedOrders[0];
 			Assert.AreEqual(OrderType.SellMarket,order.Type);
@@ -1168,7 +1168,7 @@ namespace Orders
 			handler.PerformCompare();
 			
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
-			Assert.AreEqual(2,handler.Orders.CreatedOrders.Count);
+			Assert.AreEqual(3,handler.Orders.CreatedOrders.Count);
 			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
 			
 		}
@@ -1182,8 +1182,8 @@ namespace Orders
 			var position = 0;
 			handler.SetActualPosition(0);
 			
-			string sellOrder1 = "abc";
-			string buyOrder1 = "abc";
+			string sellOrder1 = "abc1";
+			string buyOrder1 = "abc2";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,15.12,3,0,buyOrder1);
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellLimit,34.12,3,0,sellOrder1);
 
@@ -1386,7 +1386,7 @@ namespace Orders
 			handler.PerformCompare();
 			
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
-			Assert.AreEqual(2,handler.Orders.CreatedOrders.Count);
+			Assert.AreEqual(3,handler.Orders.CreatedOrders.Count);
 			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
 		}
 		
@@ -1399,8 +1399,8 @@ namespace Orders
 			var position = 0;
 			handler.SetActualPosition(0); // Actual and desired differ!!!
 			
-			string sellOrder1 = "abc";
-			string buyOrder1 = "abc";
+			string sellOrder1 = "abc1";
+			string buyOrder1 = "abc2";
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.Buy,OrderType.BuyLimit,15.12,3,0,buyOrder1);
 			handler.Orders.AddPhysicalOrder(OrderState.Active,OrderSide.SellShort,OrderType.SellLimit,34.12,3,0,sellOrder1);
 
@@ -1427,7 +1427,7 @@ namespace Orders
 			public List<Change> ChangedOrders = new List<Change>();
 			public List<CreateOrChangeOrder> CreatedOrders = new List<CreateOrChangeOrder>();
 			public List<CreateOrChangeOrder> inputOrders = new List<CreateOrChangeOrder>();
-			private PhysicalOrderHandler confirmOrders;
+            private PhysicalOrderConfirm confirmOrders;
 			
 			private SymbolInfo symbol;
 			public MockPhysicalOrderHandler(SymbolInfo symbol) {
@@ -1449,7 +1449,7 @@ namespace Orders
 				CanceledOrders.Add(order.OriginalOrder.BrokerOrder);
 				RemoveByBrokerOrder(order.OriginalOrder.BrokerOrder);
 				if( confirmOrders != null) {
-					confirmOrders.OnCancelBrokerOrder(order);
+					confirmOrders.ConfirmCancel(order,true);
 				}
 			}
 			private void RemoveByBrokerOrder(string brokerOrder) {
@@ -1466,7 +1466,7 @@ namespace Orders
                 RemoveByBrokerOrder(order.OriginalOrder.BrokerOrder);
 				inputOrders.Add( order);
 				if( confirmOrders != null) {
-					confirmOrders.OnChangeBrokerOrder(order);
+					confirmOrders.ConfirmChange(order,true);
 				}
 			}
 			public void OnCreateBrokerOrder(CreateOrChangeOrder order)
@@ -1474,7 +1474,7 @@ namespace Orders
 				CreatedOrders.Add(order);
 				inputOrders.Add(order);
 				if( confirmOrders != null) {
-					confirmOrders.OnCreateBrokerOrder(order);
+					confirmOrders.ConfirmCreate(order,true);
 				}
 			}
 			public void ClearPhysicalOrders()
@@ -1499,6 +1499,7 @@ namespace Orders
 			{
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbol, side, type, price, size, logicalOrderId, 0, brokerOrder, null, TimeStamp.UtcNow);
 				inputOrders.Add(order);
+                confirmOrders.ConfirmCreate(order, false);
 				
 			}
 			
@@ -1510,8 +1511,9 @@ namespace Orders
 				}
 				return result;
 			}
-			
-			public PhysicalOrderHandler ConfirmOrders {
+
+            public PhysicalOrderConfirm ConfirmOrders
+            {
 				get { return confirmOrders; }
 				set { confirmOrders = value; }
 			}
@@ -1557,6 +1559,8 @@ namespace Orders
             public void TrySyncPosition()
             {
                 ClearSyncPosition();
+                orderAlgorithm.TrySyncPosition(strategyPositions);
+                FillCreatedOrders();
                 orderAlgorithm.TrySyncPosition(strategyPositions);
             }
 			public void PerformCompare()

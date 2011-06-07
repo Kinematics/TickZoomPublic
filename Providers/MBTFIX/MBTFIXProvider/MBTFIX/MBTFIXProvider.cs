@@ -459,10 +459,8 @@ namespace TickZoom.MBTFIX
 						}
 						if( symbol != null) {
 							order = UpdateOrder( packetFIX, OrderState.Active, null);
-							if( IsRecovered) {
-								var algorithm = GetAlgorithm( symbol.BinaryIdentifier);
-								algorithm.OnCreateBrokerOrder( order);
-							}
+							var algorithm = GetAlgorithm( symbol.BinaryIdentifier);
+                            algorithm.ConfirmCreate(order, IsRecovered);
 						}
 						break;
 					case "1": // Partial
@@ -479,42 +477,34 @@ namespace TickZoom.MBTFIX
                         }
 						if( IsRecovered) {
 							SendFill( packetFIX);
-						}
-						order = OrderStore.RemoveOrder( packetFIX.ClientOrderId);
-						if( order != null && IsRecovered) {
-							var algorithm = GetAlgorithm( order.Symbol.BinaryIdentifier);
+                            var symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+                            var algorithm = GetAlgorithm(symbolInfo.BinaryIdentifier);
 							algorithm.ProcessOrders();
-						}
-						if( order != null && order.ReplacedBy != null)
-                        {
-							if( debug) log.Debug( "Found this order in the replace property. Removing it also: " + order.ReplacedBy);
-                            OrderStore.RemoveOrder(order.ReplacedBy.BrokerOrder.ToString());
 						}
 						break;
 					case "5": // Replaced
 						order = ReplaceOrder( packetFIX);
-						if( IsRecovered) {
-							if( order != null) {
-								var algorithm = GetAlgorithm( order.Symbol.BinaryIdentifier);
-								algorithm.OnChangeBrokerOrder( order);
-							} else {
-								log.Warn("Changing order status after cancel/replace failed. Probably due to already being canceled or filled. Ignoring.");
-							}
+						if( order != null) {
+							var algorithm = GetAlgorithm( order.Symbol.BinaryIdentifier);
+							algorithm.ConfirmChange( order, IsRecovered);
+						} else if( IsRecovered) {
+							log.Warn("Changing order status after cancel/replace failed. Probably due to already being canceled or filled. Ignoring.");
 						}
 						break;
 					case "4": // Canceled
-                        order = OrderStore.RemoveOrder(packetFIX.ClientOrderId);
-                        order = OrderStore.RemoveOrder(packetFIX.OriginalClientOrderId);
-						if( IsRecovered) {
-							if( order != null) {
-								var algorithm = GetAlgorithm( order.Symbol.BinaryIdentifier);
-							    var cancelOrder = Factory.Utility.PhysicalOrder(OrderState.Active, order.Symbol, order);
-								algorithm.OnCancelBrokerOrder( cancelOrder);
-							} else if( IsRecovered) {
-								log.Notice("Order " + packetFIX.ClientOrderId + " was already removed after cancel. Ignoring.");
-							}
-						}
-						break;
+				        {
+                            var symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+                            var algorithm = GetAlgorithm(symbolInfo.BinaryIdentifier);
+                            if( OrderStore.TryGetOrderById( packetFIX.ClientOrderId, out order))
+                            {
+                                algorithm.ConfirmCancel(order, IsRecovered);
+                            }
+                            else
+                            {
+                                log.Warn("Cancel order for " + packetFIX.ClientOrderId + " was not found. Probably already canceled.");
+                            }
+                            break;
+                        }
 					case "6": // Pending Cancel
                         if (!string.IsNullOrEmpty(packetFIX.Text) && packetFIX.Text.Contains("multifunction order"))
                         {
@@ -569,19 +559,11 @@ namespace TickZoom.MBTFIX
 			}
 			if( packetFIX.LeavesQuantity == 0) {
                 if (debug) log.Debug("TryHandlePiggyBackFill found completely filled so removing " + packetFIX.ClientOrderId);
-                var order = OrderStore.RemoveOrder(packetFIX.ClientOrderId);
-                if( order != null)
+                if (IsRecovered)
                 {
-                    if (order.ReplacedBy != null)
-                    {
-                        if (debug) log.Debug("Found this order in the replace property. Removing it also: " + order.ReplacedBy);
-                        OrderStore.RemoveOrder(order.ReplacedBy.BrokerOrder.ToString());
-                    }
-                    if (IsRecovered)
-                    {
-                        var algorithm = GetAlgorithm(order.Symbol.BinaryIdentifier);
-                        algorithm.ProcessOrders();
-                    }
+                    var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+                    var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
+                    algorithm.ProcessOrders();
                 }
 			}
 		}
@@ -851,7 +833,6 @@ namespace TickZoom.MBTFIX
 				if( IsRecovery )
 				{
                     order = UpdateOrReplaceOrder(packetFIX, packetFIX.ClientOrderId, packetFIX.ClientOrderId, OrderState.Active, "ReplaceOrder");
-                    OrderStore.RemoveOrder(packetFIX.OriginalClientOrderId);
                     return order;
 				}
                 else
@@ -875,14 +856,12 @@ namespace TickZoom.MBTFIX
             {
                 throw new InvalidOperationException("client order id mismatch with broker order property.");
             }
-		    OrderStore.AddOrder(order);
             OrderStore.SetSequences(RemoteSequence,FixFactory.LastSequence);
 			if( trace) {
 				log.Trace("Updated order list:");
 			    var logOrders = OrderStore.LogOrders();
 				log.Trace( "Broker Orders:\n" + logOrders);
 			}
-			OrderStore.RemoveOrder( packetFIX.OriginalClientOrderId);
 			return order;
 		}
 		
@@ -936,7 +915,6 @@ namespace TickZoom.MBTFIX
 					if( debug) log.Debug("Order completely filled or canceled. Id: " + packetFIX.ClientOrderId + ".  Executed: " + packetFIX.CumulativeQuantity);
 				}
 			}
-            OrderStore.AddOrder(order);
             OrderStore.SetSequences(RemoteSequence,FixFactory.LastSequence);
 			if( trace) {
 				log.Trace("Updated order list:");
@@ -979,7 +957,6 @@ namespace TickZoom.MBTFIX
                 order = Factory.Utility.PhysicalOrder(orderState, symbolInfo, oldOrder);
                 order.BrokerOrder = newClientOrderId;
             }
-            OrderStore.AddOrder(order);
             OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
             if (oldOrder != null)
             {
@@ -1112,7 +1089,6 @@ namespace TickZoom.MBTFIX
 		private void OnCreateOrChangeBrokerOrder(CreateOrChangeOrder createOrChangeOrder, object origBrokerOrder, bool isChange)
 		{
 			var fixMsg = (FIXMessage4_4) FixFactory.Create();
-		    OrderStore.AddOrder(createOrChangeOrder);
             OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
 			
 			if( debug) log.Debug( "Adding Order to open order list: " + createOrChangeOrder);
@@ -1209,7 +1185,6 @@ namespace TickZoom.MBTFIX
 		public void OnCancelBrokerOrder(CreateOrChangeOrder order)
 		{
 			if( debug) log.Debug( "OnCancelBrokerOrder " + order);
-            OrderStore.AddOrder(order);
             OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
             CreateOrChangeOrder createOrChangeOrder;
 			try {

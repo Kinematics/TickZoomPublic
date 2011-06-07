@@ -6,6 +6,7 @@ namespace TickZoom.Api
     public interface PhysicalOrderCache : IDisposable
     {
         void AddOrder(CreateOrChangeOrder order);
+        CreateOrChangeOrder RemoveOrder(string clientOrderId);
     }
 
     public interface PhysicalOrderStore : PhysicalOrderCache

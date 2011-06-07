@@ -29,8 +29,14 @@ using System.Collections.Generic;
 
 namespace TickZoom.Api
 {
+    public interface PhysicalOrderConfirm
+    {
+        void ConfirmCreate(CreateOrChangeOrder order, bool isRealTime);
+        void ConfirmCancel(CreateOrChangeOrder order, bool isRealTime);
+        void ConfirmChange(CreateOrChangeOrder order, bool isRealTime);
+    }
 
-	public interface OrderAlgorithm : PhysicalOrderHandler
+	public interface OrderAlgorithm : PhysicalOrderConfirm
 	{
 		void SetDesiredPosition(int position);
         void SetLogicalOrders(Iterable<LogicalOrder> logicalOrders, Iterable<StrategyPosition> strategyPositions);
@@ -43,5 +49,6 @@ namespace TickZoom.Api
         Action<SymbolInfo, LogicalFillBinary> OnProcessFill { get; set; }
         int ActualPosition { get; }
         bool IsPositionSynced { get; set; }
-    }
+	    int ProcessOrders();
+	}
 }
