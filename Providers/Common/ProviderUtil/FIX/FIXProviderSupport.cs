@@ -781,29 +781,37 @@ namespace TickZoom.FIX
 	    }    
 	        
 		public void SendEvent( Receiver receiver, SymbolInfo symbol, int eventType, object eventDetail) {
-			switch( (EventType) eventType) {
-				case EventType.Connect:
-					Start(receiver);
-					break;
-				case EventType.Disconnect:
-					Stop(receiver);
-					break;
-				case EventType.StartSymbol:
-					StartSymbol(receiver,symbol, (StartSymbolDetail) eventDetail);
-					break;
-				case EventType.StopSymbol:
-					StopSymbol(receiver,symbol);
-					break;
-				case EventType.PositionChange:
-					PositionChangeDetail positionChange = (PositionChangeDetail) eventDetail;
-					PositionChange(receiver,symbol,positionChange.Position,positionChange.Orders, positionChange.StrategyPositions);
-					break;
-				case EventType.Terminate:
-					Dispose();
-					break; 
-				default:
-					throw new ApplicationException("Unexpected event type: " + (EventType) eventType);
-			}
+            try
+            {
+                switch ((EventType)eventType)
+                {
+                    case EventType.Connect:
+                        Start(receiver);
+                        break;
+                    case EventType.Disconnect:
+                        Stop(receiver);
+                        break;
+                    case EventType.StartSymbol:
+                        StartSymbol(receiver, symbol, (StartSymbolDetail)eventDetail);
+                        break;
+                    case EventType.StopSymbol:
+                        StopSymbol(receiver, symbol);
+                        break;
+                    case EventType.PositionChange:
+                        PositionChangeDetail positionChange = (PositionChangeDetail)eventDetail;
+                        PositionChange(receiver, symbol, positionChange.Position, positionChange.Orders, positionChange.StrategyPositions);
+                        break;
+                    case EventType.Terminate:
+                        Dispose();
+                        break;
+                    default:
+                        throw new ApplicationException("Unexpected event type: " + (EventType)eventType);
+                }
+            }
+            catch( Exception ex)
+            {
+                OnException(ex);
+            }
 		}
 	    
 	    public void SendMessage(FIXTMessage1_1 fixMsg) {

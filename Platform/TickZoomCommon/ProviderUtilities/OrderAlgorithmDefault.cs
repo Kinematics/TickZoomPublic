@@ -99,15 +99,18 @@ namespace TickZoom.Common
                     switch( physical.OrderState)
                     {
                         case OrderState.Suspended:
-                            if (debug) log.Debug("Cannot change a suspended order: " + physical);
+                            if (debug) log.Debug("Cannot match a suspended order: " + physical);
                             break;
                         case OrderState.Filled:
-                            if (debug) log.Debug("Cannot change a filled order: " + physical);
+                            if (debug) log.Debug("Cannot match a filled order: " + physical);
                             break;
                         default:
-                            physicalOrderMatches.Add(physical);
-                            list.Remove(current);
-                            result = true;
+                            if( physical.ReplacedBy == null)
+                            {
+                                physicalOrderMatches.Add(physical);
+                                list.Remove(current);
+                                result = true;
+                            }
                             break;
                     }
 				}
@@ -150,6 +153,7 @@ namespace TickZoom.Common
                 physical.Type != OrderType.BuyMarket &&
                 physical.Type != OrderType.SellMarket)
             {
+                physical.OrderState = OrderState.Pending;
                 var cancelOrder = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, physical);
                 if (!_physicalOrderQueue.AddCancelOrder(cancelOrder))
                 {
@@ -1170,7 +1174,7 @@ namespace TickZoom.Common
             }
             catch (ArgumentException ex)
             {
-                log.Warn(ex.Message + " Was the order already marked as filled? : " + filledOrder);
+                if(trace) log.Trace(ex.Message + " Was the order already marked as filled? : " + filledOrder);
             }
         }
 

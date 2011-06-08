@@ -866,7 +866,7 @@ namespace TickZoom.MBTFIX
 				logicalSerialNumber = order.LogicalSerialNumber;
 			} else {
 				if( debug && (LogRecovery || IsRecovered)) {
-					log.Debug("Client Order ID# " + newClientOrderId + " was not found. Recreating physical order.");
+					log.Debug("Client Order ID# " + newClientOrderId + " was not found.");
 				}
                 return null;
             }
@@ -883,9 +883,13 @@ namespace TickZoom.MBTFIX
             }
             int quantity = packetFIX.LeavesQuantity;
 			var type = GetOrderType( packetFIX);
+            if( type == OrderType.None)
+            {
+                type = order.Type;
+            }
 			var side = GetOrderSide( packetFIX);
 			var logicalId = GetLogicalOrderId( packetFIX);
-		    var replace = order != null ? order.ReplacedBy : null;
+		    var replace = order.ReplacedBy;
             order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbolInfo, side, type, packetFIX.Price, packetFIX.LeavesQuantity, logicalId, logicalSerialNumber, newClientOrderId, null, TimeStamp.UtcNow);
 		    order.ReplacedBy = replace;
             if( oldOrder != null)
