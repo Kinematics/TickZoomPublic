@@ -707,11 +707,11 @@ namespace TickZoom.Common
                     }
                 }
             }
-            foreach (var order in remove)
-            {
-                log.Warn("Removing pending order due to " + pendingExpireSeconds + " second expiration: " + order);
-                RemoveOrder(order.BrokerOrder);
-            }
+            //foreach (var order in remove)
+            //{
+            //    log.Warn("Removing pending order due to " + pendingExpireSeconds + " second expiration: " + order);
+            //    RemoveOrder(order.BrokerOrder);
+            //}
             return list;
         }
 

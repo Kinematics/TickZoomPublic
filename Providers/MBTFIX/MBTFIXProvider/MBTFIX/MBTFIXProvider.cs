@@ -459,8 +459,11 @@ namespace TickZoom.MBTFIX
 						}
 						if( symbol != null) {
 							order = UpdateOrder( packetFIX, OrderState.Active, null);
-							var algorithm = GetAlgorithm( symbol.BinaryIdentifier);
-                            algorithm.ConfirmCreate(order, IsRecovered);
+                            if( order != null)
+                            {
+                                var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
+                                algorithm.ConfirmCreate(order, IsRecovered);
+                            }
 						}
 						break;
 					case "1": // Partial

@@ -88,7 +88,7 @@ namespace TickZoom.Common
 		    this.minimumTick = symbol.MinimumTick.ToLong();
 		}
 		
-		private List<CreateOrChangeOrder> TryMatchId( ActiveList<CreateOrChangeOrder> list, LogicalOrder logical, bool remove)
+		private List<CreateOrChangeOrder> TryMatchId( Iterable<CreateOrChangeOrder> list, LogicalOrder logical, bool remove)
 		{
 		    var result = false;
             var physicalOrderMatches = new List<CreateOrChangeOrder>();
@@ -108,7 +108,11 @@ namespace TickZoom.Common
                             if( physical.ReplacedBy == null)
                             {
                                 physicalOrderMatches.Add(physical);
-                                list.Remove(current);
+                                if( remove)
+                                {
+                                    var activeList = (ActiveList<CreateOrChangeOrder>) list;
+                                    activeList.Remove(current);
+                                }
                                 result = true;
                             }
                             break;
@@ -1136,7 +1140,7 @@ namespace TickZoom.Common
                 else 
                 {
                     if (debug) log.Debug("Found complete physical fill but incomplete logical fill. Physical orders...");
-                    var matches = TryMatchId(originalPhysicals, filledOrder, false);
+                    var matches = TryMatchId(physicalOrderCache.GetActiveOrders(symbol), filledOrder, false);
                     if( matches.Count > 0)
                     {
                         ProcessMatch(filledOrder, matches);
