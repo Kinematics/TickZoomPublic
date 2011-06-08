@@ -115,14 +115,5 @@ namespace TickZoom.MBTFIX
 			fixProvider.OnCancelBrokerOrder(order);
 		}
 		
-		public Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol)
-		{
-			return fixProvider.GetActiveOrders(symbol);
-		}
-
-        public bool HasBrokerOrder( CreateOrChangeOrder order)
-        {
-            return fixProvider.HasBrokerOrder(order);
-        }
 	}
 }

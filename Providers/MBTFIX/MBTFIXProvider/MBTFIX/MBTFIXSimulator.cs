@@ -422,7 +422,11 @@ namespace TickZoom.MBTFIX
 			   	lastTick = Factory.TickUtil.TickIO();
 			   	lastTicks[symbol.BinaryIdentifier] = lastTick;
 			}
-			quoteBuilder.Length = 0;
+            if( quoteBuilder.Length == 0)
+            {
+                quoteBuilder.Append("Nothing");
+            }
+		    quoteBuilder.Replace(quoteBuilder.ToString(), "");
             if( tick.IsTrade) {
 				quoteBuilder.Append("3|"); // Trade
 			} else {

@@ -38,6 +38,7 @@ namespace TickZoom.Api
 		Action<CreateOrChangeOrder,string> OnRejectOrder { get; set; }
 		Action<int> OnPositionChange { get; set; }
 		PhysicalOrderConfirm ConfirmOrders { get; set; }
+	    Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol);
 		bool IsBarData { get; set; }
 	    TimeStamp CurrentTick { get; }
     }

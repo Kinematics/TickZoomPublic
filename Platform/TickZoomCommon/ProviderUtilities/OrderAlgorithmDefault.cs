@@ -567,28 +567,37 @@ namespace TickZoom.Common
 				VerifySide( logical, createOrChange, price);
 			}
 		}
-		
-		private void ProcessMatch(LogicalOrder logical, List<CreateOrChangeOrder> matches) {
-			if( trace) log.Trace("Process Match()");
-			switch( logical.TradeDirection) {
-				case TradeDirection.Entry:
-					ProcessMatchPhysicalEntry( logical, matches);
-					break;
-				case TradeDirection.Exit:
-					ProcessMatchPhysicalExit( logical, matches);
-					break;
-				case TradeDirection.ExitStrategy:
-					ProcessMatchPhysicalExitStrategy( logical, matches);
-					break;
-				case TradeDirection.Reverse:
-					ProcessMatchPhysicalReverse( logical, matches);
-					break;
-				case TradeDirection.Change:
-					ProcessMatchPhysicalChange( logical, matches);
-					break;
-				default:
-					throw new ApplicationException("Unknown TradeDirection: " + logical.TradeDirection);
-			}
+
+        private SimpleLock matchLocker = new SimpleLock();
+		private void ProcessMatch(LogicalOrder logical, List<CreateOrChangeOrder> matches)
+		{
+		    if( !matchLocker.TryLock()) return;
+            try
+		    {
+			    if( trace) log.Trace("Process Match()");
+			    switch( logical.TradeDirection) {
+				    case TradeDirection.Entry:
+					    ProcessMatchPhysicalEntry( logical, matches);
+					    break;
+				    case TradeDirection.Exit:
+					    ProcessMatchPhysicalExit( logical, matches);
+					    break;
+				    case TradeDirection.ExitStrategy:
+					    ProcessMatchPhysicalExitStrategy( logical, matches);
+					    break;
+				    case TradeDirection.Reverse:
+					    ProcessMatchPhysicalReverse( logical, matches);
+					    break;
+				    case TradeDirection.Change:
+					    ProcessMatchPhysicalChange( logical, matches);
+					    break;
+				    default:
+					    throw new ApplicationException("Unknown TradeDirection: " + logical.TradeDirection);
+			    }
+		    } finally
+            {
+                matchLocker.Unlock();
+            }
 		}
 
 		private void VerifySide( LogicalOrder logical, CreateOrChangeOrder createOrChange, double price) {
@@ -798,7 +807,7 @@ namespace TickZoom.Common
 			var pendingAdjustments = 0;
 
             originalPhysicals.Clear();
-            originalPhysicals.AddLast(physicalOrderHandler.GetActiveOrders(symbol));
+            originalPhysicals.AddLast(physicalOrderCache.GetActiveOrders(symbol));
             originalPhysicals.AddLast(_physicalOrderQueue.CreateOrderQueue);
 
 			var next = originalPhysicals.First;
@@ -1274,7 +1283,7 @@ namespace TickZoom.Common
 			}
 				
             originalPhysicals.Clear();
-            originalPhysicals.AddLast(physicalOrderHandler.GetActiveOrders(symbol));
+            originalPhysicals.AddLast(physicalOrderCache.GetActiveOrders(symbol));
             originalPhysicals.AddLast(_physicalOrderQueue.CreateOrderQueue);
 
             if (CheckForPending())

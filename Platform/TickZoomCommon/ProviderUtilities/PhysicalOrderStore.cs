@@ -243,6 +243,20 @@ namespace TickZoom.Common
             }
         }
 
+        public Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol)
+        {
+            var result = new ActiveList<CreateOrChangeOrder>();
+            var list = GetOrders((o) => o.Symbol == symbol);
+            foreach (var order in list)
+            {
+                if (order.OrderState != OrderState.Filled && order.Action != OrderAction.Cancel)
+                {
+                    result.AddLast(order);
+                }
+            }
+            return result;
+        }
+
         private void SnapShot()
         {
             if (fs == null) return;

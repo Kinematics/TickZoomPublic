@@ -684,19 +684,6 @@ namespace TickZoom.MBTFIX
 			}
 		}
 
-		public Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol) {
-			var result = new ActiveList<CreateOrChangeOrder>();
-		    var list = OrderStore.GetOrders((o) => o.Symbol == symbol);
-            foreach( var order in list)
-            {
-                if( order.OrderState != OrderState.Filled && order.Action != OrderAction.Cancel)
-                {
-                    result.AddLast(order);
-                }
-            }
-			return result;
-		}
-		
 		public void RejectOrder( MessageFIX4_4 packetFIX) {
 			var rejectReason = false;
 			rejectReason = packetFIX.Text.Contains("Outside trading hours") ? true : rejectReason;

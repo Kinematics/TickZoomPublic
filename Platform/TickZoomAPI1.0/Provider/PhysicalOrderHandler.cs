@@ -33,8 +33,6 @@ namespace TickZoom.Api
 		void OnChangeBrokerOrder(CreateOrChangeOrder order);		
 		void OnCreateBrokerOrder(CreateOrChangeOrder order);
         void OnCancelBrokerOrder(CreateOrChangeOrder order);
-		Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol);
-        //bool HasBrokerOrder(PhysicalOrder order);
         int ProcessOrders();
     }
 }

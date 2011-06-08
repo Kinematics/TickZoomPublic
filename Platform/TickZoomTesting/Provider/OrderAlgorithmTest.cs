@@ -889,7 +889,7 @@ namespace Orders
             var order = handler.Orders.CreatedOrders[0];
             Assert.AreEqual(0, handler.Orders.CanceledOrders.Count);
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
-			Assert.AreEqual(3,handler.Orders.CreatedOrders.Count);
+			Assert.AreEqual(2,handler.Orders.CreatedOrders.Count);
 			
 			Assert.AreEqual(OrderType.SellMarket,order.Type);
 			Assert.AreEqual(OrderSide.Sell,order.Side);
@@ -913,7 +913,7 @@ namespace Orders
 			
 			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
-			Assert.AreEqual(2,handler.Orders.CreatedOrders.Count);
+			Assert.AreEqual(1,handler.Orders.CreatedOrders.Count);
 			
 			order = handler.Orders.CreatedOrders[0];
 			Assert.AreEqual(OrderType.SellMarket,order.Type);
