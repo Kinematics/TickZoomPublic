@@ -28,13 +28,17 @@ using System;
 
 namespace TickZoom.Api
 {
-	public interface PhysicalFill
-	{
-		TimeStamp Time { get; }
-		TimeStamp UtcTime { get; }
-		double Price { get; }
-		int Size { get; }
-		CreateOrChangeOrder Order { get; }
-		bool IsSimulated { get; }
-	}
+    public interface PhysicalFill
+    {
+        TimeStamp Time { get; }
+        TimeStamp UtcTime { get; }
+        double Price { get; }
+        int Size { get; }
+        CreateOrChangeOrder Order { get; }
+        bool IsSimulated { get; }
+        int TotalSize { get; }
+        int CumulativeSize { get; }
+        int RemainingSize { get; }
+        bool IsRealTime { get; }
+    }
 }

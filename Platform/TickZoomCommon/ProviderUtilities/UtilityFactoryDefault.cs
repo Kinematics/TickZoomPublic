@@ -79,9 +79,11 @@ namespace TickZoom.Common
 		public PositionInterface Position(ModelInterface model) {
 			return new PositionCommon(model);
 		}
-		
-		public PhysicalFill PhysicalFill(int size, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order, bool isSimulated) {
-			return new PhysicalFillDefault(size,price,time,utcTime,order,isSimulated);
+
+        public PhysicalFill PhysicalFill(int size, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order,
+                                   bool isSimulated, int totalSize, int cumulativeSize, int remainingSize, bool isRealTime)
+        {
+			return new PhysicalFillDefault(size,price,time,utcTime,order,isSimulated,totalSize,cumulativeSize,remainingSize,isRealTime);
 		}
 		
 		public StrategyInterface Strategy() {

@@ -135,11 +135,6 @@ namespace TickZoom.MBTFIX
 			} catch( ApplicationException) {
 				log.Warn( symbol + ": Rejected " + packet.ClientOrderId + ". Cannot change order: " + packet.OriginalClientOrderId + ". Already filled or canceled.");
                 OnRejectOrder(order,symbol + ": Cannot change order. Probably already filled or canceled." );
-                //if (SyncTicks.Enabled)
-                //{
-                //    var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                //    tickSync.RemovePhysicalOrder();
-                //}
 				return;
 			}
 		    order.OriginalOrder = origOrder;
@@ -164,24 +159,22 @@ namespace TickZoom.MBTFIX
 		
 		private Yield FIXCancelOrder(MessageFIX4_4 packet) {
 			var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
-			if( debug) log.Debug( "FIXCancelOrder() for " + packet.Symbol + ". Original client id: " + packet.OriginalClientOrderId);
-			CreateOrChangeOrder order = null;
+            var order = ConstructOrder(packet, packet.ClientOrderId);
+            if (debug) log.Debug("FIXCancelOrder() for " + packet.Symbol + ". Original client id: " + packet.OriginalClientOrderId);
+			CreateOrChangeOrder origOrder = null;
 			try {
-				order = GetOrderById( symbol, packet.OriginalClientOrderId);
+				origOrder = GetOrderById( symbol, packet.OriginalClientOrderId);
 			} catch( ApplicationException) {
-				if( debug) log.Debug( symbol + ": Cannot cancel order by client id: " + packet.OriginalClientOrderId + ". Probably already filled or canceled. Should send a reject in this case.");
-				if( SyncTicks.Enabled) {
-					var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-					tickSync.RemovePhysicalOrder();
-				}
+				if( debug) log.Debug( symbol + ": Cannot cancel order by client id: " + packet.OriginalClientOrderId + ". Probably already filled or canceled.");
+                OnRejectCancel(order, packet.OriginalClientOrderId, "No such order");
 				return Yield.DidWork.Return;
 			}
-		    var cancelOrder = Factory.Utility.PhysicalOrder(OrderState.Active, symbol, order);
+		    var cancelOrder = Factory.Utility.PhysicalOrder(OrderState.Active, symbol, origOrder);
 			CancelOrder( cancelOrder);
-			SendExecutionReport( order, "6", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow, packet);
-			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
-			SendExecutionReport( order, "4", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow, packet);
-			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
+			SendExecutionReport( origOrder, "6", 0.0, 0, 0, 0, (int) origOrder.Size, TimeStamp.UtcNow, packet);
+			SendPositionUpdate( origOrder.Symbol, GetPosition(origOrder.Symbol));
+			SendExecutionReport( origOrder, "4", 0.0, 0, 0, 0, (int) origOrder.Size, TimeStamp.UtcNow, packet);
+			SendPositionUpdate( origOrder.Symbol, GetPosition(origOrder.Symbol));
 			return Yield.DidWork.Repeat;
 		}
 		
@@ -279,11 +272,11 @@ namespace TickZoom.MBTFIX
 			}
 		}
 		
-		private void OnPhysicalFill( PhysicalFill fill, int totalSize, int cumulativeSize, int remainingSize) {
+		private void OnPhysicalFill( PhysicalFill fill) {
 			if( debug) log.Debug("Converting physical fill to FIX: " + fill);
 			SendPositionUpdate(fill.Order.Symbol, GetPosition(fill.Order.Symbol));
-			var orderStatus = cumulativeSize == totalSize ? "2" : "1";
-			SendExecutionReport( fill.Order, orderStatus, "F", fill.Price, totalSize, cumulativeSize, fill.Size, remainingSize, fill.UtcTime, null);
+			var orderStatus = fill.CumulativeSize == fill.TotalSize ? "2" : "1";
+			SendExecutionReport( fill.Order, orderStatus, "F", fill.Price, fill.TotalSize, fill.CumulativeSize, fill.Size, fill.RemainingSize, fill.UtcTime, null);
 		}
 
 		private void OnRejectOrder( CreateOrChangeOrder order, string error)
@@ -297,9 +290,23 @@ namespace TickZoom.MBTFIX
 			mbtMsg.AddHeader("8");
             if (debug) log.Debug("Sending position update: " + mbtMsg);
             SendMessage(mbtMsg);
-        }	
-		
-		private void SendPositionUpdate(SymbolInfo symbol, int position)
+        }
+
+        private void OnRejectCancel(CreateOrChangeOrder order, string origClientOrderId, string error)
+        {
+            var mbtMsg = (FIXMessage4_4)FixFactory.Create();
+            mbtMsg.SetAccount("33006566");
+            mbtMsg.SetClientOrderId(order.BrokerOrder.ToString());
+            mbtMsg.SetOriginalClientOrderId(origClientOrderId);
+            mbtMsg.SetOrderStatus("8");
+            mbtMsg.SetText(error);
+            mbtMsg.SetSymbol(order.Symbol.Symbol);
+            mbtMsg.AddHeader("9");
+            if (debug) log.Debug("Sending position update: " + mbtMsg);
+            SendMessage(mbtMsg);
+        }
+
+        private void SendPositionUpdate(SymbolInfo symbol, int position)
 		{
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetAccount( "33006566");

@@ -416,15 +416,16 @@ namespace TickZoom.Api
 
         public bool Remove(T value)
         {
-            locker.Lock();
-            var node = this.Find(value);
-            if (node != null)
+            using (locker.Using())
             {
-                this.InterlockedRemoveNode(node);
-                locker.Unlock();
-                return true;
+                var node = this.Find(value);
+                if (node != null)
+                {
+                    this.InterlockedRemoveNode(node);
+                    locker.Unlock();
+                    return true;
+                }
             }
-            locker.Unlock();
             return false;
         }
 

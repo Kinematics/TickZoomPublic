@@ -169,7 +169,7 @@ namespace TickZoom.Common
                     if (debug) log.Debug("Cancel Broker Order: " + physical);
                     physicalOrderCache.AddOrder(cancelOrder);
                     sentPhysicalOrders++;
-                    TryAddPhysicalOrder(physical);
+                    TryAddPhysicalOrder(cancelOrder);
                     physicalOrderHandler.OnCancelBrokerOrder(cancelOrder);
                     result = true;
                 }
@@ -568,7 +568,7 @@ namespace TickZoom.Common
 				physicalOrders.Remove(createOrChange);
 				var side = GetOrderSide(logical.Type);
                 var changeOrder = new CreateOrChangeOrderDefault(OrderState.Active, symbol, logical, side, Math.Abs(strategyPosition), price);
-                TryChangeBrokerOrder(changeOrder, changeOrder);
+                TryChangeBrokerOrder(changeOrder, createOrChange);
             }
             else
             {
@@ -990,8 +990,8 @@ namespace TickZoom.Common
             //}
         }
 		
-		public void ProcessFill( PhysicalFill physical, int totalSize, int cumulativeSize, int remainingSize) {
-            if (!isPositionSynced)
+		public void ProcessFill( PhysicalFill physical) {
+		    if (!isPositionSynced)
             {
                 if (debug) log.Debug("ProcessFill() ignored. Position not yet synced.");
                 return;
@@ -1000,7 +1000,7 @@ namespace TickZoom.Common
 		    var beforePosition = actualPosition;
             actualPosition += physical.Size;
             if( debug) log.Debug("Updating actual position from " + beforePosition + " to " + actualPosition + " from fill size " + physical.Size);
-			var isCompletePhysicalFill = remainingSize == 0;
+			var isCompletePhysicalFill = physical.RemainingSize == 0;
 			if( isCompletePhysicalFill) {
 				if( debug) log.Debug("Physical order completely filled: " + physical.Order);
 				originalPhysicals.Remove(physical.Order);
@@ -1010,13 +1010,13 @@ namespace TickZoom.Common
                     originalPhysicals.Remove(physical.Order.ReplacedBy);
                     physicalOrders.Remove(physical.Order.ReplacedBy);
                 }
-                physicalOrderCache.RemoveOrder(physical.Order.BrokerOrder);
                 if (physical.Order.ReplacedBy != null)
                 {
                     if (debug) log.Debug("Found this order in the replace property. Removing it also: " + physical.Order.ReplacedBy);
                     physicalOrderCache.RemoveOrder(physical.Order.ReplacedBy.BrokerOrder);
                 }
-            }
+			    physicalOrderCache.RemoveOrder(physical.Order.BrokerOrder);
+			}
             else
             {
 				if( debug) log.Debug("Physical order partially filled: " + physical.Order);
@@ -1040,7 +1040,7 @@ namespace TickZoom.Common
 				return;
 			}
 			if( debug) log.Debug("Fill price: " + fill);
-			ProcessFill( fill, isCompletePhysicalFill);
+			ProcessFill( fill, isCompletePhysicalFill, physical.IsRealTime);
 		}		
 
         private TaskLock performCompareLocker = new TaskLock();
@@ -1094,8 +1094,8 @@ namespace TickZoom.Common
 			if( SyncTicks.Enabled) tickSync.RemovePhysicalFill(fill);
 		}
 		
-		private void ProcessFill( LogicalFillBinary fill, bool isCompletePhysicalFill) {
-			if( debug) log.Debug( "ProcessFill() logical: " + fill );
+		private void ProcessFill( LogicalFillBinary fill, bool isCompletePhysicalFill, bool isRealTime) {
+			if( debug) log.Debug( "ProcessFill() logical: " + fill + (!isRealTime ? " NOTE: This is NOT a real time fill." : ""));
 			int orderId = fill.OrderId;
 			if( orderId == 0) {
 				// This is an adjust-to-position market order.
@@ -1137,7 +1137,7 @@ namespace TickZoom.Common
                     if (debug) log.Debug("Found a entry order which flattened the position. Likely due to bracketed entries that both get filled: " + filledOrder);
                     MarkAsFilled(filledOrder);
                 }
-                else 
+                else if( isRealTime)
                 {
                     if (debug) log.Debug("Found complete physical fill but incomplete logical fill. Physical orders...");
                     var matches = TryMatchId(physicalOrderCache.GetActiveOrders(symbol), filledOrder, false);
@@ -1156,7 +1156,7 @@ namespace TickZoom.Common
                 if (debug) log.Debug("Sending logical fill for " + symbol + ": " + fill);
                 onProcessFill(symbol, fill);
             }
-            if (fill.IsComplete || isCompletePhysicalFill)
+            if (isRealTime && (fill.IsComplete || isCompletePhysicalFill))
             {
 				if( debug) log.Debug("Performing extra compare.");
 				PerformCompareProtected();
@@ -1441,16 +1441,21 @@ namespace TickZoom.Common
 	    // This is a callback to confirm order was properly placed.
         public void ConfirmChange(CreateOrChangeOrder order, bool isRealTime)
         {
+            if (debug) log.Debug("ConfirmChange(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             physicalOrderCache.AddOrder(order);
-            physicalOrderCache.RemoveOrder(order.OriginalOrder.BrokerOrder);
-            if( isRealTime)
+            if( order.OriginalOrder != null)
+            {
+                physicalOrderCache.RemoveOrder(order.OriginalOrder.BrokerOrder);
+                order.OriginalOrder = null;
+            }
+            if (SyncTicks.Enabled)
+            {
+                tickSync.SetReprocessPhysicalOrders();
+                tickSync.RemovePhysicalOrder(order);
+            }
+            if (isRealTime)
             {
                 PerformCompareProtected();
-                if (SyncTicks.Enabled)
-                {
-                    tickSync.SetReprocessPhysicalOrders();
-                    tickSync.RemovePhysicalOrder(order.OriginalOrder);
-                }
             }
 		}
 
@@ -1461,29 +1466,48 @@ namespace TickZoom.Common
 
         public void ConfirmCreate(CreateOrChangeOrder order, bool isRealTime)
         {
+            if( debug) log.Debug("ConfirmCreate(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             physicalOrderCache.AddOrder(order);
-            if( isRealTime)
+            if (SyncTicks.Enabled)
+            {
+                tickSync.SetReprocessPhysicalOrders();
+                tickSync.RemovePhysicalOrder(order);
+            }
+            if (isRealTime)
             {
                 PerformCompareProtected();
-                if (SyncTicks.Enabled)
-                {
-                    tickSync.SetReprocessPhysicalOrders();
-                    tickSync.RemovePhysicalOrder(order);
-                }
             }
 		}
+
+        public void RejectOrder(CreateOrChangeOrder order, bool isRealTime)
+        {
+            if (debug) log.Debug("RejectOrder(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
+            log.Info("RejectOrder(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
+            //physicalOrderCache.RemoveOrder(order.BrokerOrder);
+            if (SyncTicks.Enabled)
+            {
+                //tickSync.SetReprocessPhysicalOrders();
+                tickSync.RemovePhysicalOrder(order);
+            }
+            //if (isRealTime)
+            //{
+            //    PerformCompareProtected();
+            //}
+        }
 		
 		public void ConfirmCancel(CreateOrChangeOrder order, bool isRealTime)
 		{
-		    physicalOrderCache.RemoveOrder(order.BrokerOrder);
+            if (debug) log.Debug("ConfirmCancel(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
+            physicalOrderCache.RemoveOrder(order.BrokerOrder);
 	        var origOrder = physicalOrderCache.RemoveOrder(order.OriginalOrder.BrokerOrder);
-            if( isRealTime)
+            if (SyncTicks.Enabled)
+            {
+                tickSync.SetReprocessPhysicalOrders();
+                tickSync.RemovePhysicalOrder(order);
+            }
+            if (isRealTime)
             {
 			    PerformCompareProtected();
-			    if( SyncTicks.Enabled) {
-                    tickSync.SetReprocessPhysicalOrders();
-                    tickSync.RemovePhysicalOrder(origOrder);
-                }
             }
 		}
 		

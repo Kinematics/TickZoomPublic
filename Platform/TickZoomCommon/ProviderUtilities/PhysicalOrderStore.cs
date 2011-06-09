@@ -16,7 +16,7 @@ namespace TickZoom.Common
 
     public class PhysicalOrderStoreDefault : IDisposable, PhysicalOrderCache, PhysicalOrderStore
     {
-        private static readonly Log log = Factory.SysLog.GetLogger(typeof(PhysicalOrderStore));
+        private static readonly Log log = Factory.SysLog.GetLogger(typeof(PhysicalOrderStoreDefault));
         private static readonly bool info = log.IsDebugEnabled;
         private static readonly bool debug = log.IsDebugEnabled;
         private static readonly bool trace = log.IsTraceEnabled;
@@ -59,11 +59,31 @@ namespace TickZoom.Common
 
         public void OpenFile()
         {
-            fs = new FileStream(databasePath, FileMode.Append, FileAccess.Write, FileShare.Read, 1024, FileOptions.WriteThrough);
-            snapshotLength = fs.Length;
-            memory = new MemoryStream();
-            writer = new BinaryWriter(memory, Encoding.UTF8);
-            reader = new BinaryReader(memory, Encoding.UTF8);
+            var list = new List<Exception>();
+            var errorCount = 0;
+            while( errorCount < 3)
+            {
+                try
+                {
+                    fs = new FileStream(databasePath, FileMode.Append, FileAccess.Write, FileShare.Read, 1024, FileOptions.WriteThrough);
+                    snapshotLength = fs.Length;
+                    memory = new MemoryStream();
+                    writer = new BinaryWriter(memory, Encoding.UTF8);
+                    reader = new BinaryReader(memory, Encoding.UTF8);
+                    break;
+                }
+                catch (IOException ex)
+                {
+                    list.Add(ex);
+                    Thread.Sleep(1000);
+                    errorCount++;
+                }
+            }
+            if( list.Count > 0)
+            {
+                var ex = list[list.Count - 1];
+                throw new ApplicationException( "Failed to open the snapshot file after 3 tries", ex);
+            }
         }
 
         public string DatabasePath
@@ -424,6 +444,10 @@ namespace TickZoom.Common
 
         public bool Recover()
         {
+            if( fs != null)
+            {
+                fs.Close();
+            }
             var files = FindSnapshotFiles();
             var loaded = false;
             foreach (var file in files)
@@ -452,6 +476,7 @@ namespace TickZoom.Common
                 forceSnapShotRollover = true;
                 ForceSnapShot();
             }
+            OpenFile();
             return loaded;
         }
 

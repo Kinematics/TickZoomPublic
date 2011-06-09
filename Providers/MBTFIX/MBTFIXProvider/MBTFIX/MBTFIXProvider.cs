@@ -305,6 +305,12 @@ namespace TickZoom.MBTFIX
 					break;
 				case "9":
 					CancelRejected( packetFIX);
+                    if( packetFIX.Symbol != null)
+                    {
+                        var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+                        var algo = orderAlgorithms[symbol.BinaryIdentifier];
+                        algo.ProcessOrders();
+                    }
 					break;
 				case "1":
 					SendHeartbeat();
@@ -468,9 +474,7 @@ namespace TickZoom.MBTFIX
 						break;
 					case "1": // Partial
 						UpdateOrder( packetFIX, OrderState.Active, null);
-						if( IsRecovered) {
-							SendFill( packetFIX);
-						}
+						SendFill( packetFIX);
 						break;
 					case "2":  // Filled 
                         if( packetFIX.CumulativeQuantity < packetFIX.LastQuantity)
@@ -478,12 +482,7 @@ namespace TickZoom.MBTFIX
                             log.Warn("Ignoring message due to CumQty " + packetFIX.CumulativeQuantity + " less than " + packetFIX.LastQuantity);
                             break;
                         }
-						if( IsRecovered) {
-							SendFill( packetFIX);
-                            var symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-                            var algorithm = GetAlgorithm(symbolInfo.BinaryIdentifier);
-							algorithm.ProcessOrders();
-						}
+						SendFill( packetFIX);
 						break;
 					case "5": // Replaced
 						order = ReplaceOrder( packetFIX);
@@ -556,18 +555,9 @@ namespace TickZoom.MBTFIX
 		}
 
 		private void TryHandlePiggyBackFill(MessageFIX4_4 packetFIX) {
-			if( packetFIX.LastQuantity > 0 && IsRecovered) {
+			if( packetFIX.LastQuantity > 0) {
                 if (debug) log.Debug("TryHandlePiggyBackFill triggering fill because LastQuantity = " + packetFIX.LastQuantity);
                 SendFill(packetFIX);
-			}
-			if( packetFIX.LeavesQuantity == 0) {
-                if (debug) log.Debug("TryHandlePiggyBackFill found completely filled so removing " + packetFIX.ClientOrderId);
-                if (IsRecovered)
-                {
-                    var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-                    var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-                    algorithm.ProcessOrders();
-                }
 			}
 		}
 		
@@ -576,6 +566,8 @@ namespace TickZoom.MBTFIX
 				log.Debug("ExecutionReport: " + packetFIX);
 			}
 			string orderStatus = packetFIX.OrderStatus;
+            CreateOrChangeOrder order;
+		    OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order);
 			switch( orderStatus) {
 				case "8": // Rejected
 					var rejectReason = false;
@@ -586,6 +578,7 @@ namespace TickZoom.MBTFIX
                             OrderStore.RemoveOrder( packetFIX.ClientOrderId);
     						OrderStore.RemoveOrder( packetFIX.OriginalClientOrderId);
                             break;
+                        case "USD/JPY: Cannot cancel order. Probably already filled or canceled.":
                         case "Order pending remote":
                         case "Cancel request already pending":
                         case "ORDER in pending state":
@@ -599,7 +592,24 @@ namespace TickZoom.MBTFIX
                             OrderStore.RemoveOrder(packetFIX.ClientOrderId);
                             break;
                     }
-					if( !rejectReason && IsRecovered) {
+                    if (order != null)
+                    {
+                        var algo = orderAlgorithms[order.Symbol.BinaryIdentifier];
+                        algo.RejectOrder(order,IsRecovered);
+                    }
+                    else
+                    {
+                        CreateOrChangeOrder origOrder;
+                        if( OrderStore.TryGetOrderById( packetFIX.OriginalClientOrderId, out origOrder))
+                        {
+                            //var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+                            //var cancelOrder = Factory.Utility.PhysicalOrder(OrderState.Active, symbol, origOrder);
+                            //var algo = orderAlgorithms[symbol.BinaryIdentifier];
+                            //algo.RejectOrder(order, IsRecovered);
+                        }
+                    }
+                    if (!rejectReason && IsRecovered)
+                    {
 						var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
 						var ignore = "The cancel reject error message '" + packetFIX.Text + "' was unrecognized. So it is being ignored. ";
 						var handle = "If this reject causes any other problems please report it to have it added and properly handled.";
@@ -659,9 +669,9 @@ namespace TickZoom.MBTFIX
 				    }
 				    var configTime = executionTime;
 				    configTime.AddSeconds( timeZone.UtcOffset(executionTime));
-				    var fill = Factory.Utility.PhysicalFill(fillPosition,packetFIX.LastPrice,configTime,executionTime,order,false);
+                    var fill = Factory.Utility.PhysicalFill(fillPosition, packetFIX.LastPrice, configTime, executionTime, order, false, packetFIX.OrderQuantity, packetFIX.CumulativeQuantity, packetFIX.LeavesQuantity, IsRecovered);
 				    if( debug) log.Debug( "Sending physical fill: " + fill);
-	                algorithm.ProcessFill( fill,packetFIX.OrderQuantity,packetFIX.CumulativeQuantity,packetFIX.LeavesQuantity);
+	                algorithm.ProcessFill( fill);
                 }
                 else
                 {
@@ -712,7 +722,6 @@ namespace TickZoom.MBTFIX
                 var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
                 tickSync.RemovePhysicalOrder();
             }
-
 		}
 		
 		private static readonly char[] DOT_SEPARATOR = new char[] { '.' };

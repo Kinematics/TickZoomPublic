@@ -606,7 +606,7 @@ namespace TickZoom.FIX
 			return realTimeOffset;
 		}
 
-		public void AddSymbol(string symbol, Action<Message, SymbolInfo, Tick> onTick, Action<PhysicalFill,int,int,int> onPhysicalFill, Action<CreateOrChangeOrder,string> onOrderReject)
+		public void AddSymbol(string symbol, Action<Message, SymbolInfo, Tick> onTick, Action<PhysicalFill> onPhysicalFill, Action<CreateOrChangeOrder,string> onOrderReject)
 		{
 			var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
 			if (!symbolHandlers.ContainsKey(symbolInfo.BinaryIdentifier)) {

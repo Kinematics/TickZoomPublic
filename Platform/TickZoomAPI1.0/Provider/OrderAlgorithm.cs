@@ -34,13 +34,14 @@ namespace TickZoom.Api
         void ConfirmCreate(CreateOrChangeOrder order, bool isRealTime);
         void ConfirmCancel(CreateOrChangeOrder order, bool isRealTime);
         void ConfirmChange(CreateOrChangeOrder order, bool isRealTime);
+        void RejectOrder(CreateOrChangeOrder order, bool isRealTime);
     }
 
 	public interface OrderAlgorithm : PhysicalOrderConfirm
 	{
 		void SetDesiredPosition(int position);
         void SetLogicalOrders(Iterable<LogicalOrder> logicalOrders, Iterable<StrategyPosition> strategyPositions);
-		void ProcessFill( PhysicalFill fill, int totalSize, int cumulativeSize, int remainingSize);
+		void ProcessFill( PhysicalFill fill);
 		void SetActualPosition(int position);
         void IncreaseActualPosition(int position);
         void TrySyncPosition(Iterable<StrategyPosition> strategyPositions);

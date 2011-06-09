@@ -38,15 +38,25 @@ namespace TickZoom.Interceptors
 		private TimeStamp utcTime;
 		private CreateOrChangeOrder order;
 		private bool isSimulated = false;
-		
-		public PhysicalFillDefault( int size, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order, bool isSimulated) {
+	    private int totalSize;
+	    private int cumulativeSize;
+	    private int remainingSize;
+	    private bool isRealTime;
+
+	    public PhysicalFillDefault(int size, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order,
+	                               bool isSimulated, int totalSize, int cumulativeSize, int remainingSize, bool isRealTime)
+        {
 			this.size = size;
 			this.price = price;
 			this.time = time;
 			this.utcTime = utcTime;
 			this.order = order;
 			this.isSimulated = isSimulated;
-		}
+	        this.totalSize = totalSize;
+	        this.cumulativeSize = cumulativeSize;
+	        this.remainingSize = remainingSize;
+	        this.isRealTime = isRealTime;
+        }
 		
 		public override string ToString()
 		{
@@ -85,5 +95,25 @@ namespace TickZoom.Interceptors
 		public bool IsSimulated {
 			get { return isSimulated; }
 		}
+
+	    public int TotalSize
+	    {
+	        get { return totalSize; }
+	    }
+
+	    public int CumulativeSize
+	    {
+	        get { return cumulativeSize; }
+	    }
+
+	    public int RemainingSize
+	    {
+	        get { return remainingSize; }
+	    }
+
+	    public bool IsRealTime
+	    {
+	        get { return isRealTime; }
+	    }
 	}
 }

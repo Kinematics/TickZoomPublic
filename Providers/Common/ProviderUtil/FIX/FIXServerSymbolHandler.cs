@@ -57,7 +57,7 @@ namespace TickZoom.FIX
 		public FIXServerSymbolHandler( FIXSimulatorSupport fixSimulatorSupport, 
 		    bool isPlayBack, string symbolString,
 		    Action<Message,SymbolInfo,Tick> onTick,
-		    Action<PhysicalFill, int,int,int> onPhysicalFill,
+		    Action<PhysicalFill> onPhysicalFill,
 		    Action<CreateOrChangeOrder,string> onRejectOrder) {
 			this.fixSimulatorSupport = fixSimulatorSupport;
 			this.isPlayBack = isPlayBack;

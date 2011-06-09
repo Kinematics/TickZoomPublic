@@ -1572,9 +1572,9 @@ namespace Orders
 				get { return orderAlgorithm.ActualPosition; }
 			}
 			
-			public void ProcessFill(PhysicalFill fill,int totalSize, int cumulativeSize, int remainingSize)
+			public void ProcessFill(PhysicalFill fill)
 			{
-				orderAlgorithm.ProcessFill(fill,totalSize,cumulativeSize,remainingSize);
+				orderAlgorithm.ProcessFill(fill);
 			}
 			
 			public MockPhysicalOrderHandler Orders {
@@ -1592,9 +1592,9 @@ namespace Orders
                                physical.Type == OrderType.BuyMarket
                                    ? physical.Size
                                    : -physical.Size;
-                    var fill = Factory.Utility.PhysicalFill(size, physical.Price, TimeStamp.UtcNow, TimeStamp.UtcNow, physical, false);
+                    var fill = Factory.Utility.PhysicalFill(size, physical.Price, TimeStamp.UtcNow, TimeStamp.UtcNow, physical, false, size, size, 0, true);
                     orders.inputOrders.Remove(physical);
-                    orderAlgorithm.ProcessFill(fill, size, size, 0);
+                    orderAlgorithm.ProcessFill(fill);
                 }
             }
 		}

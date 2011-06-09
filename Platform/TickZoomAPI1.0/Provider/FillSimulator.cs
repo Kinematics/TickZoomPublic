@@ -34,7 +34,7 @@ namespace TickZoom.Api
 		void StartTick(Tick lastTick);
 		CreateOrChangeOrder GetOrderById( string orderId);
 		int ActualPosition { get; set; }
-		Action<PhysicalFill,int,int,int> OnPhysicalFill { get; set; }
+		Action<PhysicalFill> OnPhysicalFill { get; set; }
 		Action<CreateOrChangeOrder,string> OnRejectOrder { get; set; }
 		Action<int> OnPositionChange { get; set; }
 		PhysicalOrderConfirm ConfirmOrders { get; set; }
