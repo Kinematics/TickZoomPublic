@@ -19,4 +19,4 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
-[assembly: AssemblyVersion("1.1.28.28845")]
+[assembly: AssemblyVersion("1.1.28.29029")]
