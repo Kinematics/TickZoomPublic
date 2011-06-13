@@ -38,7 +38,6 @@ namespace TickZoom.Starters
 			SyncTicks.Enabled = true;
 			ConfigurationManager.AppSettings.Set("ProviderAddress","InProcess");
 			ProjectProperties.Engine.SimulateRealTime = true;
-//			ProjectProperties.Engine.RealtimeOutput = false;
 		}
 
         public override void Run(ModelLoaderInterface loader)

@@ -88,7 +88,7 @@ namespace TickZoom.Common
 		    this.minimumTick = symbol.MinimumTick.ToLong();
 		}
 		
-		private List<CreateOrChangeOrder> TryMatchId( Iterable<CreateOrChangeOrder> list, LogicalOrder logical, bool remove)
+		private List<CreateOrChangeOrder> TryMatchId( Iterable<CreateOrChangeOrder> list, LogicalOrder logical)
 		{
 		    var result = false;
             var physicalOrderMatches = new List<CreateOrChangeOrder>();
@@ -108,11 +108,6 @@ namespace TickZoom.Common
                             if( physical.ReplacedBy == null)
                             {
                                 physicalOrderMatches.Add(physical);
-                                if( remove)
-                                {
-                                    var activeList = (ActiveList<CreateOrChangeOrder>) list;
-                                    activeList.Remove(current);
-                                }
                                 result = true;
                             }
                             break;
@@ -211,6 +206,16 @@ namespace TickZoom.Common
                 return;
             }
             physicalOrderCache.AddOrder(physical);
+            if (debug)
+            {
+                log.Debug("Showing current physical orders:");
+                var next = originalPhysicals.First;
+                for (var node = next; node != null; node = node.Next)
+                {
+                    var order = node.Value;
+                    log.Debug("Physical Order: " + order);
+                }
+            }
             sentPhysicalOrders++;
             TryAddPhysicalOrder(physical);
             physicalOrderHandler.OnCreateBrokerOrder(physical);
@@ -230,9 +235,9 @@ namespace TickZoom.Common
 		{
             if (matches.Count != 1)
             {
-                throw new ApplicationException("Expected 1 match but found " + matches.Count + " matches for logical order: " +
-                                               logical + "\n" + ToString(matches));
+                log.Warn("Expected 1 match but found " + matches.Count + " matches for logical order: " + logical + "\n" + ToString(matches));
             }
+            physicalOrders.Remove(matches[0]);
             ProcessMatchPhysicalEntry(logical, matches[0], logical.Position, logical.Price);
             return;
 		}
@@ -295,9 +300,9 @@ namespace TickZoom.Common
         {
             if (matches.Count != 1)
             {
-                throw new ApplicationException("Expected 1 match but found " + matches.Count +
-                                               " matches for logical order: " + logical + "\n" + ToString(matches));
+                log.Warn("Expected 1 match but found " + matches.Count + " matches for logical order: " + logical + "\n" + ToString(matches));
             }
+            physicalOrders.Remove(matches[0]);
             var physical = matches[0];
             ProcessMatchPhysicalReverse(logical, physical, logical.Position, logical.Price);
             return;
@@ -398,6 +403,7 @@ namespace TickZoom.Common
                 for (var j = 0; j < matches.Count; j++)
                 {
                     var physical = matches[j];
+                    physicalOrders.Remove(physical);
                     if (physical.Price.ToLong() != levelPrice) continue;
                     onMatchCallback(logical, physical, size, levelPrice.ToDouble());
                     matches.RemoveAt(j);
@@ -517,11 +523,11 @@ namespace TickZoom.Common
         {
             if (matches.Count != 1)
             {
-                throw new ApplicationException("Expected 1 match but found " + matches.Count +
-                                               " matches for logical order: " + logical + "\n" + ToString(matches));
+                log.Warn("Expected 1 match but found " + matches.Count + " matches for logical order: " + logical + "\n" + ToString(matches));
             }
             var physical = matches[0];
-            ProcessMatchPhysicalExit(logical,physical,logical.Position,logical.Price);
+            physicalOrders.Remove(matches[0]);
+            ProcessMatchPhysicalExit(logical, physical, logical.Position, logical.Price);
             return;
         }
 
@@ -548,9 +554,9 @@ namespace TickZoom.Common
             if( logical.Levels == 1) {
                 if (matches.Count != 1)
                 {
-                    throw new ApplicationException("Expected 1 match but found " + matches.Count +
-                                                   " matches for logical order: " + logical + "\n" + ToString(matches));
+                    log.Warn("Expected 1 match but found " + matches.Count + " matches for logical order: " + logical + "\n" + ToString(matches));
                 }
+                physicalOrders.Remove(matches[0]);
                 var physical = matches[0];
                 ProcessMatchPhysicalExitStrategy(logical,physical,logical.Position,logical.Price);
                 return;
@@ -1007,12 +1013,9 @@ namespace TickZoom.Common
                 physicalOrders.Remove(physical.Order);
                 if (physical.Order.ReplacedBy != null)
                 {
+                    if (debug) log.Debug("Found this order in the replace property. Removing it also: " + physical.Order.ReplacedBy);
                     originalPhysicals.Remove(physical.Order.ReplacedBy);
                     physicalOrders.Remove(physical.Order.ReplacedBy);
-                }
-                if (physical.Order.ReplacedBy != null)
-                {
-                    if (debug) log.Debug("Found this order in the replace property. Removing it also: " + physical.Order.ReplacedBy);
                     physicalOrderCache.RemoveOrder(physical.Order.ReplacedBy.BrokerOrder);
                 }
 			    physicalOrderCache.RemoveOrder(physical.Order.BrokerOrder);
@@ -1140,7 +1143,7 @@ namespace TickZoom.Common
                 else if( isRealTime)
                 {
                     if (debug) log.Debug("Found complete physical fill but incomplete logical fill. Physical orders...");
-                    var matches = TryMatchId(physicalOrderCache.GetActiveOrders(symbol), filledOrder, false);
+                    var matches = TryMatchId(physicalOrderCache.GetActiveOrders(symbol), filledOrder);
                     if( matches.Count > 0)
                     {
                         ProcessMatch(filledOrder, matches);
@@ -1178,7 +1181,7 @@ namespace TickZoom.Common
             }
             catch (ArgumentException ex)
             {
-                if(trace) log.Trace(ex.Message + " Was the order already marked as filled? : " + filledOrder);
+                log.Error(ex.Message + " Was the order already marked as filled? : " + filledOrder);
             }
         }
 
@@ -1260,6 +1263,7 @@ namespace TickZoom.Common
 		}
 		
 		public int ProcessOrders() {
+            if (debug) log.Debug("ProcessOrders()");
             sentPhysicalOrders = 0;
 			PerformCompareProtected();
             return sentPhysicalOrders;
@@ -1350,7 +1354,7 @@ namespace TickZoom.Common
 			extraLogicals.Clear();
 			while( logicalOrders.Count > 0) {
 				var logical = logicalOrders.First.Value;
-			    var matches = TryMatchId(physicalOrders, logical, true);
+			    var matches = TryMatchId(physicalOrders, logical);
                 if( matches.Count > 0)
                 {
                     ProcessMatch( logical, matches);
@@ -1479,27 +1483,36 @@ namespace TickZoom.Common
             }
 		}
 
-        public void RejectOrder(CreateOrChangeOrder order, bool isRealTime)
+        public void RejectOrder(CreateOrChangeOrder order, bool removeOriginal, bool isRealTime)
         {
             if (debug) log.Debug("RejectOrder(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
-            log.Info("RejectOrder(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
-            //physicalOrderCache.RemoveOrder(order.BrokerOrder);
+            physicalOrderCache.RemoveOrder(order.BrokerOrder);
+            if( removeOriginal)
+            {
+                physicalOrderCache.RemoveOrder(order.OriginalOrder.BrokerOrder);
+            }
+            else if( order.OriginalOrder.OrderState == OrderState.Pending)
+            {
+                order.OriginalOrder.OrderState = OrderState.Active;
+            }
             if (SyncTicks.Enabled)
             {
-                //tickSync.SetReprocessPhysicalOrders();
                 tickSync.RemovePhysicalOrder(order);
             }
-            //if (isRealTime)
-            //{
-            //    PerformCompareProtected();
-            //}
         }
 		
 		public void ConfirmCancel(CreateOrChangeOrder order, bool isRealTime)
 		{
             if (debug) log.Debug("ConfirmCancel(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             physicalOrderCache.RemoveOrder(order.BrokerOrder);
-	        var origOrder = physicalOrderCache.RemoveOrder(order.OriginalOrder.BrokerOrder);
+            if( order.ReplacedBy == null)
+            {
+                throw new ApplicationException("CancelOrder w/o any replaced order specified: " + order);
+            }
+            else
+            {
+                physicalOrderCache.RemoveOrder(order.ReplacedBy.BrokerOrder);
+            }
             if (SyncTicks.Enabled)
             {
                 tickSync.SetReprocessPhysicalOrders();

@@ -70,8 +70,8 @@ namespace TickZoom.Logging
 			lock( locker) {
 				if( exceptionLog == null) {
 					exceptionLog = GetLogger("TickZoom.AppDomain");
-				    AppDomain.CurrentDomain.UnhandledException +=
-				        new UnhandledExceptionEventHandler(UnhandledException);
+                    //AppDomain.CurrentDomain.UnhandledException +=
+                    //    new UnhandledExceptionEventHandler(UnhandledException);
 				}
 			}
 		}

@@ -89,7 +89,12 @@ namespace TickZoom.Examples
 			}
 			return true;
 		}
-		
+
+        public override bool OnWriteReport(string folder)
+        {
+            return false;
+        }
+
 		public double Multiplier {
 			get { return multiplier; }
 			set { multiplier = value; }

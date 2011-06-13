@@ -49,7 +49,7 @@ namespace TickZoom.Starters
 		
 		public override void Run(ModelInterface model)
 		{
-			ServiceConnection service = null;
+            ServiceConnection service = null;
 			switch( Address) {
 				case "InProcess":
 					service = Factory.Provider.ProviderService();
@@ -74,7 +74,8 @@ namespace TickZoom.Starters
 				if( service != null) {
 					service.OnStop();
 				}
-			}
+                parallelMode = ParallelMode.Normal;
+            }
 		}
 		public void SetupProviderServiceConfig(string providerAssembly, ushort servicePort)
 		{

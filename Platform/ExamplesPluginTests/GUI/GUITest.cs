@@ -31,7 +31,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Windows.Forms;
-
+using Loaders;
 using NUnit.Framework;
 using TickZoom.Api;
 using TickZoom.GUI;
@@ -86,9 +86,9 @@ namespace Other
 		
 		private StarterConfig CreateSimulateConfig() {
 			var config = new StarterConfig("test");
-			config.ServiceConfig = "WarehouseTest.config";
-			config.ServicePort = servicePort;
-			config.ProviderAssembly = "TickZoomCombinedMock";
+            //config.ServiceConfig = "WarehouseTest.config";
+            //config.ServicePort = servicePort;
+            //config.ProviderAssembly = "TickZoomCombinedMock";
 			
 			WaitForEngine(config);
 			return config;
@@ -104,17 +104,28 @@ namespace Other
 		[Test]
 		public void TestConfigRealTimeNoHistorical()
 		{
-			var config = CreateSimulateConfig();
-			config.SymbolList = "IBM,GBP/USD";
-			config.DefaultPeriod = 10;
-			config.DefaultBarUnit = BarUnit.Tick.ToString();
-			config.ModelLoader = "Example: Reversal Multi-Symbol";
-			config.StarterName = "TestRealTimeStarter";
-			config.Start();
-			config.WaitComplete(120, () => { return config.CommandWorker.IsBusy; } );
-			config.Stop();
-			config.WaitComplete(120, () => { return !config.CommandWorker.IsBusy; } );
-			Assert.IsFalse(config.CommandWorker.IsBusy,"ProcessWorker.Busy");
+            try
+            {
+                var config = CreateSimulateConfig();
+                config.SymbolList = "IBM,GBP/USD";
+                StrategyTest.CleanupFiles(config.SymbolList);
+                config.DefaultPeriod = 10;
+                config.DefaultBarUnit = BarUnit.Tick.ToString();
+                config.ModelLoader = "Example: Reversal Multi-Symbol";
+                config.StarterName = "FIXSimulatorStarter";
+                config.Start();
+                config.WaitComplete(120, () => { return config.CommandWorker.IsBusy; });
+                config.Stop();
+                config.WaitComplete(120, () => { return !config.CommandWorker.IsBusy; });
+                Assert.IsFalse(config.CommandWorker.IsBusy, "ProcessWorker.Busy");
+			} catch( Exception ex) {
+				log.Error("Test failed with error: " + ex.Message, ex);
+				Environment.Exit(1);
+            } finally {
+                execute.Exit();
+                guiThread.Join();
+                Factory.Release();
+            }
 		}
 		
 		[Test]
@@ -125,28 +136,51 @@ namespace Other
 	            StarterConfigView form;
 	            StartGUI(config, out form);
 				config.SymbolList = "IBM,GBP/USD";
-				config.DefaultPeriod = 10;
+                StrategyTest.CleanupFiles(config.SymbolList);
+                config.DefaultPeriod = 10;
 				config.DefaultBarUnit = BarUnit.Tick.ToString();
 				config.ModelLoader = "Example: Reversal Multi-Symbol";
-				config.StarterName = "TestRealTimeStarter";
+                config.StarterName = "FIXSimulatorStarter";
 				config.Start();
 				config.WaitComplete(120, () => { return config.CommandWorker.IsBusy; } );
 				config.Stop();
 				config.WaitComplete(120, () => { return !config.CommandWorker.IsBusy; } );
 				Assert.IsFalse(config.CommandWorker.IsBusy,"ProcessWorker.Busy");
-			} finally {
+            }
+            catch (Exception ex)
+            {
+                log.Error("Test failed with error: " + ex.Message, ex);
+                Environment.Exit(1);
+            }
+            finally
+            {
 				execute.Exit();
 				guiThread.Join();
-			}
+                Factory.Release();
+            }
 		}
 		
 		[Test]
 		public void TestGUIRealTimeDemo()
 		{
 			Assert.Ignore();
-			while( true) {
-				TestGUIIteration();
-			}
+            StrategyTest.CleanupFiles();
+            try
+            {
+                while (true)
+                {
+                    TestGUIIteration();
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error("Test failed with error: " + ex.Message, ex);
+                Environment.Exit(1);
+            }
+            finally
+            {
+                Factory.Release();
+            }
 		}
 
 		private void StartGUI( StarterConfig config, out StarterConfigView outForm) {
@@ -177,7 +211,8 @@ namespace Other
 			try {
 				config.WaitComplete(2);
 				config.SymbolList = "IBM";
-				config.DefaultPeriod = 10;
+                StrategyTest.CleanupFiles(config.SymbolList);
+                config.DefaultPeriod = 10;
 				config.DefaultBarUnit = BarUnit.Second.ToString();
 				config.ModelLoader = "Example: Breakout Reversal";
 				config.StarterName = "Realtime Operation (Demo or Live)";
@@ -196,6 +231,9 @@ namespace Other
 				config.Stop();
 				config.WaitComplete(30, () => { return !config.CommandWorker.IsBusy; } );
 				Assert.IsFalse(config.CommandWorker.IsBusy,"ProcessWorker.Busy");
+			} catch( Exception ex) {
+				log.Error("Test failed with error: " + ex.Message, ex);
+				Environment.Exit(1);
 			} finally {
 				execute.Exit();
 				guiThread.Join();
@@ -206,10 +244,11 @@ namespace Other
 		{
 			var config = CreateSimulateConfig();
 			config.SymbolList = "IBM,GBP/USD";
-			config.DefaultPeriod = 10;
+            StrategyTest.CleanupFiles(config.SymbolList);
+            config.DefaultPeriod = 10;
 			config.DefaultBarUnit = BarUnit.Tick.ToString();
 			config.ModelLoader = "Example: Reversal Multi-Symbol";
-			config.StarterName = "TestRealTimeStarter";
+            config.StarterName = "FIXSimulatorStarter";
 			config.Start();
 			config.WaitComplete(10);
 			config.Stop();
@@ -247,13 +286,14 @@ namespace Other
 	            StarterConfigView form;
 	            StartGUI(config, out form);
 				config.SymbolList = "/ESZ9";
-				config.DefaultPeriod = 1;
+                StrategyTest.CleanupFiles(config.SymbolList);
+                config.DefaultPeriod = 1;
 				config.DefaultBarUnit = BarUnit.Minute.ToString();
 				config.EndDateTime = DateTime.UtcNow;
 				config.ModelLoader = "Example: Reversal Multi-Symbol";
-				config.StarterName = "TestRealTimeStarter";
+                config.StarterName = "FIXSimulatorStarter";
 				config.Start();
-				config.WaitComplete(10);
+				config.WaitComplete(30);
 				config.Stop();
 				config.WaitComplete(1200, () => { return !config.CommandWorker.IsBusy; } );
 				Assert.IsFalse(config.CommandWorker.IsBusy,"ProcessWorker.Busy");
@@ -307,6 +347,10 @@ namespace Other
 				log.Error("Test failed with error: " + ex.Message, ex);
 				Environment.Exit(1);
 			}
+            finally
+			{
+                Factory.Release();
+            }
 		}
 	}
 }

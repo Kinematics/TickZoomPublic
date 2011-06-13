@@ -1448,8 +1448,10 @@ namespace Orders
 			{
 				CanceledOrders.Add(order.OriginalOrder.BrokerOrder);
 				RemoveByBrokerOrder(order.OriginalOrder.BrokerOrder);
-				if( confirmOrders != null) {
-					confirmOrders.ConfirmCancel(order,true);
+				if( confirmOrders != null)
+				{
+				    order.OriginalOrder.ReplacedBy = order;
+					confirmOrders.ConfirmCancel(order.OriginalOrder,true);
 				}
 			}
 			private void RemoveByBrokerOrder(string brokerOrder) {

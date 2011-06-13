@@ -567,6 +567,7 @@ namespace TickZoom.MBTFIX
 			}
 			string orderStatus = packetFIX.OrderStatus;
             CreateOrChangeOrder order;
+		    bool removeOriginal = false;
 		    OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order);
 			switch( orderStatus) {
 				case "8": // Rejected
@@ -575,8 +576,7 @@ namespace TickZoom.MBTFIX
                     {
                         case "No such order":
                             rejectReason = true;
-                            OrderStore.RemoveOrder( packetFIX.ClientOrderId);
-    						OrderStore.RemoveOrder( packetFIX.OriginalClientOrderId);
+                            removeOriginal = true;
                             break;
                         case "USD/JPY: Cannot cancel order. Probably already filled or canceled.":
                         case "Order pending remote":
@@ -584,29 +584,29 @@ namespace TickZoom.MBTFIX
                         case "ORDER in pending state":
                         case "General Order Replace Error":
                             rejectReason = true;
-                            ResetFromPending(packetFIX.OriginalClientOrderId);
-                            OrderStore.RemoveOrder(packetFIX.ClientOrderId);
                             break;
                         default:
-                            ResetFromPending(packetFIX.OriginalClientOrderId);
-                            OrderStore.RemoveOrder(packetFIX.ClientOrderId);
                             break;
+                    }
+                    OrderStore.RemoveOrder(packetFIX.ClientOrderId);
+                    if (removeOriginal)
+                    {
+                        OrderStore.RemoveOrder(packetFIX.OriginalClientOrderId);
+                    }
+                    else
+                    {
+                        ResetFromPending(packetFIX.OriginalClientOrderId);
                     }
                     if (order != null)
                     {
                         var algo = orderAlgorithms[order.Symbol.BinaryIdentifier];
-                        algo.RejectOrder(order,IsRecovered);
+                        algo.RejectOrder(order,removeOriginal,IsRecovered);
                     }
-                    else
+                    else if( SyncTicks.Enabled )
                     {
-                        CreateOrChangeOrder origOrder;
-                        if( OrderStore.TryGetOrderById( packetFIX.OriginalClientOrderId, out origOrder))
-                        {
-                            //var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-                            //var cancelOrder = Factory.Utility.PhysicalOrder(OrderState.Active, symbol, origOrder);
-                            //var algo = orderAlgorithms[symbol.BinaryIdentifier];
-                            //algo.RejectOrder(order, IsRecovered);
-                        }
+                        var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+                        var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+                        tickSync.RemovePhysicalOrder();
                     }
                     if (!rejectReason && IsRecovered)
                     {
@@ -882,15 +882,12 @@ namespace TickZoom.MBTFIX
 				}
                 return null;
             }
-            CreateOrChangeOrder oldOrder;
-            if ( !OrderStore.TryGetOrderById(oldClientOrderId, out oldOrder))
+		    CreateOrChangeOrder oldOrder = null;
+            if ( !string.IsNullOrEmpty(oldClientOrderId) && !OrderStore.TryGetOrderById(oldClientOrderId, out oldOrder))
             {
-                if (debug && (LogRecovery || !IsRecovery))
+                if (LogRecovery || !IsRecovery)
                 {
-                    if (debug && (LogRecovery || !IsRecovery))
-                    {
-                        log.Debug("Original Order ID# " + oldClientOrderId + " not found for update or replace. Normal.");
-                    }
+                    if( debug) log.Debug("Original Order ID# " + oldClientOrderId + " not found for update or replace. Normal.");
                 }
             }
             int quantity = packetFIX.LeavesQuantity;

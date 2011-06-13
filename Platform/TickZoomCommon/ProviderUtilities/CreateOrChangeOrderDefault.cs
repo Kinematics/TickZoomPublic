@@ -70,9 +70,12 @@ namespace TickZoom.Common
             this.reference = null;
             this.brokerOrder = CreateBrokerOrderId(logicalOrderId);
             this.utcCreateTime = TimeStamp.UtcNow;
-            this.originalOrder = default(CreateOrChangeOrder);
+            if( origOrder == null)
+            {
+                throw new NullReferenceException("original order cannot be null for a cancel order.");
+            }
+            this.originalOrder = origOrder;
             this.replacedBy = default(CreateOrChangeOrder);
-            this.OriginalOrder = origOrder;
         }
 		
 		public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, LogicalOrder logical, OrderSide side, int size, double price)

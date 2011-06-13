@@ -51,9 +51,9 @@ namespace Loaders
 			
 		[TestFixtureSetUp]
 		public override void RunStrategy() {
-   		Assert.Ignore();
-			CleanupFiles();
-			StartGUIThread();
+       		Assert.Ignore();
+            CleanupFiles();
+            StartGUIThread();
 			Starter starter = new HistoricalStarter();
 			
 			// Set run properties as in the GUI.
@@ -61,7 +61,7 @@ namespace Loaders
     		starter.ProjectProperties.Starter.EndTime = new TimeStamp(2009,8,4);
     		starter.DataFolder = "Test\\DataCache";
     		starter.ProjectProperties.Starter.SetSymbols("TXF.Test");
-			starter.ProjectProperties.Starter.IntervalDefault = Intervals.Minute1;
+            starter.ProjectProperties.Starter.IntervalDefault = Intervals.Minute1;
 			
     		starter.CreateChartCallback = new CreateChartCallback(HistoricalCreateChart);
     		starter.ShowChartCallback = new ShowChartCallback(HistoricalShowChart);

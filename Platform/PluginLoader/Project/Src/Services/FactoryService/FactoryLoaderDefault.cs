@@ -270,16 +270,16 @@ namespace TickZoom.Update
 
 		public void SetupResolver()
 		{
-			if (!IsResolverSetup) {
-				lock (locker) {
-					if (!IsResolverSetup) {
-						LogMsg("Setup ResolveEventHandler");
-						AppDomain currentDomain = AppDomain.CurrentDomain;
-						currentDomain.AssemblyResolve += new ResolveEventHandler(TZResolveEventHandler);
-						IsResolverSetup = true;
-					}
-				}
-			}
+            //if (!IsResolverSetup) {
+            //    lock (locker) {
+            //        if (!IsResolverSetup) {
+            //            LogMsg("Setup ResolveEventHandler");
+            //            AppDomain currentDomain = AppDomain.CurrentDomain;
+            //            currentDomain.AssemblyResolve += new ResolveEventHandler(TZResolveEventHandler);
+            //            IsResolverSetup = true;
+            //        }
+            //    }
+            //}
 		}
 
 		private Assembly TZResolveEventHandler(object sender, ResolveEventArgs args)

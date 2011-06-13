@@ -82,7 +82,8 @@ namespace TickZoom.Starters
 
 		public override void Run(ModelInterface model)
 		{
-			Factory.SysLog.ResetConfiguration();
+            Factory.Parallel.SetMode(parallelMode);
+            Factory.SysLog.ResetConfiguration();
 			engine = Factory.Engine.TickEngine;
 			engine.MaxBarsBack = 2;
 			engine.MaxTicksBack = 2;

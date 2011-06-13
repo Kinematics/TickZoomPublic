@@ -390,12 +390,14 @@ namespace TickZoom.FIX
 								return Yield.NoWork.Repeat;
 							}
 					        break;
+                        case Status.PendingLogin:
                         case Status.PendingLogOut:
                             Dispose();
                             return Yield.NoWork.Repeat;
                         default:
-                            log.Warn("Unexpected connection status: " + connectionStatus + ". Continuing anyway.");
-					        return Yield.NoWork.Repeat;
+                            log.Warn("Unexpected connection status when socket disconnected: " + connectionStatus + ". Shutting down the provider.");
+                            Dispose();
+                            return Yield.NoWork.Repeat;
 					}
                 case SocketState.Closing:
                     return Yield.NoWork.Repeat;

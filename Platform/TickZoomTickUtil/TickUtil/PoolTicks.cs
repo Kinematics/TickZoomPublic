@@ -10,7 +10,7 @@ namespace TickZoom.TickUtil
         private Stack<TickBinaryBox> _items = new Stack<TickBinaryBox>();
         private SimpleLock _sync = new SimpleLock();
         private int count = 0;
-        private Queue<TickBinaryBox> _freed = new Queue<TickBinaryBox>();
+        private ActiveList<TickBinaryBox> _freed = new ActiveList<TickBinaryBox>();
         private int enqueDiagnoseMetric;
         private int pushDiagnoseMetric;
         private static int nextPoolId = 0;
@@ -21,11 +21,6 @@ namespace TickZoom.TickUtil
             var id = Interlocked.Increment(ref nextPoolId);
             enqueDiagnoseMetric = Diagnose.RegisterMetric("PoolTicks-Enqueue-"+id);
             pushDiagnoseMetric = Diagnose.RegisterMetric("PoolTicks-Push-"+id);
-        }
-
-        public TickBinaryBox[] Freed
-        {
-            get { return _freed.ToArray(); }
         }
 
         public TickBinaryBox Create()
@@ -48,30 +43,34 @@ namespace TickZoom.TickUtil
             {
                 throw new InvalidOperationException("TickBinary id must be non-zero to be freed.");
             }
-            using (_sync.Using()) {
-                if (Diagnose.TraceTicks)
+            if (Diagnose.TraceTicks)
+            {
+                var binary = item.TickBinary;
+                Diagnose.AddTick(enqueDiagnoseMetric,ref binary);
+            }
+            //for( var node = _freed.First; node != null; node = node.Next)
+            //{
+            //    if( node.Value.TickBinary.Id == item.TickBinary.Id)
+            //    {
+            //        Diagnose.LogTicks(300);
+            //        System.Diagnostics.Debugger.Break();
+            //    }
+            //}
+            _freed.AddFirst(item);
+            if (_freed.Count > 10)
+            {
+                using( _sync.Using())
                 {
-                    var binary = item.TickBinary;
-                    Diagnose.AddTick(enqueDiagnoseMetric,ref binary);
-                }
-                //for( var node = _freed.First; node != null; node = node.Next)
-                //{
-                //    if( node.Value.TickBinary.Id == item.TickBinary.Id)
-                //    {
-                //        Diagnose.LogTicks(300);
-                //        System.Diagnostics.Debugger.Break();
-                //    }
-                //}
-                _freed.Enqueue(item);
-                if (_freed.Count > 10)
-                {
-                    var freed = _freed.Dequeue();
-                    if (Diagnose.TraceTicks)
+                    if (_freed.Count > 10)
                     {
-                        var binary = freed.TickBinary;
-                        Diagnose.AddTick(pushDiagnoseMetric, ref binary);
+                        var freed = _freed.RemoveLast().Value;
+                        if (Diagnose.TraceTicks)
+                        {
+                            var binary = freed.TickBinary;
+                            Diagnose.AddTick(pushDiagnoseMetric, ref binary);
+                        }
+                        _items.Push(freed);
                     }
-                    _items.Push(freed);
                 }
             }
         }

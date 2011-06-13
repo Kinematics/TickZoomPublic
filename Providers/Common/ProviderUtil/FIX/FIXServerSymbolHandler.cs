@@ -58,7 +58,7 @@ namespace TickZoom.FIX
 		    bool isPlayBack, string symbolString,
 		    Action<Message,SymbolInfo,Tick> onTick,
 		    Action<PhysicalFill> onPhysicalFill,
-		    Action<CreateOrChangeOrder,string> onRejectOrder) {
+		    Action<CreateOrChangeOrder,bool,string> onRejectOrder) {
 			this.fixSimulatorSupport = fixSimulatorSupport;
 			this.isPlayBack = isPlayBack;
 			this.onTick = onTick;

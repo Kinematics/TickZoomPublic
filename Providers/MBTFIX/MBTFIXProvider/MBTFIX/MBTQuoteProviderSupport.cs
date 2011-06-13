@@ -33,14 +33,25 @@ using System.Threading;
 
 using TickZoom.Api;
 
+
+
 namespace TickZoom.MBTQuotes
 {
-	public abstract class MBTQuoteProviderSupport : Provider
+    public interface LogAware
+    {
+        void RefreshLogLevel();
+    }
+	public abstract class MBTQuoteProviderSupport : Provider, LogAware
 	{
 		private readonly Log log;
-		private readonly bool debug;
-		private readonly bool trace;
-		private static long nextConnectTime = 0L;
+		private bool debug;
+		private bool trace;
+        public void RefreshLogLevel()
+        {
+            debug = log.IsDebugEnabled;
+            trace = log.IsTraceEnabled;
+        }
+        private static long nextConnectTime = 0L;
 		protected readonly object symbolsRequestedLocker = new object();
 		protected Dictionary<long,SymbolInfo> symbolsRequested = new Dictionary<long, SymbolInfo>();
 		private Socket socket;
@@ -70,8 +81,7 @@ namespace TickZoom.MBTQuotes
 		public MBTQuoteProviderSupport()
 		{
 			log = Factory.SysLog.GetLogger(typeof(MBTQuoteProviderSupport)+"."+GetType().Name);
-			debug = log.IsDebugEnabled;
-			trace = log.IsTraceEnabled;
+            RefreshLogLevel();
 	        log.Info(providerName+" Startup");
 			RegenerateSocket();
 			socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);

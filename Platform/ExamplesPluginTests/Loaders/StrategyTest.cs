@@ -217,10 +217,8 @@ namespace Loaders
 		public virtual void RunStrategy() {
 			log.Notice("Beginning RunStrategy()");
 			StaticGlobal.Clear();
-			CleanupFiles();
+			CleanupFiles(Symbols);
 			StartGUIThread();
-		    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
-            GC.WaitForPendingFinalizers();
 			// Clear tick syncs.
             foreach( var tickSync in SyncTicks.TickSyncs)
             {
@@ -275,9 +273,14 @@ namespace Loaders
 			var type = loader.GetType();
 			return (ModelLoaderInterface) type.Assembly.CreateInstance(type.FullName);
 		}
+
+        public static void CleanupFiles()
+        {
+            CleanupFiles(null);
+        }
 		
-		public void CleanupFiles() {
-			CleanupServerCache();
+		public static void CleanupFiles(string symbols) {
+			CleanupServerCache(symbols);
 			var appDataFolder = Factory.Settings["AppDataFolder"];
 			var providersFolder = Path.Combine(appDataFolder,"Providers");
 			var mbtfixFolder = Path.Combine(providersFolder,"MBTFIXProvider");
@@ -286,7 +289,26 @@ namespace Loaders
 		    var filePaths = Directory.GetFiles(databaseFolder, "MBTFIXProvider.dat.*", SearchOption.TopDirectoryOnly);
             foreach( var path in filePaths)
             {
-                File.Delete(path);
+                var errors = new List<Exception>();
+                var errorCount = 0;
+                while( errorCount < 3)
+                {
+                    try
+                    {
+                        File.Delete(path);
+                        break;
+                    } catch( Exception ex)
+                    {
+                        errors.Add(ex);
+                        Thread.Sleep(1000);
+                        errorCount++;
+                    }
+                }
+                if( errors.Count > 0)
+                {
+                    var ex = errors[errors.Count - 1];
+                    throw new IOException("Can't delete " + path, ex);
+                }
             }
             var filePath = Path.Combine(mbtfixFolder, "LoginFailed.txt");
 			File.Delete(filePath);
@@ -302,12 +324,12 @@ namespace Loaders
 			File.Delete(filePath);
 		}
 		
-		private void CleanupServerCache() {
-			if( Symbols == null) return;
+		private static void CleanupServerCache(string symbols) {
+            if (symbols == null) return;
 			while( true) {
 				try {
 					string appData = Factory.Settings["AppDataFolder"];
-					var symbolStrings = Symbols.Split(new char[] { ',' });
+					var symbolStrings = symbols.Split(new char[] { ',' });
 					foreach( var symbol in symbolStrings) {
 						var symbolFile = symbol.Trim().StripInvalidPathChars();
 			 			File.Delete( appData + @"\Test\\ServerCache\" + symbolFile + ".tck");

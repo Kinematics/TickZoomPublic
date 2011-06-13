@@ -90,6 +90,7 @@
     <Compile Include="Misc\Enums\ArrowDirection.cs" />
     <Compile Include="Misc\Enums\BarUnit.cs" />
     <Compile Include="Misc\Enums\EventType.cs" />
+    <Compile Include="Misc\Enums\FIXSimulationType.cs" />
     <Compile Include="Misc\Enums\QuoteType.cs" />
     <Compile Include="Misc\Enums\TimeAndSales.cs" />
     <Compile Include="Misc\Events\ErrorDetail.cs" />

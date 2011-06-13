@@ -214,7 +214,27 @@ namespace TickZoom.Common
                     else
                     {
                         var replace = Path.Combine(dbFolder, storeName + ".dat." + (count + 1));
-                        File.Move(source, replace);
+                        var errorCount = 0;
+                        var errorList = new List<Exception>();
+                        while( errorCount < 3)
+                        {
+                            try
+                            {
+                                File.Move(source, replace);
+                                break;
+                            }
+                            catch( IOException ex)
+                            {
+                                errorList.Add(ex);
+                                errorCount++;
+                                Thread.Sleep(1000);
+                            }
+                        }
+                        if( errorList.Count > 0)
+                        {
+                            var ex = errorList[errorList.Count - 1];
+                            throw new ApplicationException("Failed to mov " + source + " to " + replace, ex);
+                        }
                     }
                 }
             }
@@ -551,6 +571,10 @@ namespace TickZoom.Common
                     {
                         var order = kvp.Value;
                         ordersByBrokerId[order.BrokerOrder] = order;
+                        if( order.Action == OrderAction.Cancel && order.OriginalOrder == null)
+                        {
+                            throw new ApplicationException("CancelOrder w/o any original order setting: " + order);
+                        }
                     }
 
                     var bySerialCount = reader.ReadInt32();
@@ -681,6 +705,10 @@ namespace TickZoom.Common
                 if( order.LogicalSerialNumber != 0)
                 {
                     ordersBySerial[order.LogicalSerialNumber] = order;
+                    if (order.Action == OrderAction.Cancel && order.OriginalOrder == null)
+                    {
+                        throw new ApplicationException("CancelOrder w/o any original order setting: " + order);
+                    }
                 }
                 TrySnapshot();
             }

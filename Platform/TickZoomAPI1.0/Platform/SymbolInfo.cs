@@ -287,5 +287,10 @@ namespace TickZoom.Api
         /// fills solely from quote ticks.
         /// </summary>
 	    LimitOrderTradeSimulation LimitOrderTradeSimulation { get; }
+
+        /// <summary>
+        /// Does this use a custom simulation type for the FIX Server Simulator?
+        /// </summary>
+	    FIXSimulationType FixSimulationType{ get; }
 	}
 }

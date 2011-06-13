@@ -257,8 +257,19 @@ namespace TickZoom.Common
 				return hours;
 			}
 		}
-		
-		Bars minutes = null;
+
+        Bars seconds = null;
+        [Browsable(false)]
+        public Bars Seconds
+        {
+            get
+            {
+                if (seconds == null) seconds = data.Get(Intervals.Second1);
+                return seconds;
+            }
+        }
+
+        Bars minutes = null;
 		[Browsable(false)]
 		public Bars Minutes {
 			get {

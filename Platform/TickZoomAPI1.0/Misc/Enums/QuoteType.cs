@@ -29,7 +29,8 @@ using System.Collections.Generic;
 
 namespace TickZoom.Api
 {
-	public enum QuoteType {
+    public enum QuoteType
+    {
 		Level1,
 		Level2,
 		None

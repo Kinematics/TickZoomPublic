@@ -35,7 +35,7 @@ namespace TickZoom.Api
 		CreateOrChangeOrder GetOrderById( string orderId);
 		int ActualPosition { get; set; }
 		Action<PhysicalFill> OnPhysicalFill { get; set; }
-		Action<CreateOrChangeOrder,string> OnRejectOrder { get; set; }
+		Action<CreateOrChangeOrder,bool,string> OnRejectOrder { get; set; }
 		Action<int> OnPositionChange { get; set; }
 		PhysicalOrderConfirm ConfirmOrders { get; set; }
 	    Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol);

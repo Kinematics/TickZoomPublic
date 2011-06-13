@@ -52,7 +52,7 @@ namespace TickZoom.Interceptors
 		private TimeStamp openTime;
 
 		private Action<PhysicalFill> onPhysicalFill;
-		private Action<CreateOrChangeOrder,string> onRejectOrder;
+		private Action<CreateOrChangeOrder,bool,string> onRejectOrder;
 		private Action<int> onPositionChange;
 		private bool useSyntheticMarkets = true;
 		private bool useSyntheticStops = true;
@@ -70,6 +70,7 @@ namespace TickZoom.Interceptors
 		// seed so that test results are reproducable.
 		private Random random = new Random(1234);
 		private long minimumTick;
+        private int maxPartialFillsPerOrder = 10;
 
         public FillSimulatorPhysical(string name, SymbolInfo symbol, bool createSimulatedFills)
 		{
@@ -81,6 +82,7 @@ namespace TickZoom.Interceptors
 			this.createSimulatedFills = createSimulatedFills;
 			this.log = Factory.SysLog.GetLogger(typeof(FillSimulatorPhysical).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name);
 		}
+
 		private bool hasCurrentTick = false;
 		public void OnOpen(Tick tick) {
 			if( trace) log.Trace("OnOpen("+tick+")");
@@ -111,7 +113,7 @@ namespace TickZoom.Interceptors
                 var message = "No such order";
                 if (onRejectOrder != null)
                 {
-                    onRejectOrder(order, message);
+                    onRejectOrder(order, true, message);
                 }
                 else
                 {
@@ -229,7 +231,7 @@ namespace TickZoom.Interceptors
                 var message = "No such order";
                 if (onRejectOrder != null)
                 {
-                    onRejectOrder(order, message);
+                    onRejectOrder(order, true, message);
                 }
                 else
                 {
@@ -237,7 +239,8 @@ namespace TickZoom.Interceptors
                 }
                 return;
             }
-            if (confirmOrders != null) confirmOrders.ConfirmCancel(order, true);
+		    origOrder.ReplacedBy = order;
+            if (confirmOrders != null) confirmOrders.ConfirmCancel(origOrder, true);
         }
 
 		public int ProcessOrders() {
@@ -402,7 +405,7 @@ namespace TickZoom.Interceptors
 			if( onRejectOrder != null)
 			{
 			    log.Warn("Rejecting order because position is " + actualPosition + " but order side was " + order.Side + ": " + order);
-				onRejectOrder( order, message);
+				onRejectOrder( order, true, message);
 			} else {
 				throw new ApplicationException( message + " while handling order: " + order);
 			}
@@ -672,7 +675,6 @@ namespace TickZoom.Interceptors
             return true;
 		}
 
-		private int maxPartialFillsPerOrder = 10;
 		private void CreatePhysicalFillHelper(int totalSize, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order) {
 			if( debug) log.Debug("Filling order: " + order );
 			var split = random.Next(maxPartialFillsPerOrder)+1;
@@ -761,7 +763,7 @@ namespace TickZoom.Interceptors
 			set { isBarData = value; }
 		}
 		
-		public Action<CreateOrChangeOrder, string> OnRejectOrder {
+		public Action<CreateOrChangeOrder, bool, string> OnRejectOrder {
 			get { return onRejectOrder; }
 			set { onRejectOrder = value; }
 		}

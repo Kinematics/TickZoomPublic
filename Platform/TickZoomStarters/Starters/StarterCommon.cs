@@ -156,40 +156,47 @@ namespace TickZoom.Starters
 	    
 		public virtual void Run(ModelInterface model)
 		{
-			Factory.Parallel.SetMode( parallelMode);
-			engine = Factory.Engine.TickEngine;
-            if( ProjectProperties.Starter.SymbolProperties.Length == 0)
-            {
-                throw new TickZoomException("Please enter at least one symbol.");
-            }
-			ProjectProperties.Engine.CopyProperties(engine);
-			// Chaining of models.
-			engine.Model = model;
-			engine.ChartProperties = ProjectProperties.Chart;
-			engine.SymbolInfo = ProjectProperties.Starter.SymbolProperties;
-			
-			engine.IntervalDefault = ProjectProperties.Starter.IntervalDefault;
-			engine.EnableTickFilter = ProjectProperties.Engine.EnableTickFilter;
-			
-			engine.Providers = SetupProviders(false,false);
-			engine.BackgroundWorker = BackgroundWorker;
-			engine.RunMode = runMode;
-			engine.StartCount = StartCount;
-			engine.EndCount = EndCount;
-			engine.StartTime = ProjectProperties.Starter.StartTime;
-			engine.EndTime = ProjectProperties.Starter.EndTime;
-	
-			if(CancelPending) return;
-			
-	    	engine.TickReplaySpeed = ProjectProperties.Engine.TickReplaySpeed;
-	    	engine.BarReplaySpeed = ProjectProperties.Engine.BarReplaySpeed;
-	    	engine.ShowChartCallback = ShowChartCallback;
-			engine.CreateChartCallback = CreateChartCallback;
-			log.Info("Setting engine create chart callback = " + engine.CreateChartCallback);
-			
-			engine.Run();
+		    Factory.Parallel.SetMode(parallelMode);
+		    try
+		    {
+                engine = Factory.Engine.TickEngine;
+                if (ProjectProperties.Starter.SymbolProperties.Length == 0)
+                {
+                    throw new TickZoomException("Please enter at least one symbol.");
+                }
+                ProjectProperties.Engine.CopyProperties(engine);
+                // Chaining of models.
+                engine.Model = model;
+                engine.ChartProperties = ProjectProperties.Chart;
+                engine.SymbolInfo = ProjectProperties.Starter.SymbolProperties;
 
-			if(CancelPending) return;
+                engine.IntervalDefault = ProjectProperties.Starter.IntervalDefault;
+                engine.EnableTickFilter = ProjectProperties.Engine.EnableTickFilter;
+
+                engine.Providers = SetupProviders(false, false);
+                engine.BackgroundWorker = BackgroundWorker;
+                engine.RunMode = runMode;
+                engine.StartCount = StartCount;
+                engine.EndCount = EndCount;
+                engine.StartTime = ProjectProperties.Starter.StartTime;
+                engine.EndTime = ProjectProperties.Starter.EndTime;
+
+                if (CancelPending) return;
+
+                engine.TickReplaySpeed = ProjectProperties.Engine.TickReplaySpeed;
+                engine.BarReplaySpeed = ProjectProperties.Engine.BarReplaySpeed;
+                engine.ShowChartCallback = ShowChartCallback;
+                engine.CreateChartCallback = CreateChartCallback;
+                log.Info("Setting engine create chart callback = " + engine.CreateChartCallback);
+
+                engine.Run();
+                if (CancelPending) return;
+            }
+            finally
+		    {
+                Factory.Parallel.ReleaseIOTasks();
+                Factory.Parallel.SetMode(ParallelMode.Normal);
+            }
 		}
 		
 		private static readonly string projectFileLoaderCategory = "TickZOOM";

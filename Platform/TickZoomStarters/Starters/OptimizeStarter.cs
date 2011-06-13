@@ -59,6 +59,7 @@ namespace TickZoom.Starters
 		List<TickEngine> engineIterations;
 		public override void Run(ModelLoaderInterface loader)
 		{
+            Factory.Parallel.SetMode(parallelMode);
             Factory.SysLog.Reconfigure("Optimize", HistoricalStarter.GetDefaultLogConfig());
 			try {
 				if( loader.OptimizeOutput == null) {

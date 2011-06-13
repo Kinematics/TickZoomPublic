@@ -110,6 +110,7 @@
     <Compile Include="Strategies\LimitChangeStrategy.cs" />
     <Compile Include="Strategies\LimitReversalStrategy.cs" />
     <Compile Include="Portfolios\SimplePortfolio.cs" />
+    <Compile Include="Strategies\OtherStrategy.cs" />
     <Compile Include="Strategies\SimpleStrategy.cs" />
     <Compile Include="Strategies\TestCancelReplaceStrategy.cs" />
     <Compile Include="Strategies\TestStopStrategy.cs" />
