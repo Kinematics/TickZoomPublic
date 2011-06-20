@@ -104,9 +104,10 @@ namespace TickZoom.FIX
 		}
 		
 		private void RequestRemoteConnect() {
-			
-			remoteSocket = Factory.Provider.Socket("FilterRemoteSocket");
-			remoteSocket.MessageFactory = new MessageFactoryFix44();
+
+            log.Info("Requesting connect at " + remoteAddress + " and port " + remotePort + " with socket: " + localSocket);
+            remoteSocket = Factory.Provider.Socket("FilterRemoteSocket");
+            remoteSocket.MessageFactory = new MessageFactoryFix44();
 			remoteSocket.OnConnect = OnConnect;
 			remoteSocket.OnDisconnect = OnDisconnect;
 			remoteSocket.Connect( remoteAddress,remotePort);

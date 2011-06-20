@@ -206,16 +206,7 @@ namespace TickZoom.Common
                 return;
             }
             physicalOrderCache.AddOrder(physical);
-            if (debug)
-            {
-                log.Debug("Showing current physical orders:");
-                var next = originalPhysicals.First;
-                for (var node = next; node != null; node = node.Next)
-                {
-                    var order = node.Value;
-                    log.Debug("Physical Order: " + order);
-                }
-            }
+
             sentPhysicalOrders++;
             TryAddPhysicalOrder(physical);
             physicalOrderHandler.OnCreateBrokerOrder(physical);
@@ -1333,15 +1324,7 @@ namespace TickZoom.Common
                 }
             }
 
-            if (debug)
-            {
-                var next = originalPhysicals.First;
-                for (var node = next; node != null; node = node.Next)
-                {
-                    var order = node.Value;
-                    log.Debug("Physical Order: " + order);
-                }
-            }
+            LogOrders(originalPhysicals,"Original Physical");
             logicalOrders.Clear();
 			logicalOrders.AddLast(originalLogicals);
 			
@@ -1389,6 +1372,27 @@ namespace TickZoom.Common
 				extraLogicals.Remove(logical);
 			}
 		}
+
+        private void LogOrders( Iterable<CreateOrChangeOrder> orders, string name)
+        {
+            if( debug)
+            {
+                if( orders.Count > 0)
+                {
+                    log.Debug("Listing " + name + " orders:");
+                }
+                else
+                {
+                    log.Debug("Empty list of " + name + " orders.");
+                    return;
+                }
+                for (var current = orders.First; current != null; current = current.Next)
+                {
+                    var order = current.Value;
+                    log.Debug(name + ": " + order);
+                }
+            }
+        }
 	
 		public int ActualPosition {
 			get { return actualPosition; }

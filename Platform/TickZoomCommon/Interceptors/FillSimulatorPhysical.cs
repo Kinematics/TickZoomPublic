@@ -103,8 +103,9 @@ namespace TickZoom.Interceptors
 			return activeOrders;
 		}
 	
-		public void OnChangeBrokerOrder(CreateOrChangeOrder order)
+		public void OnChangeBrokerOrder(CreateOrChangeOrder other)
 		{
+		    var order = other.Clone();
 			if( debug) log.Debug("OnChangeBrokerOrder( " + order + ")");
             var origOrder = CancelBrokerOrder((string) order.OriginalOrder.BrokerOrder);
             if( origOrder == null)
@@ -211,8 +212,9 @@ namespace TickZoom.Interceptors
             return false;
         }
 
-		public void OnCreateBrokerOrder(CreateOrChangeOrder order)
+		public void OnCreateBrokerOrder(CreateOrChangeOrder other)
 		{
+		    var order = other.Clone();
 			if( debug) log.Debug("OnCreateBrokerOrder( " + order + ")");
 			if( order.Size <= 0) {
 				throw new ApplicationException("Sorry, Size of order must be greater than zero: " + order);

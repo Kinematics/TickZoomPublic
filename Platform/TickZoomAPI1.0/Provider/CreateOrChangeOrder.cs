@@ -103,5 +103,7 @@ namespace TickZoom.Api
 	    int LogicalOrderId { get; }
 
 	    long LogicalSerialNumber { get; }
-    }
+
+	    CreateOrChangeOrder Clone();
+	}
 }

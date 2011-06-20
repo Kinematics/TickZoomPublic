@@ -41,6 +41,7 @@ namespace TickZoom.MBTFIX
 		private static bool trace = log.IsTraceEnabled;
 		private static bool debug = log.IsDebugEnabled;
 		private ServerState quoteState = ServerState.Startup;
+        private Random random = new Random(1234);
 		
 		public MBTFIXSimulator(string mode) : base( mode, 6489, 6488, new MessageFactoryFix44(), new MessageFactoryMbtQuotes()) {
 		    
@@ -171,10 +172,11 @@ namespace TickZoom.MBTFIX
 			}
 		    var cancelOrder = Factory.Utility.PhysicalOrder(OrderState.Active, symbol, origOrder);
 			CancelOrder( cancelOrder);
-			SendExecutionReport( origOrder, "6", 0.0, 0, 0, 0, (int) origOrder.Size, TimeStamp.UtcNow);
-			SendPositionUpdate( origOrder.Symbol, GetPosition(origOrder.Symbol));
-			SendExecutionReport( origOrder, "4", 0.0, 0, 0, 0, (int) origOrder.Size, TimeStamp.UtcNow);
-			SendPositionUpdate( origOrder.Symbol, GetPosition(origOrder.Symbol));
+		    var randomOrder = random.Next(0, 10) < 5 ? cancelOrder : origOrder;
+            SendExecutionReport( randomOrder, "6", 0.0, 0, 0, 0, (int)origOrder.Size, TimeStamp.UtcNow);
+            SendPositionUpdate( origOrder.Symbol, GetPosition(origOrder.Symbol));
+            SendExecutionReport( randomOrder, "4", 0.0, 0, 0, 0, (int)origOrder.Size, TimeStamp.UtcNow);
+            SendPositionUpdate( origOrder.Symbol, GetPosition(origOrder.Symbol));
 			return Yield.DidWork.Repeat;
 		}
 		

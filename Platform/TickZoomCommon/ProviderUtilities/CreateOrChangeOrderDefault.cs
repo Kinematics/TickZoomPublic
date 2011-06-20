@@ -35,134 +35,151 @@ using TickZoom.Api;
 
 namespace TickZoom.Common
 {
-	public struct CreateOrChangeOrderDefault : CreateOrChangeOrder
+    public struct PhysicalOrderBinary
+    {
+    	public OrderAction action;
+        public OrderState orderState;
+        public TimeStamp lastStateChange;
+        public SymbolInfo symbol;
+        public OrderType type;
+        public double price;
+        public int size;
+        public OrderSide side;
+        public int logicalOrderId;
+        public long logicalSerialNumber;
+        public string brokerOrder;
+        public string tag;
+        public object reference;
+        public CreateOrChangeOrder originalOrder;
+        public CreateOrChangeOrder replacedBy;
+        public TimeStamp utcCreateTime;
+    }
+
+	public class CreateOrChangeOrderDefault : CreateOrChangeOrder
 	{
-	    private OrderAction action;
-		private OrderState orderState;
-	    private TimeStamp lastStateChange;
-		private SymbolInfo symbol;
-		private OrderType type;
-		private double price;
-		private int size;
-		private OrderSide side;
-		private int logicalOrderId;
-		private long logicalSerialNumber;
-		private string brokerOrder;
-		private string tag;
-        private object reference;
-        private CreateOrChangeOrder originalOrder;
-        private CreateOrChangeOrder replacedBy;
-        private TimeStamp utcCreateTime;
+	    private PhysicalOrderBinary binary;
 		
         public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, CreateOrChangeOrder origOrder)
         {
-            this.action = OrderAction.Cancel;
-            this.orderState = orderState;
-            this.lastStateChange = TimeStamp.UtcNow;
-            this.symbol = symbol;
-            this.side = default(OrderSide);
-            this.type = default(OrderType);
-            this.price = 0D;
-            this.size = 0;
-            this.logicalOrderId = 0;
-            this.logicalSerialNumber = 0L;
-            this.tag = null;
-            this.reference = null;
-            this.brokerOrder = CreateBrokerOrderId(logicalOrderId);
-            this.utcCreateTime = TimeStamp.UtcNow;
+            binary.action = OrderAction.Cancel;
+            binary.orderState = orderState;
+            binary.lastStateChange = TimeStamp.UtcNow;
+            binary.symbol = symbol;
+            binary.side = default(OrderSide);
+            binary.type = default(OrderType);
+            binary.price = 0D;
+            binary.size = 0;
+            binary.logicalOrderId = 0;
+            binary.logicalSerialNumber = 0L;
+            binary.tag = null;
+            binary.reference = null;
+            binary.brokerOrder = CreateBrokerOrderId(binary.logicalOrderId);
+            binary.utcCreateTime = TimeStamp.UtcNow;
             if( origOrder == null)
             {
                 throw new NullReferenceException("original order cannot be null for a cancel order.");
             }
-            this.originalOrder = origOrder;
-            this.replacedBy = default(CreateOrChangeOrder);
+            binary.originalOrder = origOrder;
+            binary.replacedBy = default(CreateOrChangeOrder);
+        }
+
+        public CreateOrChangeOrder Clone()
+        {
+            var clone = new CreateOrChangeOrderDefault();
+            clone.binary = this.binary;
+            return clone;
+        }
+
+        private CreateOrChangeOrderDefault()
+        {
+            
         }
 		
 		public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, LogicalOrder logical, OrderSide side, int size, double price)
 		{
-            this.action = OrderAction.Create;
-			this.orderState = orderState;
-		    this.lastStateChange = TimeStamp.UtcNow;
-			this.symbol = symbol;
-			this.side = side;
-			this.type = logical.Type;
-			this.price = price;
-			this.size = size;
-			this.logicalOrderId = logical.Id;
-			this.logicalSerialNumber = logical.SerialNumber;
-			this.tag = logical.Tag;
-			this.reference = null;
-			this.replacedBy = null;
-		    this.originalOrder = null;
-			this.brokerOrder = CreateBrokerOrderId(logicalOrderId);
-		    this.utcCreateTime = logical.UtcChangeTime;
+            binary.action = OrderAction.Create;
+			binary.orderState = orderState;
+		    binary.lastStateChange = TimeStamp.UtcNow;
+			binary.symbol = symbol;
+			binary.side = side;
+			binary.type = logical.Type;
+			binary.price = price;
+			binary.size = size;
+			binary.logicalOrderId = logical.Id;
+			binary.logicalSerialNumber = logical.SerialNumber;
+			binary.tag = logical.Tag;
+			binary.reference = null;
+			binary.replacedBy = null;
+		    binary.originalOrder = null;
+			binary.brokerOrder = CreateBrokerOrderId(binary.logicalOrderId);
+		    binary.utcCreateTime = logical.UtcChangeTime;
 		}
 
 	    public CreateOrChangeOrderDefault(OrderAction action, OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag, TimeStamp utcCreateTime)
 	    {
-            this.action = action;
-			this.orderState = orderState;
-		    this.lastStateChange = TimeStamp.UtcNow;
-			this.symbol = symbol;
-			this.side = side;
-			this.type = type;
-			this.price = price;
-			this.size = size;
-			this.logicalOrderId = logicalOrderId;
-			this.logicalSerialNumber = logicalSerialNumber;
-			this.tag = tag;
-			this.brokerOrder = brokerOrder;
-			this.reference = null;
-			this.replacedBy = null;
-	        this.originalOrder = null;
-			if( this.brokerOrder == null) {
-				this.brokerOrder = CreateBrokerOrderId(logicalOrderId);
+            binary.action = action;
+			binary.orderState = orderState;
+		    binary.lastStateChange = TimeStamp.UtcNow;
+			binary.symbol = symbol;
+			binary.side = side;
+			binary.type = type;
+			binary.price = price;
+			binary.size = size;
+			binary.logicalOrderId = logicalOrderId;
+			binary.logicalSerialNumber = logicalSerialNumber;
+			binary.tag = tag;
+			binary.brokerOrder = brokerOrder;
+			binary.reference = null;
+			binary.replacedBy = null;
+	        binary.originalOrder = null;
+			if( binary.brokerOrder == null) {
+                binary.brokerOrder = CreateBrokerOrderId(binary.logicalOrderId);
 			}
-	        this.utcCreateTime = utcCreateTime;
+	        binary.utcCreateTime = utcCreateTime;
 	    }
 
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append(action);
+            sb.Append(binary.action);
             sb.Append(" ");
-            sb.Append(orderState);
+            sb.Append(binary.orderState);
             sb.Append(" ");
-            sb.Append(side);
+            sb.Append(binary.side);
             sb.Append(" ");
-            sb.Append(size);
+            sb.Append(binary.size);
             sb.Append(" ");
-            sb.Append(type);
+            sb.Append(binary.type);
             sb.Append(" ");
-            sb.Append(symbol);
-            if (type != OrderType.BuyMarket && type != OrderType.SellMarket)
+            sb.Append(binary.symbol);
+            if (binary.type != OrderType.BuyMarket && binary.type != OrderType.SellMarket)
             {
                 sb.Append(" at ");
-                sb.Append(price);
+                sb.Append(binary.price);
             }
             sb.Append(" and logical id: ");
-            sb.Append(logicalOrderId);
+            sb.Append(binary.logicalOrderId);
             sb.Append("-");
-            sb.Append(logicalSerialNumber);
-            if (brokerOrder != null)
+            sb.Append(binary.logicalSerialNumber);
+            if (binary.brokerOrder != null)
             {
                 sb.Append(" broker: ");
-                sb.Append(brokerOrder);
+                sb.Append(binary.brokerOrder);
             }
-            if( originalOrder != null)
+            if (binary.originalOrder != null)
             {
                 sb.Append(" original: ");
-                sb.Append(originalOrder.BrokerOrder);
+                sb.Append(binary.originalOrder.BrokerOrder);
             }
-            if (replacedBy != null)
+            if (binary.replacedBy != null)
             {
                 sb.Append(" replaced by: ");
-                sb.Append(replacedBy.BrokerOrder);
+                sb.Append(binary.replacedBy.BrokerOrder);
             }
-            if (tag != null)
+            if (binary.tag != null)
             {
                 sb.Append(" ");
-                sb.Append(tag);
+                sb.Append(binary.tag);
             }
             return sb.ToString();
         }
@@ -174,67 +191,67 @@ namespace TickZoom.Common
 		}
 		
 		public OrderType Type {
-			get { return type; }
+            get { return binary.type; }
 		}
 		
 		public double Price {
-			get { return price; }
+            get { return binary.price; }
 		}
 		
 		public int Size {
-			get { return size; }
-			set { size = value; }
+            get { return binary.size; }
+            set { binary.size = value; }
 		}
 		
 		public string BrokerOrder {
-			get { return brokerOrder; }
+            get { return binary.brokerOrder; }
 			set
 			{
-			    brokerOrder = value;
+                binary.brokerOrder = value;
 			}
 		}
 
 		
 		public SymbolInfo Symbol {
-			get { return symbol; }
+            get { return binary.symbol; }
 		}
 		
 		public int LogicalOrderId {
-			get { return logicalOrderId; }
+            get { return binary.logicalOrderId; }
 		}
 		
 		public OrderSide Side {
-			get { return side; }
+            get { return binary.side; }
 		}
 		
 		public OrderState OrderState {
-			get { return orderState; }
+            get { return binary.orderState; }
             set
             {
-                if( value != orderState)
+                if (value != binary.orderState)
                 {
-                    orderState = value;
-                    lastStateChange = TimeStamp.UtcNow;
+                    binary.orderState = value;
+                    binary.lastStateChange = TimeStamp.UtcNow;
                 }
             }
 		}
 
 		public string Tag {
-			get { return tag; }
+            get { return binary.tag; }
 		}
 		
 		public long LogicalSerialNumber {
-			get { return logicalSerialNumber; }
+            get { return binary.logicalSerialNumber; }
 		}
 		
 		public object Reference {
-			get { return reference; }
-			set { reference = value; }
+            get { return binary.reference; }
+            set { binary.reference = value; }
 		}
 
 		public CreateOrChangeOrder ReplacedBy {
-			get { return replacedBy; }
-			set { replacedBy = value; }
+            get { return binary.replacedBy; }
+            set { binary.replacedBy = value; }
 		}
 
         public override bool Equals(object obj)
@@ -244,7 +261,7 @@ namespace TickZoom.Common
                 return false;
             }
             var other = (CreateOrChangeOrder) obj;
-            return brokerOrder == other.BrokerOrder;
+            return binary.brokerOrder == other.BrokerOrder;
             //return logicalOrderId == other.LogicalOrderId && logicalSerialNumber == other.LogicalSerialNumber &&
             //       action == other.Action && orderState == other.OrderState &&
             //       lastStateChange == other.LastStateChange && symbol == other.Symbol &&
@@ -255,7 +272,7 @@ namespace TickZoom.Common
 
         public override int GetHashCode()
         {
-            return brokerOrder.GetHashCode();
+            return binary.brokerOrder.GetHashCode();
             //return action.GetHashCode() ^ orderState.GetHashCode() ^
             //       lastStateChange.GetHashCode() ^ symbol.GetHashCode() ^
             //       type.GetHashCode() ^ price.GetHashCode() ^
@@ -266,23 +283,23 @@ namespace TickZoom.Common
 
 	    public TimeStamp LastStateChange
 	    {
-	        get { return lastStateChange; }
+            get { return binary.lastStateChange; }
 	    }
 
 	    public TimeStamp UtcCreateTime
 	    {
-	        get { return utcCreateTime; }
+            get { return binary.utcCreateTime; }
 	    }
 
 	    public OrderAction Action
 	    {
-	        get { return action; }
+            get { return binary.action; }
 	    }
 
         public CreateOrChangeOrder OriginalOrder
 	    {
-	        get { return originalOrder; }
-	        set { originalOrder = value; }
+            get { return binary.originalOrder; }
+            set { binary.originalOrder = value; }
 	    }
 	}
 }

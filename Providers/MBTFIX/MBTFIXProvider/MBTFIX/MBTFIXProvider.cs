@@ -497,13 +497,27 @@ namespace TickZoom.MBTFIX
 				        {
                             var symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
                             var algorithm = GetAlgorithm(symbolInfo.BinaryIdentifier);
-                            if( OrderStore.TryGetOrderById( packetFIX.ClientOrderId, out order))
+				            CreateOrChangeOrder clientOrder;
+                            if( !OrderStore.TryGetOrderById( packetFIX.ClientOrderId, out clientOrder))
                             {
-                                algorithm.ConfirmCancel(order, IsRecovered);
+                                log.Warn("Cancel order for " + packetFIX.ClientOrderId + " was not found. Probably already canceled.");
+                            }
+				            CreateOrChangeOrder origOrder;
+                            if (!OrderStore.TryGetOrderById(packetFIX.OriginalClientOrderId, out origOrder))
+                            {
+                                log.Warn("Orig order for " + packetFIX.ClientOrderId + " was not found. Probably already canceled.");
+                            }
+                            if( clientOrder != null && clientOrder.ReplacedBy != null)
+                            {
+                                algorithm.ConfirmCancel(clientOrder,IsRecovered);
+                            }
+                            else if (origOrder != null && origOrder.ReplacedBy != null)
+                            {
+                                algorithm.ConfirmCancel(origOrder,IsRecovered);
                             }
                             else
                             {
-                                log.Warn("Cancel order for " + packetFIX.ClientOrderId + " was not found. Probably already canceled.");
+                                throw new ApplicationException("Neither order found by client id nor original client id had replaced by property set: \nClient Order: " + clientOrder + "\nOriginal Client Order: " + origOrder);
                             }
                             break;
                         }
@@ -856,11 +870,6 @@ namespace TickZoom.MBTFIX
                 throw new InvalidOperationException("client order id mismatch with broker order property.");
             }
             OrderStore.SetSequences(RemoteSequence,FixFactory.LastSequence);
-			if( trace) {
-				log.Trace("Updated order list:");
-			    var logOrders = OrderStore.LogOrders();
-				log.Trace( "Broker Orders:\n" + logOrders);
-			}
 			return order;
 		}
 		
@@ -900,7 +909,7 @@ namespace TickZoom.MBTFIX
 			var logicalId = GetLogicalOrderId( packetFIX);
 		    var replace = order.ReplacedBy;
             order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbolInfo, side, type, packetFIX.Price, packetFIX.LeavesQuantity, logicalId, logicalSerialNumber, newClientOrderId, null, TimeStamp.UtcNow);
-		    order.ReplacedBy = replace;
+		    order.OriginalOrder = oldOrder;
             if( oldOrder != null)
             {
                 if( debug && (LogRecovery || !IsRecovery)) log.Debug("Setting replace property of " + oldOrder.BrokerOrder + " to be replaced by " + order.BrokerOrder);
@@ -915,6 +924,7 @@ namespace TickZoom.MBTFIX
 					if( debug) log.Debug("Order completely filled or canceled. Id: " + packetFIX.ClientOrderId + ".  Executed: " + packetFIX.CumulativeQuantity);
 				}
 			}
+            OrderStore.AddOrder(order);
             OrderStore.SetSequences(RemoteSequence,FixFactory.LastSequence);
 			if( trace) {
 				log.Trace("Updated order list:");
