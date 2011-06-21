@@ -7,6 +7,7 @@ namespace TickZoom.Examples
 {
     public class OtherStrategy : Strategy
     {
+        #region Fields
         IndicatorCommon bidLine;
         IndicatorCommon askLine;
         IndicatorCommon position;
@@ -16,11 +17,13 @@ namespace TickZoom.Examples
         double minimumTick;
         private int increaseSpreadInTicks = 3;
         private int reduceSpreadInTicks = 3;
+        private int closeProfitInTicks = 20;
         private double reduceSpread;
         private double increaseSpread;
         private int lotSize = 1000;
         double ask, marketAsk;
         double bid, marketBid;
+        private double midPoint;
         private ActiveList<LocalFill> fills = new ActiveList<LocalFill>();
         private bool isVisible = false;
         private long totalVolume = 0;
@@ -28,8 +31,14 @@ namespace TickZoom.Examples
         private int lastSize = 0;
         private int buySize = 1;
         private int sellSize = 1;
-        private double lastMidRange;
-        private SMA sma;
+        private IndicatorCommon retraceLine;
+        private IndicatorCommon maxExcursion;
+        private bool enableSizing = true;
+        private bool enablePegging = true;
+        private readonly long commission = -0.0000195D.ToLong();
+        private double lastMidPoint;
+        private int startSizingLots = 30;
+        #endregion
 
         public OtherStrategy()
         {
@@ -58,15 +67,22 @@ namespace TickZoom.Examples
             averagePrice.Drawing.IsVisible = isVisible;
             averagePrice.Drawing.Color = Color.Black;
 
+            retraceLine = Formula.Indicator();
+            retraceLine.Name = "Retrace";
+            retraceLine.Drawing.IsVisible = enableSizing && isVisible;
+            retraceLine.Drawing.Color = Color.Magenta;
+
+            maxExcursion = Formula.Indicator();
+            maxExcursion.Name = "Excursion";
+            maxExcursion.Drawing.IsVisible = enableSizing && isVisible;
+            maxExcursion.Drawing.Color = Color.Magenta;
+
             position = Formula.Indicator();
             position.Name = "Position";
             position.Drawing.PaneType = PaneType.Secondary;
             position.Drawing.GroupName = "Position";
             position.Drawing.IsVisible = isVisible;
 
-            sma = Formula.SMA(Minutes.Close, 20);
-            sma.Drawing.IsVisible = isVisible;
-            sma.Drawing.Color = Color.Magenta;
         }
 
         private void UpdateIndicators(Tick tick)
@@ -76,20 +92,56 @@ namespace TickZoom.Examples
             {
                 var comboTrade = comboTrades.Tail;
                 indifferencePrice = CalcIndifferencePrice(comboTrade);
-                var avgDivergence = Math.Abs(tick.Bid - indifferencePrice) / minimumTick;
-                if (avgDivergence > 150 || Position.IsFlat)
-                {
-                    averagePrice[0] = double.NaN;
-                }
-                else
-                {
+                //var avgDivergence = Math.Abs(tick.Bid - indifferencePrice) / minimumTick;
+                //if (avgDivergence > 150 || Position.IsFlat)
+                //{
+                //    averagePrice[0] = double.NaN;
+                //}
+                //else
+                //{
                     averagePrice[0] = indifferencePrice;
-                }
+                //}
             }
             else
             {
                 indifferencePrice = (tick.Ask + tick.Bid)/2;
                 averagePrice[0] = indifferencePrice;
+            }
+
+            if( comboTrades.Count > 0 && !comboTrades.Tail.Completed)
+            {
+                var lots = Position.Size/lotSize;
+                var currentTrade = comboTrades.Tail;
+                var retracePercent = lots < startSizingLots ? 0.50 : lots < 100 ? 0.40 : lots < 200 ? 0.30 : 0.20;
+
+                if (double.IsNaN(retraceLine[0]))
+                {
+                    retraceLine[0] = midPoint;
+                }
+
+                if (Position.IsLong)
+                {
+                    var retraceAmount = (currentTrade.EntryPrice - maxExcursion[0]) * retracePercent;
+                    var retraceLevel = maxExcursion[0] + retraceAmount;
+                    if (retraceLevel < retraceLine[0])
+                    {
+                        retraceLine[0] = retraceLevel;
+                    }
+                }
+                if (Position.IsShort)
+                {
+                    var retraceAmount = (currentTrade.EntryPrice - maxExcursion[0])*retracePercent;
+                    var retraceLevel = maxExcursion[0] + retraceAmount;
+                    if (retraceLevel > retraceLine[0])
+                    {
+                        retraceLine[0] = retraceLevel;
+                    }
+                }
+
+            } 
+            else
+            {
+                retraceLine[0] = double.NaN;
             }
 
             if (bidLine.Count > 0)
@@ -107,39 +159,58 @@ namespace TickZoom.Examples
 
             Orders.SetAutoCancel();
 
+            CalcMarketPrices(tick);
+
             UpdateIndicators(tick);
 
-            HandlePegging(tick);
+            if( enablePegging) HandlePegging(tick);
 
-            DetermineTrend(tick);
+            if( enableSizing) PerformSizing(tick);
 
             ProcessSideways(tick);
             return true;
         }
 
-        private void DetermineTrend(Tick tick)
+        private void PerformSizing(Tick tick)
         {
+            var lots = Position.Size/lotSize;
+            sellSize = 1;
+            buySize = 1;
+
+            if( lots <= 30) return;
+            if( Performance.ComboTrades.Count <= 0) return;
+
+            var size = Math.Max(2, lots / 5);
+            var currentTrade = Performance.ComboTrades.Tail;
+            if( Position.IsShort &&
+                marketAsk > maxExcursion[0] &&
+                indifferencePrice < retraceLine[0])
+            {
+                sellSize = CalcAdjustmentSize(indifferencePrice, Position.Size, retraceLine[0], ask);
+            }
+
+            if (Position.IsLong &&
+                marketBid < maxExcursion[0] &&
+                indifferencePrice > retraceLine[0])
+            {
+                buySize = CalcAdjustmentSize(indifferencePrice, Position.Size, retraceLine[0], bid);
+            }
+
         }
 
         private void HandlePegging(Tick tick)
         {
-            var midPoint = (tick.Ask + tick.Bid) / 2;
-            var marketAsk = Math.Max(tick.Bid, tick.Ask);
-            var marketBid = Math.Min(tick.Ask, tick.Bid);
             if( marketAsk < bid || marketBid > ask)
             {
-                lastMidRange = midPoint;
-                SetupBidAsk();
+                SetupBidAsk(midPoint);
             }
-            if (midPoint < lastAskMidpoint)
+            if (marketAsk < ask - increaseSpread && midPoint > lastMidPoint)
             {
-                lastAskMidpoint = midPoint;
-                SetupAsk();
+                SetupAsk(midPoint);
             }
-            if (midPoint > lastBidMidpoint)
+            if (marketBid > bid + increaseSpread && midPoint < lastMidPoint)
             {
-                lastBidMidpoint = midPoint;
-                SetupBid();
+                SetupBid(midPoint);
             }
         }
 
@@ -160,20 +231,14 @@ namespace TickZoom.Examples
 
         }
 
-        private double lastAskMidpoint;
-        private double lastBidMidpoint;
         private void OnProcessFlat(Tick tick)
         {
-            var midpoint = (tick.Ask + tick.Bid) / 2;
             if (isFirstTick)
             {
                 isFirstTick = false;
-                lastAskMidpoint = midpoint;
-                lastMidRange = midpoint;
                 SetFlatBidAsk();
             }
             var comboTrades = Performance.ComboTrades;
-            var lots = Position.Size / lotSize;
             if (comboTrades.Count == 0 || comboTrades.Tail.Completed)
             {
                 if( buySize > 0)
@@ -199,31 +264,34 @@ namespace TickZoom.Examples
             }
         }
 
-        private readonly long commission = -0.0000195D.ToLong();
-
         private double CalcIndifferencePrice(TransactionPairBinary comboTrade)
         {
             var size = Math.Abs(comboTrade.CurrentPosition);
             if (size == 0)
             {
-                var midPoint = (Ticks[0].Bid + Ticks[0].Ask) / 2;
                 return midPoint;
             }
             var sign = -Math.Sign(comboTrade.CurrentPosition);
             var openPoints = comboTrade.AverageEntryPrice.ToLong() * size;
-            var closedPoints = comboTrade.ClosedPoints.ToLong();
+            var closedPoints = comboTrade.ClosedPoints.ToLong() * sign;
             var grossProfit = openPoints + closedPoints;
             var transaction = 0; // size * commission * sign;
-            var expectedTransaction = size * commission * sign;
+            var expectedTransaction = 0; // size * commission * sign;
             var result = (grossProfit - transaction - expectedTransaction) / size;
             result = ((result + 5000) / 10000) * 10000;
             return result.ToDouble();
         }
 
+        private int CalcAdjustmentSize(double indifference, double size, double desiredIndifference, double currentPrice)
+        {
+            var result = (size*indifference - size*desiredIndifference)/(desiredIndifference - currentPrice);
+            return Math.Max(1,(int) (result / lotSize));
+        }
+
         private void OnProcessLong(Tick tick)
         {
             var lots = Position.Size / lotSize;
-            var reduce = lots > maxLots ? 2 * buySize : buySize;
+            var reduceSize = buySize;
             if( buySize > 0)
             {
                 Orders.Change.ActiveNow.BuyLimit(bid, buySize * lotSize);
@@ -241,15 +309,22 @@ namespace TickZoom.Examples
             }
             else
             {
-                Orders.Change.ActiveNow.SellLimit(ask, reduce * lotSize);
+                Orders.Change.ActiveNow.SellLimit(ask, reduceSize * lotSize);
+                if (enableSizing && lots > 10)
+                {
+                    Orders.Exit.ActiveNow.SellLimit(indifferencePrice + closeProfitInTicks * minimumTick);
+                }
             }
         }
 
         private void OnProcessShort(Tick tick)
         {
             var lots = Position.Size / lotSize;
-            var reduce = lots > maxLots ? 2 * sellSize : sellSize;
-            Orders.Change.ActiveNow.SellLimit(ask, sellSize * lotSize);
+            var reduceSize = sellSize;
+            if( sellSize > 0)
+            {
+                Orders.Change.ActiveNow.SellLimit(ask, sellSize * lotSize);
+            }
             if (lots == 1)
             {
                 if( buySize > 0)
@@ -263,7 +338,12 @@ namespace TickZoom.Examples
             }
             else
             {
-                Orders.Change.ActiveNow.BuyLimit(bid, reduce * lotSize);
+                Orders.Change.ActiveNow.BuyLimit(bid, reduceSize * lotSize);
+                if (enableSizing && lots > 10)
+                {
+                    Orders.Exit.ActiveNow.BuyLimit(indifferencePrice - closeProfitInTicks * minimumTick);
+                }
+
             }
         }
 
@@ -300,54 +380,40 @@ namespace TickZoom.Examples
             }
         }
 
-        private void SetupBidAsk()
+        private void SetupBidAsk(double price)
         {
-            AdjustForInventory();
-            var tick = Ticks[0];
-            lastAskMidpoint = lastBidMidpoint = (tick.Ask + tick.Bid)/2;
             if( Performance.ComboTrades.Count > 0)
             {
                 indifferencePrice = CalcIndifferencePrice(Performance.ComboTrades.Tail);
             }
             else
             {
-                indifferencePrice = lastAskMidpoint;
+                indifferencePrice = price;
             }
-            SetupAsk();
-            SetupBid();
+            lastMidPoint = price;
+            SetupAsk(price);
+            SetupBid(price);
         }
 
-        private void AdjustForInventory()
+        private void CalcMarketPrices(Tick tick)
         {
             // Calculate market prics.
-            var tick = Ticks[0];
             marketAsk = Math.Max(tick.Ask, tick.Bid);
             marketBid = Math.Min(tick.Ask, tick.Bid);
-
+            midPoint = (tick.Ask + tick.Bid) / 2;
         }
 
-        private void AdjustSpread()
+        private void SetupAsk(double price)
         {
-            var lots = Position.Size / lotSize;
-            increaseSpread = (increaseSpreadInTicks) * minimumTick;
-            reduceSpread = reduceSpreadInTicks * minimumTick;
-        }
-
-        private void SetupAsk()
-        {
-            var price = lastMidRange;
-            AdjustSpread();
             var myAsk = Position.IsLong ? price + reduceSpread : price + increaseSpread;
-            ask = Position.IsLong ? Math.Max(myAsk, lastAskMidpoint) : Math.Max(myAsk, marketAsk);
+            ask = Math.Max(myAsk, marketAsk);
             askLine[0] = ask;
         }
 
-        private void SetupBid()
+        private void SetupBid(double price)
         {
-            var price = lastMidRange;
-            AdjustSpread();
             var myBid = Position.IsLong ? price - increaseSpread : price - reduceSpread;
-            bid = Position.IsLong ? Math.Min(myBid, marketBid) : Math.Min(myBid, lastBidMidpoint);
+            bid = Math.Min(myBid, marketBid);
             bidLine[0] = bid;
         }
 
@@ -355,7 +421,8 @@ namespace TickZoom.Examples
         {
             lastSize = Math.Abs(comboTrade.CurrentPosition);
             fills.AddFirst(new LocalFill(fill));
-            SetupBidAsk();
+            SetupBidAsk(fill.Price);
+            maxExcursion[0] = fill.Price;
             LogFills("OnEnterTrade");
         }
 
@@ -377,6 +444,14 @@ namespace TickZoom.Examples
             var tick = Ticks[0];
             var midpoint = (tick.Ask + tick.Bid)/2;
             if (!fill.IsComplete) return;
+            if( comboTrade.CurrentPosition > 0 && fill.Price < maxExcursion[0])
+            {
+                maxExcursion[0] = fill.Price;
+            }
+            if (comboTrade.CurrentPosition < 0 && fill.Price > maxExcursion[0])
+            {
+                maxExcursion[0] = fill.Price;
+            }
             var size = Math.Abs(comboTrade.CurrentPosition);
             var change = size - lastSize;
             lastSize = size;
@@ -397,8 +472,7 @@ namespace TickZoom.Examples
                 {
                     fills.AddFirst(new LocalFill(change, fill.Price, fill.Time));
                 }
-                lastMidRange = fills.First.Value.Price;
-                SetupBidAsk();
+                SetupBidAsk(fill.Price);
             }
             else
             {
@@ -412,16 +486,14 @@ namespace TickZoom.Examples
                         fills.RemoveFirst();
                         if (fills.Count > 0)
                         {
-                            lastMidRange = fills.First.Value.Price;
-                            SetupBidAsk();
+                            SetupBidAsk(fill.Price);
                         }
                     }
                     return;
                 }
                 change -= prevFill.Size;
                 fills.RemoveFirst();
-                lastMidRange = fills.First.Value.Price;
-                SetupBidAsk();
+                SetupBidAsk(fill.Price);
                 return;
 
                 for (var current = fills.Last; current != null; current = current.Previous)
@@ -433,7 +505,7 @@ namespace TickZoom.Examples
                         fills.Remove(current);
                         if (fills.Count > 0)
                         {
-                            SetupBidAsk();
+                            SetupBidAsk(fill.Price);
                         }
                     }
                     else
@@ -444,7 +516,7 @@ namespace TickZoom.Examples
                             fills.Remove(current);
                             if (fills.Count > 0)
                             {
-                                SetupBidAsk();
+                                SetupBidAsk(fill.Price);
                             }
                         }
                         break;
@@ -477,6 +549,7 @@ namespace TickZoom.Examples
                 throw new InvalidOperationException("Trade must be completed.");
             }
             totalVolume += comboTrade.Volume;
+            maxExcursion[0] = double.NaN;
             LogFills("OnEnterTrade");
         }
 

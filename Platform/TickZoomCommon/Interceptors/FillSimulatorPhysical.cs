@@ -70,7 +70,7 @@ namespace TickZoom.Interceptors
 		// seed so that test results are reproducable.
 		private Random random = new Random(1234);
 		private long minimumTick;
-        private int maxPartialFillsPerOrder = 10;
+        private int maxPartialFillsPerOrder = 1;
 
         public FillSimulatorPhysical(string name, SymbolInfo symbol, bool createSimulatedFills)
 		{

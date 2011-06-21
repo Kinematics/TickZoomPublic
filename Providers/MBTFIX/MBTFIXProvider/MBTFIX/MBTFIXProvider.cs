@@ -720,7 +720,6 @@ namespace TickZoom.MBTFIX
 			rejectReason = packetFIX.Text.Contains("improper setting") ? true : rejectReason;
 		    rejectReason = packetFIX.Text.Contains("No position to close") ? true : rejectReason;
 			OrderStore.RemoveOrder( packetFIX.ClientOrderId);
-			OrderStore.RemoveOrder( packetFIX.OriginalClientOrderId);
 		    if( IsRecovered && !rejectReason ) {
 			    var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
 			    var ignore = "The reject error message '" + packetFIX.Text + "' was unrecognized. So it is being ignored. ";
