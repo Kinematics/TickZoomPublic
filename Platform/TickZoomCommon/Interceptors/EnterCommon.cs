@@ -184,7 +184,7 @@ namespace TickZoom.Interceptors
         	SellLimit( price, 1);
         }
 
-        public void SellLimit(double price, int lots)
+        public void SellLimit(double price, double lots)
         {
             SellLimit(price, lots, 1, 1);
         }

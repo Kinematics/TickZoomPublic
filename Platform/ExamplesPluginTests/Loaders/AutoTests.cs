@@ -94,8 +94,22 @@ namespace Loaders
 					throw;
 				}
 			}
-			
-			list.Add( new AutoTestSettings {
+
+            list.Add(new AutoTestSettings
+            {
+                Mode = AutoTestMode.Default,
+                Name = "ExampleBreakoutReversalTest",
+                Loader = new ExampleBreakoutReversalLoader(),
+                Symbols = "USD/JPY",
+                StoreKnownGood = storeKnownGood,
+                ShowCharts = showCharts,
+                StartTime = new TimeStamp(1800, 1, 1),
+                EndTime = new TimeStamp(2009, 6, 22),
+                IntervalDefault = Intervals.Minute1,
+            });
+
+            list.Add(new AutoTestSettings
+            {
 			    Mode = AutoTestMode.Default,
 			    Name = "DualStrategyLimitOrder",
 			    Loader = new TestDualStrategyLoader(),
