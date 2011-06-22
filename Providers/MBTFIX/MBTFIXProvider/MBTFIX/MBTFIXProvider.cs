@@ -479,7 +479,7 @@ namespace TickZoom.MBTFIX
 					case "2":  // Filled 
                         if( packetFIX.CumulativeQuantity < packetFIX.LastQuantity)
                         {
-                            log.Warn("Ignoring message due to CumQty " + packetFIX.CumulativeQuantity + " less than " + packetFIX.LastQuantity);
+                            log.Warn("Ignoring message due to CumQty " + packetFIX.CumulativeQuantity + " less than " + packetFIX.LastQuantity + ". This is a workaround for a MBT FIX server which sends an extra invalid fill message on occasion.");
                             break;
                         }
 						SendFill( packetFIX);

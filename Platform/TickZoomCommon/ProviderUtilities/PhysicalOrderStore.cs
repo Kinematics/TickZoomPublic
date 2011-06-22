@@ -696,6 +696,36 @@ namespace TickZoom.Common
             this.localSequence = localSequence;
         }
 
+        public bool HasCreateOrder(CreateOrChangeOrder order)
+        {
+            var createOrderQueue = GetActiveOrders(order.Symbol);
+            for (var current = createOrderQueue.First; current != null; current = current.Next)
+            {
+                var queueOrder = current.Value;
+                if (order.Action == OrderAction.Create && order.LogicalSerialNumber == queueOrder.LogicalSerialNumber)
+                {
+                    if (debug) log.Debug("Create ignored because order was already on create order queue: " + queueOrder);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public bool HasCancelOrder(PhysicalOrder order)
+        {
+            var cancelOrderQueue = GetActiveOrders(order.Symbol);
+            for (var current = cancelOrderQueue.First; current != null; current = current.Next)
+            {
+                var clientId = current.Value;
+                if (clientId.OriginalOrder != null && order.OriginalOrder.BrokerOrder == clientId.OriginalOrder.BrokerOrder)
+                {
+                    if (debug) log.Debug("Cancel or Changed ignored because pervious order order working for: " + order);
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public void AddOrder(CreateOrChangeOrder order)
         {
             using (ordersLocker.Using())

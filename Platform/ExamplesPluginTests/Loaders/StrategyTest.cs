@@ -43,6 +43,7 @@ using TickZoom.Starters;
 using TickZoom.Statistics;
 using TickZoom.Transactions;
 using ZedGraph;
+using TickZoom.Interceptors;
 
 namespace Loaders
 {
@@ -95,6 +96,7 @@ namespace Loaders
  			this.intervalDefault = testSettings.IntervalDefault;
 			createStarterCallback = CreateStarter;
             StaticGlobalFlags.isWriteFinalStats = false;
+		    FillSimulatorPhysical.MaxPartialFillsPerOrder = 10;
 		}
 		
 		public StrategyTest() {

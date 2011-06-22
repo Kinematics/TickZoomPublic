@@ -8,6 +8,8 @@ namespace TickZoom.Api
         void AddOrder(CreateOrChangeOrder order);
         CreateOrChangeOrder RemoveOrder(string clientOrderId);
         Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol);
+        bool HasCancelOrder(PhysicalOrder order);
+        bool HasCreateOrder(CreateOrChangeOrder order);
     }
 
     public interface PhysicalOrderStore : PhysicalOrderCache

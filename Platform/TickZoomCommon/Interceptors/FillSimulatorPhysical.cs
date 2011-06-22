@@ -70,7 +70,7 @@ namespace TickZoom.Interceptors
 		// seed so that test results are reproducable.
 		private Random random = new Random(1234);
 		private long minimumTick;
-        private int maxPartialFillsPerOrder = 1;
+        private static int maxPartialFillsPerOrder = 1;
 
         public FillSimulatorPhysical(string name, SymbolInfo symbol, bool createSimulatedFills)
 		{
@@ -774,5 +774,11 @@ namespace TickZoom.Interceptors
 	    {
 	        get { return currentTick.UtcTime; }
 	    }
-	}
+
+        public static int MaxPartialFillsPerOrder
+        {
+            get { return maxPartialFillsPerOrder; }
+            set { maxPartialFillsPerOrder = value; }
+        }
+    }
 }

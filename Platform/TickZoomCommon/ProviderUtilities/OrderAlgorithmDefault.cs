@@ -59,7 +59,6 @@ namespace TickZoom.Common
 		private TickSync tickSync;
 		private Dictionary<long,long> filledOrders = new Dictionary<long,long>();
 	    private LogicalOrderCache logicalOrderCache;
-	    private PhysicalOrderQueue _physicalOrderQueue;
         private bool isPositionSynced = false;
         private long minimumTick;
         private List<MissingLevel> missingLevels = new List<MissingLevel>();
@@ -76,7 +75,6 @@ namespace TickZoom.Common
 			this.symbol = symbol;
 		    this.logicalOrderCache = logicalOrderCache;
 		    this.physicalOrderCache = physicalOrderCache;
-            this._physicalOrderQueue = new PhysicalOrderQueue(name,symbol);
 			this.tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			this.physicalOrderHandler = brokerOrders;
             this.canceledLogicals = new ActiveList<LogicalOrder>();
@@ -154,9 +152,10 @@ namespace TickZoom.Common
             {
                 physical.OrderState = OrderState.Pending;
                 var cancelOrder = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, physical);
-                if (!_physicalOrderQueue.AddCancelOrder(cancelOrder))
+                physical.ReplacedBy = cancelOrder;
+                if (physicalOrderCache.HasCancelOrder(cancelOrder))
                 {
-                    if (debug) log.Debug("Ignoring cancel broker order " + physical.BrokerOrder + " as physical order cache has it already.");
+                    if (debug) log.Debug("Ignoring cancel broker order " + physical.BrokerOrder + " as physical order cache has a cancel or replace already.");
                     result = false;
                 }
                 else
@@ -176,9 +175,10 @@ namespace TickZoom.Common
             if (createOrChange.OrderState == OrderState.Active)
             {
                 createOrChange.OriginalOrder = origOrder;
-                if (!_physicalOrderQueue.AddCancelOrder(createOrChange))
+                origOrder.ReplacedBy = createOrChange;
+                if (physicalOrderCache.HasCancelOrder(createOrChange))
                 {
-                    if (debug) log.Debug("Ignoring broker order " + origOrder.BrokerOrder + " as physical order cache has it already.");
+                    if (debug) log.Debug("Ignoring broker order " + origOrder.BrokerOrder + " as physical order cache has a cancel or replace already.");
                     return;
                 }
                 if (debug) log.Debug("Change Broker Order: " + createOrChange);
@@ -200,9 +200,9 @@ namespace TickZoom.Common
             {
                 throw new ApplicationException("Sorry, order size must be greater than or equal to zero.");
             }
-            if (!_physicalOrderQueue.AddCreateOrder(physical))
+            if (physicalOrderCache.HasCreateOrder(physical))
             {
-                if( debug) log.Debug("Ignoring broker order as physical order cache has it already.");
+                if( debug) log.Debug("Ignoring broker order as physical order cache has a create order already.");
                 return;
             }
             physicalOrderCache.AddOrder(physical);
@@ -813,7 +813,6 @@ namespace TickZoom.Common
 
             originalPhysicals.Clear();
             originalPhysicals.AddLast(physicalOrderCache.GetActiveOrders(symbol));
-            originalPhysicals.AddLast(_physicalOrderQueue.CreateOrderQueue);
 
 			var next = originalPhysicals.First;
 			for( var node = next; node != null; node = next) {
@@ -1058,7 +1057,6 @@ namespace TickZoom.Common
                         }
                         PerformCompareInternal();
                         physicalOrderHandler.ProcessOrders();
-                        _physicalOrderQueue.Clear();
                         if( SyncTicks.Enabled)
                         {
                             tickSync.RollbackPhysicalOrders();
@@ -1287,7 +1285,6 @@ namespace TickZoom.Common
 				
             originalPhysicals.Clear();
             originalPhysicals.AddLast(physicalOrderCache.GetActiveOrders(symbol));
-            originalPhysicals.AddLast(_physicalOrderQueue.CreateOrderQueue);
 
             if (CheckForPending())
             {

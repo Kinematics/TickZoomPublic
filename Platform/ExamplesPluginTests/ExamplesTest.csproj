@@ -84,7 +84,6 @@
     <Compile Include="Loaders\AutoTests.cs" />
     <Compile Include="Loaders\AutoTestSettings.cs" />
     <Compile Include="Loaders\DynamicTestSuite.cs" />
-    <Compile Include="Loaders\ExampleBreakoutReversalTest.cs" />
     <Compile Include="Loaders\ExampleBreakoutStopsTest.cs" />
     <Compile Include="Loaders\ExampleCustomBarsTest.cs" />
     <Compile Include="Loaders\ExampleDualStrategyLoader.cs" />
