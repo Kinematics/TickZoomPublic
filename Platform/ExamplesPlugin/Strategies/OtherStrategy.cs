@@ -33,13 +33,19 @@ namespace TickZoom.Examples
         private int sellSize = 1;
         private IndicatorCommon retraceLine;
         private IndicatorCommon maxExcursion;
+
         private bool enableSizing = true;
         private bool enablePegging = true;
-        private bool screenIndifference = false;
+        private bool throttleIncreasing = false;
+        private bool filterIndifference = false;
+
         private readonly long commission = -0.0000195D.ToLong();
         private double lastMidPoint;
         private int startSizingLots = 30;
         private int retraceErrorMarginInTicks = 25;
+        private int sequentialIncreaseCount;
+        private double lastMarketBid;
+        private double lastMarketAsk;
         #endregion
 
         public OtherStrategy()
@@ -94,7 +100,7 @@ namespace TickZoom.Examples
             {
                 var comboTrade = comboTrades.Tail;
                 indifferencePrice = CalcIndifferencePrice(comboTrade);
-                if( screenIndifference)
+                if( filterIndifference)
                 {
                     var avgDivergence = Math.Abs(tick.Bid - indifferencePrice) / minimumTick;
                     if (avgDivergence > 150 || Position.IsFlat)
@@ -234,13 +240,22 @@ namespace TickZoom.Examples
             {
                 SetupBidAsk(midPoint);
             }
-            if (marketAsk < ask - increaseSpread && midPoint > lastMidPoint)
+            if (marketAsk < lastMarketAsk)
             {
-                SetupAsk(midPoint);
+                lastMarketAsk = marketAsk;
+                if (marketAsk < ask - increaseSpread && midPoint > lastMidPoint)
+                {
+                    SetupAsk(midPoint);
+                }
             }
-            if (marketBid > bid + increaseSpread && midPoint < lastMidPoint)
+
+            if (marketBid > lastMarketBid)
             {
-                SetupBid(midPoint);
+                lastMarketBid = marketBid;
+                if (marketBid > bid + increaseSpread && midPoint < lastMidPoint)
+                {
+                    SetupBid(midPoint);
+                }
             }
         }
 
@@ -315,12 +330,13 @@ namespace TickZoom.Examples
         private int CalcAdjustmentSize(double indifference, int size, double desiredIndifference, double currentPrice)
         {
             var lots = size/lotSize;
-            var delta = desiredIndifference - currentPrice;
+            var delta = Math.Abs(desiredIndifference - currentPrice);
             if (delta < minimumTick || lots > 100000)
             {
                 return 1;
             }
             var result = (size*indifference - size*desiredIndifference)/(delta);
+            result = Math.Abs(result);
             if( result >= int.MaxValue)
             {
                 System.Diagnostics.Debugger.Break();
@@ -428,14 +444,16 @@ namespace TickZoom.Examples
 
         private void SetupAsk(double price)
         {
-            var myAsk = Position.IsLong ? price + reduceSpread : price + increaseSpread;
+            var sequentialAdjustment = throttleIncreasing ? sequentialIncreaseCount*10*minimumTick : 0;
+            var myAsk = Position.IsLong ? price + reduceSpread : price + increaseSpread + sequentialAdjustment;
             ask = Math.Max(myAsk, marketAsk);
             askLine[0] = ask;
         }
 
         private void SetupBid(double price)
         {
-            var myBid = Position.IsLong ? price - increaseSpread : price - reduceSpread;
+            var sequentialAdjustment = throttleIncreasing ? sequentialIncreaseCount*10*minimumTick : 0;
+            var myBid = Position.IsLong ? (price - increaseSpread) - sequentialAdjustment : price - reduceSpread;
             bid = Math.Min(myBid, marketBid);
             bidLine[0] = bid;
         }
@@ -446,6 +464,9 @@ namespace TickZoom.Examples
             fills.AddFirst(new LocalFill(fill));
             SetupBidAsk(fill.Price);
             maxExcursion[0] = fill.Price;
+            sequentialIncreaseCount = 0;
+            lastMarketAsk = marketAsk;
+            lastMarketBid = marketBid;
             LogFills("OnEnterTrade");
         }
 
@@ -480,6 +501,7 @@ namespace TickZoom.Examples
             lastSize = size;
             if (change > 0)
             {
+                sequentialIncreaseCount++;
                 var changed = false;
                 change = Math.Abs(change);
                 if (fills.First != null)
@@ -499,6 +521,7 @@ namespace TickZoom.Examples
             }
             else
             {
+                sequentialIncreaseCount=0;
                 change = Math.Abs(change);
                 var prevFill = fills.First.Value;
                 if (change <= prevFill.Size)
