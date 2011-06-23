@@ -329,9 +329,7 @@ namespace TickZoom.FIX
 
 					        if( foundMessage) {
 								lastMessage = TimeStamp.UtcNow;
-                                //if( debug && (LogRecovery || !IsRecovery)) {
-									log.Debug( "Received FIX Message: " + message);
-                                //}
+                                if( debug ) log.Debug( "Received FIX Message: " + message);
                                 var messageFIX = (MessageFIXT1_1)message;
                                 switch( messageFIX.MessageType)
                                 {
@@ -354,6 +352,9 @@ namespace TickZoom.FIX
                                             break;
                                         case "3": // reject
                                             HandleReject(messageFIX);
+                                            break;
+                                        case "5": // log off confirm
+                                            if( debug) log.Debug("Log off confirmation received.");
                                             break;
                                         default:
                                             ReceiveMessage(messageFIX);

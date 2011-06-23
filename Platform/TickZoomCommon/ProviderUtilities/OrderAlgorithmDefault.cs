@@ -1513,7 +1513,7 @@ namespace TickZoom.Common
             physicalOrderCache.RemoveOrder(order.BrokerOrder);
             if( order.ReplacedBy == null)
             {
-                throw new ApplicationException("CancelOrder w/o any replaced order specified: " + order);
+                if( debug) log.Debug("CancelOrder w/o any replaced order specified happens normally: " + order + " ");
             }
             else
             {

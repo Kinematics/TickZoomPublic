@@ -77,7 +77,7 @@ namespace TickZoom.Examples
 
             retraceLine = Formula.Indicator();
             retraceLine.Name = "Retrace";
-            retraceLine.Drawing.IsVisible = enableSizing && isVisible;
+            retraceLine.Drawing.IsVisible = isVisible;
             retraceLine.Drawing.Color = Color.Magenta;
 
             maxExcursion = Formula.Indicator();
@@ -127,7 +127,7 @@ namespace TickZoom.Examples
             {
                 var lots = Position.Size/lotSize;
                 var currentTrade = comboTrades.Tail;
-                var retracePercent = lots < startSizingLots ? 0.50 : lots < 100 ? 0.40 : lots < 200 ? 0.30 : 0.20;
+                var retracePercent = !enableSizing ? 0.50 : lots < startSizingLots ? 0.50 : lots < 100 ? 0.40 : lots < 200 ? 0.30 : 0.20;
 
                 if (double.IsNaN(retraceLine[0]))
                 {
@@ -180,7 +180,7 @@ namespace TickZoom.Examples
 
             if( enablePegging) HandlePegging(tick);
 
-            if( enableSizing) PerformSizing(tick);
+            PerformSizing(tick);
 
             ProcessSideways(tick);
             return true;
@@ -205,7 +205,7 @@ namespace TickZoom.Examples
                     buySize = 0;
                 }
 
-                if (lots <= 30) return;
+                if (!enableSizing || lots <= 30) return;
 
                 if (ask > maxExcursion[0] &&
                     indifferencePrice < retraceLine[0])
@@ -223,7 +223,7 @@ namespace TickZoom.Examples
                     sellSize = 0;
                 }
 
-                if (lots <= 30) return;
+                if (!enableSizing || lots <= 30) return;
 
                 if (bid < maxExcursion[0] &&
                     indifferencePrice > retraceLine[0])

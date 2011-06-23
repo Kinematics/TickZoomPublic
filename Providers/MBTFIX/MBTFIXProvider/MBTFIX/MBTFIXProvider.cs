@@ -517,7 +517,19 @@ namespace TickZoom.MBTFIX
                             }
                             else
                             {
-                                throw new ApplicationException("Neither order found by client id nor original client id had replaced by property set: \nClient Order: " + clientOrder + "\nOriginal Client Order: " + origOrder);
+                                if (debug) log.Debug("Cancel confirm message has neither client id nor original client id found order in cache with replaced by property set. Continuing with only original order.\nClient Order: " + clientOrder + "\nOriginal Client Order: " + origOrder);
+                                if( clientOrder != null)
+                                {
+                                    algorithm.ConfirmCancel(clientOrder, IsRecovered);
+                                }
+                                else if ( origOrder != null)
+                                {
+                                    algorithm.ConfirmCancel(origOrder, IsRecovered);
+                                }
+                                else
+                                {
+                                    throw new ApplicationException("Canceled message. Both clientOrder and origOrder were null. Client Id = " + packetFIX.ClientOrderId + ", Orig Id = " + packetFIX.OriginalClientOrderId);
+                                }
                             }
                             break;
                         }
