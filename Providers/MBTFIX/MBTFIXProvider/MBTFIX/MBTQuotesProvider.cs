@@ -80,7 +80,8 @@ namespace TickZoom.MBTQuotes
 			string hashPassword = Hash(Password);
 			string login = "L|100="+UserName+";133="+hashPassword+"\n";
 			if( trace) log.Trace( "Sending: " + login);
-			message.DataOut.Write(login.ToCharArray());
+            if (debug) log.Debug("Sending: " + login);
+            message.DataOut.Write(login.ToCharArray());
 			while( !Socket.TrySendMessage(message)) {
 				if( IsInterrupted) return Yield.NoWork.Repeat;
 				Factory.Parallel.Yield();

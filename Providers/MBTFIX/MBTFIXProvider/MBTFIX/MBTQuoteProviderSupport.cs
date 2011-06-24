@@ -77,6 +77,7 @@ namespace TickZoom.MBTQuotes
 	    private string configFilePath;
 	    private string configSection;
         private bool useLocalTickTime = true;
+        private volatile bool debugDisconnect = false;
 		
 		public MBTQuoteProviderSupport()
 		{
@@ -175,7 +176,10 @@ namespace TickZoom.MBTQuotes
 			}
 			log.Info("OnDisconnect( " + socket + " ) ");
 			connectionStatus = Status.Disconnected;
-		}
+		    debugDisconnect = true;
+            if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+            if (debug) log.Debug("Socket state now: " + socket.State);
+        }
 	
 		public bool IsInterrupted {
 			get {
@@ -217,12 +221,23 @@ namespace TickZoom.MBTQuotes
 		
 		private Yield SocketTask() {
 			if( isDisposed ) return Yield.NoWork.Repeat;
+            if( debugDisconnect)
+            {
+                if( debug) log.Debug("SocketTask: Current socket state: " + socket.State + ", connection status: " + connectionStatus);
+                debugDisconnect = false;
+            }
             if( socket.State != lastSocketState)
             {
                 if( debug) log.Debug("Socket state changed to: " + socket.State);
                 lastSocketState = socket.State;
             }
-			switch( socket.State) {
+            if (connectionStatus != lastStatus)
+            {
+                if (debug) log.Debug("Connection status changed to: " + connectionStatus);
+                lastStatus = connectionStatus;
+            }
+            switch (socket.State)
+            {
 				case SocketState.New:
 					if( receiver != null && Factory.Parallel.TickCount > nextConnectTime) {
 						Initialize();
@@ -242,11 +257,6 @@ namespace TickZoom.MBTQuotes
 						return Yield.NoWork.Repeat;
 					}
 				case SocketState.Connected:
-                    if( connectionStatus != lastStatus)
-                    {
-                        if( debug) log.Debug("Connection status changed to: " + connectionStatus);
-                        lastStatus = connectionStatus;
-                    }
 					if( connectionStatus == Status.New) {
 						connectionStatus = Status.Connected;
 						if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
@@ -490,18 +500,20 @@ namespace TickZoom.MBTQuotes
 	
 	    protected virtual void Dispose(bool disposing)
 	    {
-	       		if( !isDisposed) {
+       		if( !isDisposed) {
+                if (debug) log.Debug("Dispose(). Informational stack trace--not an error: " + Environment.StackTrace);
 	            isDisposed = true;   
 	            if (disposing) {
 	            	if( socketTask != null) {
 		            	socketTask.Stop();
+                        if( debug) log.Debug("Stopped socket task.");
 	            	}
 	            	if( socket != null) {
 		            	socket.Dispose();
 	            	}
 	            	nextConnectTime = Factory.Parallel.TickCount + 10000;
 	            }
-	    		}
+    		}
 	    }    
 	        
 		public void SendEvent( Receiver receiver, SymbolInfo symbol, int eventType, object eventDetail) {

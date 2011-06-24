@@ -72,14 +72,14 @@ namespace TickZoom.Interceptors
 	        }
 	        
 	        public void SellMarket( double lots) {
-	        	if( !Strategy.Position.HasPosition) {
-	        		throw new TickZoomException("Strategy must have a position before a change sell market.");
-	        	}
-                var trades = Strategy.Performance.ComboTrades;
-                if (trades.Count == 0 || trades.Tail.Completed)
-                {
-                    throw new TickZoomException("Combo trade must be still open before setting a change order to sell at the market.");
-                }
+                //if( !Strategy.Position.HasPosition) {
+                //    throw new TickZoomException("Strategy must have a position before a change sell market.");
+                //}
+                //var trades = Strategy.Performance.ComboTrades;
+                //if (trades.Count == 0 || trades.Tail.Completed)
+                //{
+                //    throw new TickZoomException("Combo trade must be still open before setting a change order to sell at the market.");
+                //}
                 /// <summary>
 	        	/// comment.
 	        	/// </summary>
@@ -106,14 +106,14 @@ namespace TickZoom.Interceptors
 	        }
 	        
 	        public void BuyMarket(double lots) {
-	        	if( !Strategy.Position.HasPosition) {
-	        		throw new TickZoomException("Strategy must have a position before a change buy market.");
-	        	}
-                var trades = Strategy.Performance.ComboTrades;
-                if (trades.Count == 0 || trades.Tail.Completed)
-                {
-                    throw new TickZoomException("Combo trade must be still open before setting a chagne order to buy at the market.");
-                }
+                //if( !Strategy.Position.HasPosition) {
+                //    throw new TickZoomException("Strategy must have a position before a change buy market.");
+                //}
+                //var trades = Strategy.Performance.ComboTrades;
+                //if (trades.Count == 0 || trades.Tail.Completed)
+                //{
+                //    throw new TickZoomException("Combo trade must be still open before setting a chagne order to buy at the market.");
+                //}
                 orders.BuyMarket.Price = 0;
 	        	orders.BuyMarket.Position = (int) lots;
 	        	if( isNextBar && !orders.BuyMarket.IsActive) {

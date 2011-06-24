@@ -110,7 +110,7 @@ namespace TickZoom.Interceptors
             var origOrder = CancelBrokerOrder((string) order.OriginalOrder.BrokerOrder);
             if( origOrder == null)
             {
-                log.Info("PhysicalOrder too late to change. Already filled or canceled, ignoring.");
+                if( debug) log.Debug("PhysicalOrder too late to change. Already filled or canceled, ignoring.");
                 var message = "No such order";
                 if (onRejectOrder != null)
                 {
@@ -229,7 +229,7 @@ namespace TickZoom.Interceptors
             var origOrder = CancelBrokerOrder((string)order.OriginalOrder.BrokerOrder);
             if( origOrder == null)
             {
-                log.Info("PhysicalOrder too late to change. Already filled or canceled, ignoring.");
+                if( debug) log.Debug("PhysicalOrder too late to change. Already filled or canceled, ignoring.");
                 var message = "No such order";
                 if (onRejectOrder != null)
                 {

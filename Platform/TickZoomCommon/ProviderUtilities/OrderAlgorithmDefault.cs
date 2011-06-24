@@ -987,7 +987,7 @@ namespace TickZoom.Common
         }
 		
 		public void ProcessFill( PhysicalFill physical) {
-		    if (!isPositionSynced)
+		    if (!isPositionSynced && physical.Order.LogicalSerialNumber > 0L)
             {
                 if (debug) log.Debug("ProcessFill() ignored. Position not yet synced.");
                 return;

@@ -34,6 +34,7 @@ using NUnit.Framework;
 using TickZoom.Api;
 using TickZoom.Common;
 using TickZoom.Examples;
+using TickZoom.Interceptors;
 using TickZoom.Starters;
 using TickZoom.Statistics;
 
@@ -112,7 +113,8 @@ namespace TickZoom.StarterTest
     		starter.DataFolder = "Test\\DataCache";
     		starter.ProjectProperties.Starter.SetSymbols("USD_JPY");
     		starter.ProjectProperties.Starter.SymbolProperties[0].ProfitLoss = profitLossLogic;
-    		starter.Run(new OptimizeLoader());
+            FillSimulatorPhysical.MaxPartialFillsPerOrder = 10;
+            starter.Run(new OptimizeLoader());
     		Assert.IsTrue(FileCompare(storageFolder+@"\Statistics\optimizeResults.csv",@"..\..\Platform\TickZoomTesting\Startup\optimizeResults.csv"));
 		}
 		

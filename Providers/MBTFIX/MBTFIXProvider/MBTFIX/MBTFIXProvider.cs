@@ -528,7 +528,7 @@ namespace TickZoom.MBTFIX
                                 }
                                 else
                                 {
-                                    throw new ApplicationException("Canceled message. Both clientOrder and origOrder were null. Client Id = " + packetFIX.ClientOrderId + ", Orig Id = " + packetFIX.OriginalClientOrderId);
+                                    if (info) log.Info("Canceled message. Both clientOrder and origOrder were null. Likely normal when it occurs during FIX re-synchronizing. Client Id = " + packetFIX.ClientOrderId + ", Orig Id = " + packetFIX.OriginalClientOrderId);
                                 }
                             }
                             break;
@@ -686,7 +686,6 @@ namespace TickZoom.MBTFIX
             {
                 CreateOrChangeOrder order;
                 if( OrderStore.TryGetOrderById( packetFIX.ClientOrderId, out order)) {
-                    order.OrderState = OrderState.Filled;
 				    TimeStamp executionTime;
 				    if( UseLocalFillTime) {
 					    executionTime = TimeStamp.UtcNow;
@@ -696,6 +695,10 @@ namespace TickZoom.MBTFIX
 				    var configTime = executionTime;
 				    configTime.AddSeconds( timeZone.UtcOffset(executionTime));
                     var fill = Factory.Utility.PhysicalFill(fillPosition, packetFIX.LastPrice, configTime, executionTime, order, false, packetFIX.OrderQuantity, packetFIX.CumulativeQuantity, packetFIX.LeavesQuantity, IsRecovered);
+                    if( packetFIX.LeavesQuantity == 0)
+                    {
+                        order.OrderState = OrderState.Filled;
+                    }
 				    if( debug) log.Debug( "Sending physical fill: " + fill);
 	                algorithm.ProcessFill( fill);
                 }
