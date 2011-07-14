@@ -123,6 +123,20 @@ namespace TickZoom.MBTFIX
 			}
 		}
 
+        private void RequestSessionUpdate()
+        {
+            var mbtMsg = FixFactory.Create();
+            mbtMsg.SetTradingSessionRequestId(FixFactory.Sender + "-" + mbtMsg.Sequence + "-" + TimeStamp.UtcNow);
+            mbtMsg.SetTradingSessionId("TSSTATE");
+            mbtMsg.SetSubscriptionRequestType(1);
+            mbtMsg.AddHeader("g");
+            if (debug)
+            {
+                log.Debug("Request Session Update: \n" + mbtMsg);
+            }
+            SendMessage(mbtMsg);
+        }
+
         private void SendLogin(int localSequence)
         {
             lastLoginTry = Factory.Parallel.TickCount;
@@ -191,8 +205,13 @@ namespace TickZoom.MBTFIX
 			}
             TryEndRecovery();
 		}
-		
-		public override void OnStartSymbol(SymbolInfo symbol)
+
+        protected override void OnFinishRecovery()
+        {
+            RequestSessionUpdate();
+        }
+
+        public override void OnStartSymbol(SymbolInfo symbol)
 		{
         	if( IsRecovered) {
 				long end = Factory.Parallel.TickCount + 2000;
@@ -296,7 +315,14 @@ namespace TickZoom.MBTFIX
 		protected override void ReceiveMessage(Message message) {
 			var packetFIX = (MessageFIX4_4) message;
 			switch( packetFIX.MessageType) {
-				case "AP":
+                case "h":
+                    if (ConnectionStatus == Status.PendingLogin)
+                    {
+                        StartRecovery();
+                    }
+                    SessionStatus(packetFIX);
+			        break;
+                case "AP":
 				case "AO":
 					PositionUpdate( packetFIX);
 					break;
@@ -321,19 +347,13 @@ namespace TickZoom.MBTFIX
 				case "j":
 					BusinessReject( packetFIX);
 					break;
-				case "h":  // Trading session status
-                    if( ConnectionStatus == Status.PendingLogin)
-                    {
-                        StartRecovery();
-                    }
-					break;
 				default:
 					log.Warn("Ignoring Message: '" + packetFIX.MessageType + "'\n" + packetFIX);
 					break;
 			}
 		}
-		
-		private void BusinessReject(MessageFIX4_4 packetFIX) {
+
+        private void BusinessReject(MessageFIX4_4 packetFIX) {
 			var lower = packetFIX.Text.ToLower();
 			var text = packetFIX.Text;
 			var errorOkay = false;
@@ -415,8 +435,13 @@ namespace TickZoom.MBTFIX
 			SendStartBroker();
 			MessageFIXT1_1.IsQuietRecovery = false;
 		}
-		
-		private void PositionUpdate( MessageFIX4_4 packetFIX) {
+
+        private void SessionStatus(MessageFIX4_4 packetFIX)
+        {
+            log.Debug("Found session status for " + packetFIX.TradingSessionId + " or " + packetFIX.TradingSessionSubId + ": " + packetFIX.TradingSessionStatus);
+        }
+
+        private void PositionUpdate( MessageFIX4_4 packetFIX) {
 			if( packetFIX.MessageType == "AO") {
 				isPositionUpdateComplete = RecoverProgress.Completed;
 				if(debug) log.Debug("PositionUpdate Complete.");

@@ -38,5 +38,7 @@ namespace TickZoom.FIX
 	    int GetNextSequence();
         int LastSequence { get; }
 	    int FirstSequence { get; }
-    }
+	    string Sender { get; }
+	    string Destination { get; }
+	}
 }

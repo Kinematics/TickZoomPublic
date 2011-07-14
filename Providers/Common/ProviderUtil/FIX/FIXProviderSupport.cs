@@ -224,7 +224,8 @@ namespace TickZoom.FIX
 		public void EndRecovery() {
 			connectionStatus = Status.Recovered;
 			if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
-		}
+            OnFinishRecovery();
+        }
 		
 		public bool IsRecovered {
 			get {
@@ -585,8 +586,10 @@ namespace TickZoom.FIX
 		}
 		
 		protected abstract void OnStartRecovery();
-		
-		protected abstract void ReceiveMessage(Message message);
+
+        protected abstract void OnFinishRecovery();
+
+        protected abstract void ReceiveMessage(Message message);
 		
 		private long retryTimeout;
 		

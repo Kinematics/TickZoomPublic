@@ -64,8 +64,13 @@ namespace TickZoom.FIX
 		int leavesQuantity = 0;
 		int longQuantity = 0;
 		int shortQuantity = 0;
+	    private int subscriptionRequestType;
+	    private string tradingSessionRequestId;
+	    private string tradingSessionId;
+	    private int tradingSessionStatus;
+	    private string tradingSessionSubId;
 
-        public override void Clear()
+	    public override void Clear()
         {
             base.Clear();
             account = null;
@@ -171,13 +176,28 @@ namespace TickZoom.FIX
 					result = GetDouble(out temp);
 					leavesQuantity = (int) temp;
 					break;
-				case 460:
+                case 263:
+                    result = GetInt(out subscriptionRequestType);
+                    break;
+                case 336:
+                    result = GetString(out tradingSessionId);
+                    break;
+                case 335:
+                    result = GetString(out tradingSessionRequestId);
+                    break;
+                case 340:
+                    result = GetInt(out tradingSessionStatus);
+                    break;
+                case 460:
 					result = GetInt(out productType);
 					break;
 				case 584:
 					result = GetString(out massStatusRequestId);
 					break;
-				case 704:
+                case 625:
+                    result = GetString(out tradingSessionSubId);
+                    break;
+                case 704:
 					result = GetInt(out longQuantity);
 					break;
 				case 705:
@@ -431,5 +451,30 @@ namespace TickZoom.FIX
 		public string OriginalClientOrderId {
 			get { return originalClientOrderId; }
 		}
+
+	    public int SubscriptionRequestType
+	    {
+	        get { return subscriptionRequestType; }
+	    }
+
+	    public string TradingSessionRequestId
+	    {
+	        get { return tradingSessionRequestId; }
+	    }
+
+	    public string TradingSessionId
+	    {
+	        get { return tradingSessionId; }
+	    }
+
+	    public int TradingSessionStatus
+	    {
+	        get { return tradingSessionStatus; }
+	    }
+
+	    public string TradingSessionSubId
+	    {
+	        get { return tradingSessionSubId; }
+	    }
 	}
 }

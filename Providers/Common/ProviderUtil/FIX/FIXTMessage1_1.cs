@@ -44,7 +44,32 @@ namespace TickZoom.FIX
 		public void SetEncryption(int value) {
 			Append(98,value);  
 		}
-		/// <summary>
+
+        /// <summary>
+        /// 336 TradingSessionID
+        /// </summary>
+        public void SetTradingSessionId(string sessionId)
+        {
+            Append(336, sessionId);
+        }
+
+        /// <summary>
+        /// 263 SubscriptionRequestType
+        /// </summary>
+        public void SetSubscriptionRequestType(int requestType)
+        {
+            Append(263, requestType);
+        }
+
+        /// <summary>
+        /// 335 TradingSessionRequestId
+        /// </summary>
+        public void SetTradingSessionRequestId(string requestID)
+        {
+            Append(335, requestID);
+        }
+
+        /// <summary>
 		/// 7 BeginSeqNumber
 		/// </summary>
 		public void SetBeginSeqNum(int value) {

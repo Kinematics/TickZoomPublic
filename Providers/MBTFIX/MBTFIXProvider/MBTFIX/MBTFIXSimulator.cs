@@ -85,6 +85,9 @@ namespace TickZoom.MBTFIX
 				case "0":
 					if( debug) log.Debug("Received heartbeat response.");
 					break;
+                case "g":
+                    FIXRequestSessionStatus(packetFIX);
+                    break;
                 case "5":
                     log.Info("Received logout message.");
                     Dispose();
@@ -157,8 +160,21 @@ namespace TickZoom.MBTFIX
 			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
 			ChangeOrder(order);
 		}
-		
-		private Yield FIXCancelOrder(MessageFIX4_4 packet) {
+
+        private Yield FIXRequestSessionStatus(MessageFIX4_4 packet)
+        {
+            if( packet.TradingSessionId != "TSSTATE")
+            {
+                throw new ApplicationException("Expected TSSTATE for trading session id but was: " + packet.TradingSessionId);
+            }
+            if (!packet.TradingSessionRequestId.Contains(sender) || !packet.TradingSessionRequestId.Contains(packet.Sequence.ToString()))
+            {
+                throw new ApplicationException("Expected unique trading session request id but was:" + packet.TradingSessionRequestId);
+            }
+            return Yield.DidWork.Repeat;
+        }
+
+	    private Yield FIXCancelOrder(MessageFIX4_4 packet) {
 			var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
             var order = ConstructOrder(packet, packet.ClientOrderId);
             if (debug) log.Debug("FIXCancelOrder() for " + packet.Symbol + ". Original client id: " + packet.OriginalClientOrderId);
