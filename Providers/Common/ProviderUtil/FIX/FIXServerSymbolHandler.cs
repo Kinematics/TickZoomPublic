@@ -31,11 +31,16 @@ using TickZoom.Api;
 
 namespace TickZoom.FIX
 {
-	public class FIXServerSymbolHandler : IDisposable {
+	public class FIXServerSymbolHandler : IDisposable, LogAware {
 		private static Log log = Factory.SysLog.GetLogger(typeof(FIXServerSymbolHandler));
-		private static bool trace = log.IsTraceEnabled;
-		private static bool debug = log.IsDebugEnabled;
-		private FillSimulator fillSimulator;
+        private volatile bool debug;
+        private volatile bool trace;
+        public void RefreshLogLevel()
+        {
+            debug = log.IsDebugEnabled;
+            trace = log.IsTraceEnabled;
+        }
+        private FillSimulator fillSimulator;
 		private TickReader reader;
 		private Action<Message,SymbolInfo,Tick> onTick;
 		private Task queueTask;
@@ -59,6 +64,7 @@ namespace TickZoom.FIX
 		    Action<Message,SymbolInfo,Tick> onTick,
 		    Action<PhysicalFill> onPhysicalFill,
 		    Action<CreateOrChangeOrder,bool,string> onRejectOrder) {
+            log.Register(this);
 			this.fixSimulatorSupport = fixSimulatorSupport;
 			this.isPlayBack = isPlayBack;
 			this.onTick = onTick;

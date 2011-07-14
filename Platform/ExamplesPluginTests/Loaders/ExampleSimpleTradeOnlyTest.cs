@@ -29,6 +29,7 @@ using System;
 using NUnit.Framework;
 using TickZoom;
 using TickZoom.Api;
+using TickZoom.Charting;
 using TickZoom.Common;
 using TickZoom.Examples;
 using ZedGraph;

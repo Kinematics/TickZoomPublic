@@ -32,6 +32,7 @@ using System.Threading;
 
 using NUnit.Framework;
 using TickZoom.Api;
+using TickZoom.Charting;
 using TickZoom.Common;
 using TickZoom.Examples;
 using TickZoom.Interceptors;

@@ -72,6 +72,7 @@ namespace TickZoom.Logging
 			private bool error;
 			private bool fatal;
 			private bool isInitialized = false;
+            private List<WeakReference> logListeners = new List<WeakReference>();
 			
 			public LogImplWrapper(ILogger logger) : base( logger) {
             }
@@ -86,6 +87,29 @@ namespace TickZoom.Logging
 				Level.Error,
 				Level.Fatal
 			};
+
+            public void Register(LogAware aware)
+            {
+                var reference = new WeakReference(aware);
+                logListeners.Add(reference);
+            }
+
+            private void NotifyListeners()
+            {
+                for (int i = logListeners.Count - 1; i >= 0; i--)
+                {
+                    var reference = logListeners[i];
+                    if (!reference.IsAlive)
+                    {
+                        logListeners.RemoveAt(i);
+                    }
+                    else
+                    {
+                        var logAware = (LogAware)reference.Target;
+                        logAware.RefreshLogLevel();
+                    }
+                }
+            }
 			
 			protected override void ReloadLevels(log4net.Repository.ILoggerRepository repository)
 			{
@@ -107,13 +131,14 @@ namespace TickZoom.Logging
 				warn = IsAnyEnabledFor(m_levelWarn);
 				error = IsAnyEnabledFor(m_levelError);
 				fatal = IsAnyEnabledFor(m_levelFatal);
+                isInitialized = true;
+                NotifyListeners();
 			}
 			
 			private void TryReloadLevels() {
 				if( !isInitialized) {
-					ReloadLevels(Logger.Repository);
-					isInitialized = true;
-				}
+                    ReloadLevels(Logger.Repository);
+                }
 			}
 			
 			public bool IsVerboseEnabled {
@@ -764,5 +789,15 @@ namespace TickZoom.Logging
 		{
 			log.FatalFormat(provider, format, args);
 		}
-	}
+
+        #region Log Members
+
+
+        public void Register(LogAware logAware)
+        {
+            log.Register(logAware);
+        }
+
+        #endregion
+    }
 }

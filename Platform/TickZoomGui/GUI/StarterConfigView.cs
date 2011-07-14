@@ -1,4 +1,5 @@
 using System.Threading;
+using TickZoom.Charting;
 using TickZoom.Presentation;
 
 #region Header
@@ -330,5 +331,16 @@ namespace TickZoom.GUI
         }
 
         #endregion Methods
+
+        private void loggingConfig_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            var control = (Control) sender;
+            do
+            {
+                control = control.FindForm().GetNextControl(control, true);
+
+            } while (!control.CanFocus);
+            control.Focus();
+        }
     }
 }

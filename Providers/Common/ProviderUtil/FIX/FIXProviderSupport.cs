@@ -35,15 +35,23 @@ using TickZoom.Api;
 
 namespace TickZoom.FIX
 {
-	public abstract class FIXProviderSupport : Provider
+	public abstract class FIXProviderSupport : Provider, LogAware
 	{
 		private FIXFilter fixFilter;
 		private FIXPretradeFilter fixFilterController;
         private PhysicalOrderStore orderStore;
         private readonly Log log;
-		private readonly bool debug;
-		private readonly bool trace;
-		protected readonly object symbolsRequestedLocker = new object();
+        private volatile bool trace;
+        private volatile bool debug;
+        public virtual void RefreshLogLevel()
+        {
+            if (log != null)
+            {
+                debug = log.IsDebugEnabled;
+                trace = log.IsTraceEnabled;
+            }
+        }
+        protected readonly object symbolsRequestedLocker = new object();
 		protected Dictionary<long,SymbolInfo> symbolsRequested = new Dictionary<long, SymbolInfo>();
 		private Socket socket;
 		private Task socketTask;
@@ -93,6 +101,7 @@ namespace TickZoom.FIX
 		public FIXProviderSupport()
 		{
 			log = Factory.SysLog.GetLogger(typeof(FIXProviderSupport)+"."+GetType().Name);
+		    log.Register(this);
 			debug = log.IsDebugEnabled;
 			trace = log.IsTraceEnabled;
         	log.Info(providerName+" Startup");
@@ -494,6 +503,7 @@ namespace TickZoom.FIX
         private bool TryRequestResend(MessageFIXT1_1 messageFIX)
         {
             var result = false;
+            if( debug) log.Debug("Comparing fix sequence " + messageFIX.Sequence + " to expected sequence " + remoteSequence);
             if (messageFIX.Sequence > remoteSequence)
             {
                 result = true;

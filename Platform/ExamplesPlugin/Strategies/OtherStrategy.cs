@@ -69,7 +69,7 @@ namespace TickZoom.Examples
         private int nextIncreaseLots;
 
         private bool enableManageRisk = false;
-        private bool enableSizing = true;
+        private bool enableSizing = false;
         private bool enablePegging = true;
         private bool limitSize = false;
         private bool throttleIncreasing = false;
@@ -273,7 +273,7 @@ namespace TickZoom.Examples
             {
                 var lots = Position.Size/lotSize;
                 var currentTrade = comboTrades.Tail;
-                var retracePercent = 0.30;
+                var retracePercent = 0.50;
                 var waitRetracePercent = 0.10;
 
                 if (double.IsNaN(retraceLine[0]))

@@ -25,6 +25,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 
 namespace TickZoom.Api
 {
@@ -33,10 +34,16 @@ namespace TickZoom.Api
 	/// </summary>
 	public interface LogManager {
 		void Configure(string repository);
-		void Reconfigure(string extension, string defaultConfig);
-		void ResetConfiguration();
+		void RegisterRealTime(string configName, string defaultConfig);
+        void RegisterHistorical(string configName, string defaultConfig);
+	    void ReconfigureForHistorical();
+	    void ReconfigureForRealTime();
+        void ResetConfiguration();
 		Log GetLogger(Type type);
 		Log GetLogger(string name);
-		string LogFolder { get; } 
+		string LogFolder { get; }
+	    string ActiveConfigName { get; }
+	    List<string> GetConfigNames();
+	    void Reconfigure(string extension);
 	}	
 }

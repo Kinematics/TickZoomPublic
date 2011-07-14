@@ -37,16 +37,12 @@ using TickZoom.Api;
 
 namespace TickZoom.MBTQuotes
 {
-    public interface LogAware
-    {
-        void RefreshLogLevel();
-    }
 	public abstract class MBTQuoteProviderSupport : Provider, LogAware
 	{
 		private readonly Log log;
-		private bool debug;
-		private bool trace;
-        public void RefreshLogLevel()
+		private volatile bool debug;
+        private volatile bool trace;
+        public virtual void RefreshLogLevel()
         {
             debug = log.IsDebugEnabled;
             trace = log.IsTraceEnabled;
@@ -82,6 +78,7 @@ namespace TickZoom.MBTQuotes
 		public MBTQuoteProviderSupport()
 		{
 			log = Factory.SysLog.GetLogger(typeof(MBTQuoteProviderSupport)+"."+GetType().Name);
+		    log.Register(this);
             RefreshLogLevel();
 	        log.Info(providerName+" Startup");
 			RegenerateSocket();

@@ -111,7 +111,7 @@ namespace TickZoom.GUI
                         comboBox.DataSource = Enum.GetValues(property.PropertyType);
                         if( debug) log.Debug( "DataSource => enum values of " + viewModel + "." + property.Name);
                     } else if( property.PropertyType == typeof(string)) {
-	                    TryBind(foundControl,"Text",viewModel,property.Name);
+	                    TryBind(foundControl,"SelectedItem",viewModel,property.Name);
                         var comboBox = foundControl as ComboBox;
                         var valuesPropertyName = property.Name + "Values";
                         var foundProperty = properties.FirstOrDefault(x => x.Name == valuesPropertyName);

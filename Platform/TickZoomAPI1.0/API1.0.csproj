@@ -69,6 +69,7 @@
     <Compile Include="Classes\Diagnose.cs" />
     <Compile Include="Classes\LatencyManager.cs" />
     <Compile Include="Classes\LatencyMetric.cs" />
+    <Compile Include="Engine\LogAware.cs" />
     <Compile Include="Engine\PhysicalOrderCache.cs" />
     <Compile Include="Engine\StrategyPosition.cs" />
     <Compile Include="Engine\LogEvent.cs" />

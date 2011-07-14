@@ -47,7 +47,8 @@ namespace TickZoom.Logging
 		private static object locker = new object();
 		private ILoggerRepository repository;
 		private string repositoryName;
-		Dictionary<string,LogImpl> map = new Dictionary<string,LogImpl>();
+        private string currentExtension;
+        Dictionary<string, LogImpl> map = new Dictionary<string, LogImpl>();
 
 		public void Configure(string repositoryName) {
 			this.repositoryName = repositoryName;
@@ -58,8 +59,60 @@ namespace TickZoom.Logging
 		public void ResetConfiguration() {
 			Reconfigure(null,null);
 		}
-		
-		public void Reconfigure(string extension, string defaultConfig) {
+
+	    private string realTimeConfig;
+	    private string realTimeDefaultConfig;
+        private string historicalConfig;
+        private string historicalDefaultConfig;
+
+	    public void RegisterRealTime(string configName, string defaultConfig)
+	    {
+	        realTimeConfig = configName;
+	        realTimeDefaultConfig = defaultConfig;
+	    }
+
+        public void RegisterHistorical(string configName, string defaultConfig)
+        {
+            historicalConfig = configName;
+            historicalDefaultConfig = defaultConfig;
+            Reconfigure( historicalConfig, historicalDefaultConfig);
+        }
+
+        public void ReconfigureForHistorical()
+        {
+            if( historicalConfig == null || historicalDefaultConfig == null)
+            {
+                throw new ApplicationException("Please call RegisterHistorical() before calling ReconfigureHistorical().");
+            }
+            Reconfigure(historicalConfig, historicalDefaultConfig);
+        }
+
+        public void ReconfigureForRealTime()
+        {
+            if( realTimeConfig == null || realTimeDefaultConfig == null)
+            {
+                throw new ApplicationException("Please call RegisterRealTime() before calling ReconfigureRealTime().");
+            }
+            Reconfigure(realTimeConfig, realTimeDefaultConfig);
+        }
+
+        public void Reconfigure(string extension)
+        {
+            if( extension == null)
+            {
+                throw new InvalidOperationException("Parameter cannot be null.");
+            }
+            if (extension == repositoryName)
+            {
+                extension = null;
+            }
+            extension = extension.Replace(repositoryName + ".", "");
+            Reconfigure(extension, null);
+        }
+
+	    private void Reconfigure(string extension, string defaultConfig)
+        {
+            this.currentExtension = extension;
 			if( repositoryName == "SysLog" && ConfigurationManager.GetSection("log4net") != null) {
 				log4net.Config.XmlConfigurator.Configure(repository);
 			} else {
@@ -70,13 +123,12 @@ namespace TickZoom.Logging
 			lock( locker) {
 				if( exceptionLog == null) {
 					exceptionLog = GetLogger("TickZoom.AppDomain");
-                    //AppDomain.CurrentDomain.UnhandledException +=
-                    //    new UnhandledExceptionEventHandler(UnhandledException);
 				}
 			}
 		}
-	
-		private XmlElement GetConfigXML(string repositoryName, string extension, string defaultConfig) {
+
+        private XmlElement GetConfigXML(string repositoryName, string extension, string defaultConfig)
+        {
 			var configBase = VerifyConfigPath(repositoryName, GetSysLogDefault());
 			var xmlbase = File.OpenText(configBase);
 			var doc1 = new XmlDocument();
@@ -110,12 +162,12 @@ namespace TickZoom.Logging
 						if( doc1Roots.Count == 1) {
 							doc1Config.ReplaceChild(node,doc1Roots[0]);
 						} else {
-							throw new ApplicationException("Most have exactly 1 root element in the base config file.");
+							throw new ApplicationException("Most have exactly 1 root element in the base config file: " + extensionFile);
 						}
 					} else if( node.Name == "logger") {
 						doc1Config.AppendChild(node);
 					} else {
-						throw new ApplicationException("Only logger or root elements can be defined in log4net extension files.");
+						throw new ApplicationException("Only logger or root elements can be defined log configuration files: " + extensionFile);
 					}
 				}
 			}
@@ -126,21 +178,11 @@ namespace TickZoom.Logging
 		private string VerifyConfigPath(string repositoryName, string defaultConfig) {
 			var path = GetConfigPath(repositoryName);
 			if( !File.Exists(path)) {
+                if( defaultConfig == null)
+                {
+                    throw new ApplicationException("Logging config " + repositoryName + " requested but " + path + " is not found and default config was null.");
+                }
 				File.WriteAllText(path,defaultConfig);
-//				if( repositoryName == "SysLog") {
-//					File.WriteAllText(path,GetSysLogDefault());
-//				} else if( repositoryName == "Log") {
-//					File.WriteAllText(path,GetLogDefault());
-//				} else if( repositoryName == "SysLog.RealTime") {
-//					File.WriteAllText(path,GetRealTimeDefault());
-//				} else if( repositoryName == "SysLog.FIXSimulator") {
-//					File.WriteAllText(path,GetFIXSimulatorDefault());
-//				} else {
-//					StringBuilder sb = new StringBuilder();
-//					sb.AppendLine("Cannot find logging configuration file: " + path);
-//					sb.AppendLine("Please create the file and put your custom log4net configuration in it.");
-//					throw new ApplicationException(sb.ToString());
-//				}
 			}
 			return path;
 		}
@@ -152,8 +194,31 @@ namespace TickZoom.Logging
 			var configFile = Path.Combine(configPath,repositoryName+".config");
 			return configFile;
 		}
-		
-		private static void UnhandledException(object sender, UnhandledExceptionEventArgs e) {
+
+        public List<string> GetConfigNames()
+        {
+            var storageFolder = Factory.Settings["AppDataFolder"];
+            var configPath = Path.Combine(storageFolder, "Config");
+            Directory.CreateDirectory(configPath);
+            var configFiles = new List<string>();
+            configFiles.AddRange(Directory.GetFiles(configPath, repositoryName + ".*.config", SearchOption.TopDirectoryOnly));
+            configFiles.AddRange(Directory.GetFiles(configPath, repositoryName + ".config", SearchOption.TopDirectoryOnly));
+            var results = new List<string>();
+            foreach( var file in configFiles)
+            {
+                var configName = Path.GetFileNameWithoutExtension(file);
+                results.Add(configName);
+            }
+            return results;
+        }
+
+	    public string ActiveConfigName
+	    {
+	        get { return repositoryName + (currentExtension == null ? "" : "." + currentExtension); }
+	    }
+
+        private static void UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
 		    Exception ex = (Exception)e.ExceptionObject;
 		    exceptionLog.Error("Unhandled exception caught",ex);
 		}
@@ -281,6 +346,9 @@ namespace TickZoom.Logging
 		<level value=""INFO"" />
 		<appender-ref ref=""FileAppender"" />
 	</root>
+    <logger name=""TickZoom.GUI"">
+		<level value=""DEBUG"" />
+    </logger>
  </log4net>
 </configuration>
 ";

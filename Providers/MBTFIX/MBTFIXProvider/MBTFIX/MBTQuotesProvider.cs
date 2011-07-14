@@ -34,16 +34,23 @@ using TickZoom.Api;
 namespace TickZoom.MBTQuotes
 {
 	[SkipDynamicLoad]
-	public class MBTQuotesProvider : MBTQuoteProviderSupport
+	public class MBTQuotesProvider : MBTQuoteProviderSupport, LogAware
 	{
 		private static Log log = Factory.SysLog.GetLogger(typeof(MBTQuotesProvider));
-		private bool debug = log.IsDebugEnabled;
-		private bool trace = log.IsTraceEnabled;
-        private Dictionary<long,SymbolHandler> symbolHandlers = new Dictionary<long,SymbolHandler>();	
+        private volatile bool debug;
+        private volatile bool trace;
+        public override void RefreshLogLevel()
+        {
+            base.RefreshLogLevel();
+            debug = log.IsDebugEnabled;
+            trace = log.IsTraceEnabled;
+        }
+        private Dictionary<long, SymbolHandler> symbolHandlers = new Dictionary<long, SymbolHandler>();	
 		private YieldMethod ReceiveMessageMethod;
 		
 		public MBTQuotesProvider(string name)
 		{
+		    log.Register(this);
 			ProviderName = "MBTQuotesProvider";
 			if( name.Contains(".config")) {
 				throw new ApplicationException("Please remove .config from config section name.");

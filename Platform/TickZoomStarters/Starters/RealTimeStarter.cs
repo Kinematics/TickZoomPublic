@@ -40,8 +40,9 @@ namespace TickZoom.Starters
 		public override void Run(ModelLoaderInterface loader)
 		{
 			parallelMode = ParallelMode.RealTime;
-			Factory.SysLog.Reconfigure("RealTime",GetDefaultLogConfig());
-			base.Run(loader);
+            Factory.SysLog.RegisterRealTime("RealTime", GetDefaultLogConfig()); // This creates the config if not exists.
+            Factory.SysLog.RegisterHistorical("Historical", HistoricalStarter.GetDefaultLogConfig()); // This creates the config if not exists.
+            base.Run(loader);
 		}
 	
 		public override void Run(ModelInterface model)
@@ -50,7 +51,7 @@ namespace TickZoom.Starters
 			base.Run(model);
 		}
 		
-		private string GetDefaultLogConfig() {
+		public static string GetDefaultLogConfig() {
 			return @"<?xml version=""1.0"" encoding=""utf-8"" ?>
 <configuration>
  <log4net>

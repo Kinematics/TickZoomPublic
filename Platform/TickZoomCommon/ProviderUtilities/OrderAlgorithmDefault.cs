@@ -35,11 +35,19 @@ using TickZoom.Api;
 
 namespace TickZoom.Common
 {
-    public class OrderAlgorithmDefault : OrderAlgorithm {
+    public class OrderAlgorithmDefault : OrderAlgorithm, LogAware {
 		private static readonly Log staticLog = Factory.SysLog.GetLogger(typeof(OrderAlgorithmDefault));
-		private readonly bool debug = staticLog.IsDebugEnabled;
-		private readonly bool trace = staticLog.IsTraceEnabled;
-		private Log log;
+        private volatile bool trace = staticLog.IsTraceEnabled;
+        private volatile bool debug = staticLog.IsDebugEnabled;
+        public void RefreshLogLevel()
+        {
+            if (log != null)
+            {
+                debug = log.IsDebugEnabled;
+                trace = log.IsTraceEnabled;
+            }
+        }
+        private Log log;
 		private SymbolInfo symbol;
 		private PhysicalOrderHandler physicalOrderHandler;
         private ActiveList<CreateOrChangeOrder> originalPhysicals;
@@ -72,6 +80,7 @@ namespace TickZoom.Common
 		
 		public OrderAlgorithmDefault(string name, SymbolInfo symbol, PhysicalOrderHandler brokerOrders, LogicalOrderCache logicalOrderCache, PhysicalOrderCache physicalOrderCache) {
 			this.log = Factory.SysLog.GetLogger(typeof(OrderAlgorithmDefault).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name );
+            log.Register(this);
 			this.symbol = symbol;
 		    this.logicalOrderCache = logicalOrderCache;
 		    this.physicalOrderCache = physicalOrderCache;
@@ -1294,7 +1303,7 @@ namespace TickZoom.Common
 
             if( bufferedLogicalsChanged)
             {
-                log.Debug("Buffered logicals were updated so refreshing original logicals list ...");
+                if( debug) log.Debug("Buffered logicals were updated so refreshing original logicals list ...");
                 using (bufferedLogicalsLocker.Using())
                 {
                     originalLogicals.Clear();

@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using TickZoom;
 using TickZoom.Api;
+using TickZoom.Charting;
 using TickZoom.Common;
 using TickZoom.Examples;
 using TickZoom.Starters;

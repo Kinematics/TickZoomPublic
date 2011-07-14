@@ -29,7 +29,7 @@ using System.Diagnostics;
 
 namespace TickZoom.Api
 {
-	public interface Log 
+    public interface Log 
     {
         [Obsolete("Use Notice method instead. ")]
         void WriteLine(string msg);
@@ -111,5 +111,6 @@ namespace TickZoom.Api
 		void WarnFormat(IFormatProvider provider, string format, params object[] args);
 		void ErrorFormat(IFormatProvider provider, string format, params object[] args);
 		void FatalFormat(IFormatProvider provider, string format, params object[] args);
- 	}
+        void Register(LogAware logAware);
+    }
 }

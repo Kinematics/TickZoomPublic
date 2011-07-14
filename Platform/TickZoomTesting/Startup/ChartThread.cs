@@ -30,6 +30,7 @@ using System.Threading;
 using System.Windows.Forms;
 
 using TickZoom.Api;
+using TickZoom.Charting;
 
 namespace TickZoom.StarterTest
 {

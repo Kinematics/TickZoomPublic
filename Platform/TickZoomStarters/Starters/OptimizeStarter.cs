@@ -60,7 +60,7 @@ namespace TickZoom.Starters
 		public override void Run(ModelLoaderInterface loader)
 		{
             Factory.Parallel.SetMode(parallelMode);
-            Factory.SysLog.Reconfigure("Optimize", HistoricalStarter.GetDefaultLogConfig());
+            Factory.SysLog.RegisterHistorical("Optimize", HistoricalStarter.GetDefaultLogConfig());
 			try {
 				if( loader.OptimizeOutput == null) {
 					Directory.CreateDirectory( Path.GetDirectoryName(FileName));

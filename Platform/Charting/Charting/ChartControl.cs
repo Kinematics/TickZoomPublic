@@ -47,16 +47,21 @@ using Message = System.Windows.Forms.Message;
 
 
 
-namespace TickZoom
+namespace TickZoom.Charting
 {
 	/// Description of UserControl1.
 	/// </summary>
-	public partial class ChartControl : UserControl, TickZoom.Api.Chart
+	public partial class ChartControl : UserControl, TickZoom.Api.Chart, LogAware
 	{
 		private static Log log;
-		private bool debug;
-		private bool trace;
-	    TimeStamp firstTime;
+		private volatile bool debug;
+        private volatile bool trace;
+        public void RefreshLogLevel()
+        {
+            debug = log.IsDebugEnabled;
+            trace = log.IsTraceEnabled;
+        }
+        TimeStamp firstTime;
 		StockPointList stockPointList;
 		List<PointPairList> lineList;
 		List<IndicatorInterface> indicators; 
@@ -90,6 +95,7 @@ namespace TickZoom
 		    indicators = new List<IndicatorInterface>();
 		    try {
 				log = Factory.SysLog.GetLogger(typeof(ChartControl));
+		        log.Register(this);
 				debug = log.IsDebugEnabled;
 				trace = log.IsTraceEnabled;
 				Interval intervalChartDisplay = Factory.Engine.DefineInterval(BarUnit.Day,1);
@@ -722,7 +728,6 @@ namespace TickZoom
 		{
 			if ( dataGraph.MasterPane != null )
 			{
-				GraphPane pane = dataGraph.MasterPane.FindPane( _menuClickPt );
 				AutoZoom( dataGraph.GraphPane);
 			}
 		}
@@ -841,6 +846,10 @@ namespace TickZoom
 					if( !double.IsNaN(yMax)) {
 						yScale.Max = yMax;
 					}
+                    else
+					{
+					    log.Warn("yMax is NAN from lastHigh " + lastHigh + " and symbol.MinimumTick " + symbol.MinimumTick);
+					}
 				} else {
 					// Market is moving, smoothly scroll it.
 					float resetYScale = -1;
@@ -848,7 +857,11 @@ namespace TickZoom
 					if( !double.IsNaN(yMax)) {
 						yScale.Max = yMax;
 					}
-				}
+                    else
+					{
+                        log.Warn("yMax is NAN from MoveByPixels with yScale " + yScale + ", yScale.Max " + yScale.Max + ", resetYScaleSpeed " + resetYScaleSpeed + ", resetYScale " + resetYScale);
+                    }
+                }
 				reset = true;
 			}
 			
@@ -857,14 +870,24 @@ namespace TickZoom
 					var yMin = lastLow - symbol.MinimumTick;
 					if( !double.IsNaN( yMin)) {
 						yScale.Min = yMin;
-					}
-				} else {
+                    }
+                    else
+                    {
+                        log.Warn("yMax is NAN from lastLow " + lastHigh + " and symbol.MinimumTick " + symbol.MinimumTick);
+                    }
+                }
+                else
+                {
 					float resetYScale = 1;
 					double yMin = MoveByPixels(yScale,yScale.Min,resetYScaleSpeed*resetYScale);
 					if( !double.IsNaN(yMin)) {
 						yScale.Min = yMin;
-					}
-				}
+                    }
+                    else
+                    {
+                        log.Warn("yMin is NAN from MoveByPixels with yScale " + yScale + ", yScale.Min " + yScale.Min + ", resetYScaleSpeed " + resetYScaleSpeed + ", resetYScale " + resetYScale);
+                    }
+                }
 				reset = true;
 			}
 			
@@ -878,32 +901,61 @@ namespace TickZoom
 			double xWidth = xScale.Max - xScale.Min;
 			double xUpperLimit = xScale.Max - xWidth/6;
 			double xLowerLimit = xScale.Max - xWidth/3;
+            if( xCurrent < xScale.Min)
+            {
+                log.Error("Last bar was outside the visible area of the chart. Forcing ZoomToLast. xCurrent " + xCurrent + ", xScale.Min " + xScale.Min);
+                if (dataGraph.MasterPane != null)
+                {
+                    AutoZoom(dataGraph.GraphPane);
+                }
+            }
 			if( xCurrent > xUpperLimit) {
 				resetXScale = true;
 			}
-			if( resetXScale && xCurrent > xLowerLimit) {
-				if( xCurrent > xScale.Max ) {
-					AutoZoom(dataGraph.GraphPane);
-					resetXScaleSpeed *= 1.5f;
-					log.Debug("resetXScaleSpeed = " + resetXScaleSpeed);
-				}
-				if( !double.IsNaN(xScale.Min)) {
-					var _min = MoveByPixels(xScale,xScale.Min,resetXScaleSpeed);
-					if( !double.IsNaN(_min)) {
-						xScale.Min = _min;
-					}
-				}
-				if( !double.IsNaN(xScale.Max)) {
-					var _max = MoveByPixels(xScale,xScale.Max,resetXScaleSpeed);
-					if( !double.IsNaN(_max)) {
-						xScale.Max = _max;
-					}
-				}
-				reset = true;
-			} else {
-				resetXScale = false;
-			}
-			return reset;
+            if (resetXScale)
+            {
+                if (xCurrent > xLowerLimit)
+                {
+                    if (xCurrent > xScale.Max)
+                    {
+                        AutoZoom(dataGraph.GraphPane);
+                        resetXScaleSpeed *= 1.5f;
+                        log.Debug("resetXScaleSpeed = " + resetXScaleSpeed);
+                    }
+                    if (!double.IsNaN(xScale.Min))
+                    {
+                        var _min = MoveByPixels(xScale, xScale.Min, resetXScaleSpeed);
+                        if (!double.IsNaN(_min))
+                        {
+                            xScale.Min = _min;
+                        }
+                        else
+                        {
+                            log.Warn("_min is NAN from MoveByPixels with xScale " + xScale + ", xScale.Min " +
+                                     xScale.Min + ", resetXScaleSpeed " + resetXScaleSpeed);
+                        }
+                    }
+                    if (!double.IsNaN(xScale.Max))
+                    {
+                        var _max = MoveByPixels(xScale, xScale.Max, resetXScaleSpeed);
+                        if (!double.IsNaN(_max))
+                        {
+                            xScale.Max = _max;
+                        }
+                        else
+                        {
+                            log.Warn("_max is NAN from MoveByPixels with xScale " + xScale + ", xScale.Max " +
+                                     xScale.Max + ", resetXScaleSpeed " + resetXScaleSpeed);
+                        }
+                    }
+                    reset = true;
+                }
+                else
+                {
+                    resetXScale = false;
+                }
+            }
+		    return reset;
 		}
 		
 		double MoveByPixels( Scale scale, double value, float movePixels) {
@@ -1248,7 +1300,7 @@ namespace TickZoom
 	    private void refreshTick(object sender, EventArgs e)
 		{
 			try {
-                //if (trace) log.Trace("refreshTick()");
+                if (trace) log.Trace("refreshTick()");
                 if (Visible)
                 {
 					System.Windows.Forms.Timer timer = (System.Windows.Forms.Timer) sender;
@@ -1515,5 +1567,6 @@ namespace TickZoom
 		public bool IsDrawn {
 			get { return isDrawn; }
 		}
-	}
+
+    }
 }

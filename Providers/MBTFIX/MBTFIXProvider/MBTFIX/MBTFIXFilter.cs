@@ -32,16 +32,26 @@ using TickZoom.FIX;
 namespace TickZoom.MBTFIX
 {
 
-	public class MBTFIXFilter : FIXFilter {
+	public class MBTFIXFilter : FIXFilter, LogAware {
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(MBTFIXFilter));
 		private static readonly bool info = log.IsDebugEnabled;
-		private static readonly bool debug = log.IsDebugEnabled;
-		private static readonly bool trace = log.IsTraceEnabled;
-		private bool isPositionUpdateComplete = false;
+        private volatile bool debug;
+        private volatile bool trace;
+        public void RefreshLogLevel()
+        {
+            debug = log.IsDebugEnabled;
+            trace = log.IsTraceEnabled;
+        }
+        private bool isPositionUpdateComplete = false;
 		private bool isOrderUpdateComplete = false;
 		private bool isRecovered = false;
 		private string fixSender = typeof(MBTFIXFilter).Name;
 		private Dictionary<long,double> symbolPositionMap = new Dictionary<long,double>();
+
+        public MBTFIXFilter()
+        {
+            log.Register(this);
+        }
 		public void Local(FIXContext context, Message localMessage)
 		{
 			var packetFIX = (MessageFIX4_4) localMessage;

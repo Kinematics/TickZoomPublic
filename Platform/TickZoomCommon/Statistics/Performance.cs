@@ -38,19 +38,28 @@ using TickZoom.Transactions;
 
 namespace TickZoom.Statistics
 {
-	public class Performance : StrategyInterceptor
+	public class Performance : StrategyInterceptor, LogAware
 	{
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(Performance));
-		private readonly bool trace = log.IsTraceEnabled;
-		private readonly bool debug = log.IsDebugEnabled;
-		private static readonly Log barDataLog = Factory.SysLog.GetLogger("BarDataLog");
-		private readonly bool barDataDebug = barDataLog.IsDebugEnabled;
+        private volatile bool debug;
+        private volatile bool trace;
+        public void RefreshLogLevel()
+        {
+            debug = log.IsDebugEnabled;
+            trace = log.IsTraceEnabled;
+		    barDataDebug = barDataLog.IsDebugEnabled;
+		    tradeDebug = tradeLog.IsDebugEnabled;
+		    transactionDebug = transactionLog.IsDebugEnabled;
+		    statsDebug = statsLog.IsDebugEnabled;
+        }
+        private static readonly Log barDataLog = Factory.SysLog.GetLogger("BarDataLog");
+        private volatile bool barDataDebug = barDataLog.IsDebugEnabled;
 		private static readonly Log tradeLog = Factory.SysLog.GetLogger("TradeLog");
-		private readonly bool tradeDebug = tradeLog.IsDebugEnabled;
+        private volatile bool tradeDebug = tradeLog.IsDebugEnabled;
 		private static readonly Log transactionLog = Factory.SysLog.GetLogger("TransactionLog.Performance");
-		private readonly bool transactionDebug = transactionLog.IsDebugEnabled;
+        private volatile bool transactionDebug = transactionLog.IsDebugEnabled;
 		private static readonly Log statsLog = Factory.SysLog.GetLogger("StatsLog");
-		private readonly bool statsDebug = statsLog.IsDebugEnabled;
+        private volatile bool statsDebug = statsLog.IsDebugEnabled;
 		private TransactionPairs comboTrades;
 		private TransactionPairsBinary comboTradesBinary;
 		private bool graphTrades = true;
@@ -63,6 +72,7 @@ namespace TickZoom.Statistics
 		
 		public Performance(Model model)
 		{
+            log.Register(this);
 			this.model = model;
 			equity = new Equity(model,this);
 			position = new PositionCommon(model);

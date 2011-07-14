@@ -34,6 +34,7 @@ using Loaders;
 using NUnit.Framework;
 using TickZoom;
 using TickZoom.Api;
+using TickZoom.Charting;
 using TickZoom.Common;
 using TickZoom.Logging;
 using TickZoom.Starters;

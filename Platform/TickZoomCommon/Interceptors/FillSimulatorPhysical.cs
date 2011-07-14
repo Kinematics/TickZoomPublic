@@ -33,12 +33,20 @@ using TickZoom.Common;
 
 namespace TickZoom.Interceptors
 {
-	public class FillSimulatorPhysical : FillSimulator
+	public class FillSimulatorPhysical : FillSimulator, LogAware
 	{
 		private static readonly Log staticLog = Factory.SysLog.GetLogger(typeof(FillSimulatorPhysical));
-		private readonly bool trace = staticLog.IsTraceEnabled;
-		private readonly bool debug = staticLog.IsDebugEnabled;
-		private static readonly bool notice = staticLog.IsNoticeEnabled;
+		private volatile bool trace = staticLog.IsTraceEnabled;
+        private volatile bool debug = staticLog.IsDebugEnabled;
+        public void RefreshLogLevel()
+        {
+            if( log != null)
+            {
+                debug = log.IsDebugEnabled;
+                trace = log.IsTraceEnabled;
+            }
+        }
+        private static readonly bool notice = staticLog.IsNoticeEnabled;
         private Queue<PhysicalFill> fillQueue = new Queue<PhysicalFill>();
         private Log log;
 
@@ -81,6 +89,7 @@ namespace TickZoom.Interceptors
 			this.tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			this.createSimulatedFills = createSimulatedFills;
 			this.log = Factory.SysLog.GetLogger(typeof(FillSimulatorPhysical).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name);
+            this.log.Register(this);
 		}
 
 		private bool hasCurrentTick = false;

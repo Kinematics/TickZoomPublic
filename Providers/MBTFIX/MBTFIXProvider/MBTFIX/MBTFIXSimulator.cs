@@ -36,15 +36,21 @@ using TickZoom.MBTQuotes;
 
 namespace TickZoom.MBTFIX
 {
-	public class MBTFIXSimulator : FIXSimulatorSupport {
+	public class MBTFIXSimulator : FIXSimulatorSupport, LogAware {
 		private static Log log = Factory.SysLog.GetLogger(typeof(MBTFIXSimulator));
-		private static bool trace = log.IsTraceEnabled;
-		private static bool debug = log.IsDebugEnabled;
-		private ServerState quoteState = ServerState.Startup;
+        private volatile bool debug;
+        private volatile bool trace;
+        public override void RefreshLogLevel()
+        {
+            base.RefreshLogLevel();
+            debug = log.IsDebugEnabled;
+            trace = log.IsTraceEnabled;
+        }
+        private ServerState quoteState = ServerState.Startup;
         private Random random = new Random(1234);
 		
 		public MBTFIXSimulator(string mode) : base( mode, 6489, 6488, new MessageFactoryFix44(), new MessageFactoryMbtQuotes()) {
-		    
+		    log.Register(this);
 		}
 
         protected override void OnConnectFIX(Socket socket)

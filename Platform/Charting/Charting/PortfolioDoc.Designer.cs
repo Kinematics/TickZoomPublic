@@ -25,7 +25,7 @@ using TickZoom;
  */
 #endregion
 
-namespace TickZoom
+namespace TickZoom.Charting
 {
 	partial class PortfolioDoc
 	{
@@ -56,7 +56,7 @@ namespace TickZoom
 		private void InitializeComponent()
 		{
 			this.components = new System.ComponentModel.Container();
-			this.chartControl1 = new TickZoom.ChartControl(execute);
+			this.chartControl1 = new TickZoom.Charting.ChartControl(execute);
 			this.SuspendLayout();
 			// 
 			// chartControl1
@@ -92,6 +92,6 @@ namespace TickZoom
 			this.ResumeLayout(false);
 		}
 		
-		private TickZoom.ChartControl chartControl1;
+		private ChartControl chartControl1;
 	}
 }

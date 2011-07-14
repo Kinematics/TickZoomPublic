@@ -38,13 +38,18 @@ namespace TickZoom.FIX
         Recovered,
     }
 
-    public class FIXSimulatorSupport : FIXSimulator
+    public class FIXSimulatorSupport : FIXSimulator, LogAware
 	{
 		private string localAddress = "0.0.0.0";
 		private static Log log = Factory.SysLog.GetLogger(typeof(FIXSimulatorSupport));
-		private static bool trace = log.IsTraceEnabled;
-		private static bool debug = log.IsDebugEnabled;
-		private SimpleLock symbolHandlersLocker = new SimpleLock();
+        private volatile bool debug;
+        private volatile bool trace;
+        public virtual void RefreshLogLevel()
+        {
+            debug = log.IsDebugEnabled;
+            trace = log.IsTraceEnabled;
+        }
+        private SimpleLock symbolHandlersLocker = new SimpleLock();
 		private FIXTFactory1_1 fixFactory;
 		private long realTimeOffset;
 		private object realTimeOffsetLocker = new object();
@@ -78,6 +83,7 @@ namespace TickZoom.FIX
 
 		public FIXSimulatorSupport(string mode, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
 		{
+		    log.Register(this);
 			isPlayBack = !string.IsNullOrEmpty(mode) && mode == "PlayBack";
 			this._fixMessageFactory = _fixMessageFactory;
 			this._quoteMessageFactory = _quoteMessageFactory;

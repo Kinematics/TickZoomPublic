@@ -32,7 +32,7 @@ using System.Windows.Forms;
 using TickZoom.Api;
 using TickZoom.GUI;
 
-namespace TickZoom
+namespace TickZoom.Charting
 {
 	/// <summary>
 	/// Description of PortfolioDoc.

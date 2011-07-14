@@ -41,12 +41,17 @@ using TickZoom.Presentation.Framework;
 
 namespace TickZoom.Presentation
 {
-    public class StarterConfig : AutoBindable
+    public class StarterConfig : AutoBindable, LogAware
     {
         #region Fields
 
         private readonly BackgroundWorker commandWorker;
         private readonly Log log;
+        public void RefreshLogLevel()
+        {
+            NotifyOfPropertyChange(() => LoggingConfig);
+        }
+
         private object progressLocker = new object();
         private readonly Dictionary<int, Progress> progressChildren = new Dictionary<int, Progress>();
         private readonly ConfigFile projectConfig;
@@ -62,6 +67,7 @@ namespace TickZoom.Presentation
         private bool autoUpdate;
         private Starter starter;
         private bool isInitialized = false;
+
         
 		public bool AutoUpdate {
 			get { return autoUpdate; }
@@ -225,6 +231,7 @@ namespace TickZoom.Presentation
         {
             ConfigurationManager.AppSettings.Set("ProviderAddress", "InProcess");
             log = Factory.SysLog.GetLogger(typeof (StarterConfig));
+            log.Register(this);
             progressChildren = new Dictionary<int, Progress>();
             string storageFolder = Factory.Settings["AppDataFolder"];
             string workspace = Path.Combine(storageFolder, "Workspace");
@@ -450,6 +457,24 @@ namespace TickZoom.Presentation
                     }
                 }
                 return modelLoaderList;
+            }
+        }
+
+        public string LoggingConfig
+        {
+            get { return Factory.SysLog.ActiveConfigName; }
+            set
+            {
+                NotifyOfPropertyChange(() => LoggingConfig);
+                Factory.SysLog.Reconfigure(value);
+            }
+        }
+
+        public List<string> LoggingConfigValues
+        {
+            get
+            {
+                return Factory.SysLog.GetConfigNames();
             }
         }
 
@@ -937,5 +962,6 @@ namespace TickZoom.Presentation
 		}
         
        #endregion Methods
+
     }
 }

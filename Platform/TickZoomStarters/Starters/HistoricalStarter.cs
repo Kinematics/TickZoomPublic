@@ -70,7 +70,7 @@ namespace TickZoom.Starters
 		
 		public override void Run(ModelLoaderInterface loader)
 		{
-			Factory.SysLog.Reconfigure("Historical",GetDefaultLogConfig());
+			Factory.SysLog.RegisterHistorical("Historical",GetDefaultLogConfig());
 			base.Run(loader);
 		}
 		

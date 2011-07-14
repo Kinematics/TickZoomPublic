@@ -25,7 +25,7 @@ using ZedGraph;
  */
 #endregion
 
-namespace TickZoom
+namespace TickZoom.Charting
 {
 	partial class ChartControl
 	{

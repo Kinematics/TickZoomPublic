@@ -37,13 +37,23 @@ using TickZoom.FIX;
 namespace TickZoom.MBTFIX
 {
     [SkipDynamicLoad]
-	public class MBTFIXProvider : FIXProviderSupport, PhysicalOrderHandler
+	public class MBTFIXProvider : FIXProviderSupport, PhysicalOrderHandler, LogAware
 	{
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(MBTFIXProvider));
-		private static readonly bool info = log.IsDebugEnabled;
-		private static readonly bool debug = log.IsDebugEnabled;
-		private static readonly bool trace = log.IsTraceEnabled;
-		private static long nextConnectTime = 0L;
+		private readonly bool info = log.IsDebugEnabled;
+        private volatile bool trace = log.IsTraceEnabled;
+        private volatile bool debug = log.IsDebugEnabled;
+        private bool isBrokerStarted = false;
+        public override void RefreshLogLevel()
+        {
+            base.RefreshLogLevel();
+            if (log != null)
+            {
+                debug = log.IsDebugEnabled;
+                trace = log.IsTraceEnabled;
+            }
+        }
+        private static long nextConnectTime = 0L;
 		private readonly object orderAlgorithmLocker = new object();
         private Dictionary<long,OrderAlgorithm> orderAlgorithms = new Dictionary<long,OrderAlgorithm>();
         long lastLoginTry = long.MinValue;
@@ -60,6 +70,7 @@ namespace TickZoom.MBTFIX
 		
 		public MBTFIXProvider(string name)
 		{
+            log.Register(this);
 			log.Notice("Using config file name: " + name);
 			ProviderName = "MBTFIXProvider";
 			if( name.Contains(".config")) {
@@ -79,14 +90,15 @@ namespace TickZoom.MBTFIX
             if (IsRecovered)
             {
                 log.Error("Logging out -- Sending EndBroker event.");
-                SendEndBroker();
+                TrySendEndBroker();
             }
         }
 
 		public override void OnRetry() {
 		}
 
-		private void SendStartBroker() {
+		private void TrySendStartBroker() {
+            if( isBrokerStarted) return;
 			lock( symbolsRequestedLocker) {
 				foreach( var kvp in symbolsRequested) {
 					SymbolInfo symbol = kvp.Value;
@@ -107,8 +119,10 @@ namespace TickZoom.MBTFIX
             return 0;
         }
 		
-		private void SendEndBroker() {
-			lock( symbolsRequestedLocker) {
+		private void TrySendEndBroker() {
+            if (!isBrokerStarted) return;
+            lock (symbolsRequestedLocker)
+            {
 				foreach(var kvp in symbolsRequested) {
 					SymbolInfo symbol = kvp.Value;
 					long end = Factory.Parallel.TickCount + 2000;
@@ -195,7 +209,7 @@ namespace TickZoom.MBTFIX
             SendMessage(mbtMsg);
             log.Info("Logout message sent: " + mbtMsg);
             log.Info("Logging out -- Sending EndBroker event.");
-            SendEndBroker();
+            TrySendEndBroker();
         }
 		
 		protected override void OnStartRecovery()
@@ -365,7 +379,7 @@ namespace TickZoom.MBTFIX
 			errorOkay = text.Contains("FXORD02") ? true : errorOkay;
 			if( errorOkay) {
 				log.Error( packetFIX.Text + " -- Sending EndBroker event.");
-				SendEndBroker();
+				TrySendEndBroker();
 				log.Info( packetFIX.Text + " Sent EndBroker event due to Message:\n" + packetFIX);
 			} else {
 				string message = "FIX Server reported an error: " + packetFIX.Text + "\n" + packetFIX;
@@ -432,13 +446,28 @@ namespace TickZoom.MBTFIX
 				sb.AppendLine();
 			}
 			log.Info("Recovered Open Orders:\n" + sb);
-			SendStartBroker();
+			TrySendStartBroker();
 			MessageFIXT1_1.IsQuietRecovery = false;
 		}
 
         private void SessionStatus(MessageFIX4_4 packetFIX)
         {
             log.Debug("Found session status for " + packetFIX.TradingSessionId + " or " + packetFIX.TradingSessionSubId + ": " + packetFIX.TradingSessionStatus);
+            if( packetFIX.TradingSessionId == "TSSTATE")
+            {
+                switch( packetFIX.TradingSessionStatus)
+                {
+                    case 2:
+                        TrySendStartBroker();
+                        break;
+                    case 3:
+                        TrySendEndBroker();
+                        break;
+                    default:
+                        log.Warn("Received unknow server session status: " + packetFIX.TradingSessionStatus);
+                        break;
+                }    
+            }
         }
 
         private void PositionUpdate( MessageFIX4_4 packetFIX) {
@@ -472,8 +501,8 @@ namespace TickZoom.MBTFIX
 		private void ExecutionReport( MessageFIX4_4 packetFIX) {
 			if( packetFIX.Text == "END") {
 				isOrderUpdateComplete = RecoverProgress.Completed;
-				if(debug) log.Debug("ExecutionReport Complete.");
-                TryEndRecovery();
+                log.Debug("ExecutionReport Complete.");
+ 			    TryEndRecovery();
 			} else {
 				if( debug && (LogRecovery || !IsRecovery) ) {
 					log.Debug("ExecutionReport: " + packetFIX);
@@ -525,12 +554,19 @@ namespace TickZoom.MBTFIX
 				            CreateOrChangeOrder clientOrder;
                             if( !OrderStore.TryGetOrderById( packetFIX.ClientOrderId, out clientOrder))
                             {
-                                log.Warn("Cancel order for " + packetFIX.ClientOrderId + " was not found. Probably already canceled.");
+                                if (LogRecovery || !IsRecovery)
+                                {
+                                    log.Warn("Cancel order for " + packetFIX.ClientOrderId +
+                                             " was not found. Probably already canceled.");
+                                }
                             }
 				            CreateOrChangeOrder origOrder;
                             if (!OrderStore.TryGetOrderById(packetFIX.OriginalClientOrderId, out origOrder))
                             {
-                                log.Warn("Orig order for " + packetFIX.ClientOrderId + " was not found. Probably already canceled.");
+                                if (LogRecovery || !IsRecovery)
+                                {
+                                    log.Warn("Orig order for " + packetFIX.ClientOrderId + " was not found. Probably already canceled.");
+                                }
                             }
                             if( clientOrder != null && clientOrder.ReplacedBy != null)
                             {
@@ -542,7 +578,7 @@ namespace TickZoom.MBTFIX
                             }
                             else
                             {
-                                if (debug) log.Debug("Cancel confirm message has neither client id nor original client id found order in cache with replaced by property set. Continuing with only original order.\nClient Order: " + clientOrder + "\nOriginal Client Order: " + origOrder);
+                                if (debug) log.Debug("Cancel confirm message has neither client id nor original client id found order in cache with replaced by property set. Continuing with only original order.");
                                 if( clientOrder != null)
                                 {
                                     algorithm.ConfirmCancel(clientOrder, IsRecovered);
@@ -625,6 +661,10 @@ namespace TickZoom.MBTFIX
 					var rejectReason = false;
                     switch( packetFIX.Text)
                     {
+                        case "Order Server Not Available":
+                            rejectReason = true;
+                            TrySendEndBroker();
+                            break;
                         case "No such order":
                             rejectReason = true;
                             removeOriginal = true;
@@ -759,6 +799,11 @@ namespace TickZoom.MBTFIX
 			rejectReason = packetFIX.Text.Contains("Trading temporarily unavailable") ? true : rejectReason;
 			rejectReason = packetFIX.Text.Contains("improper setting") ? true : rejectReason;
 		    rejectReason = packetFIX.Text.Contains("No position to close") ? true : rejectReason;
+            if( packetFIX.Text.Contains("Order Server Not Available"))
+            {
+                rejectReason = true;
+                TrySendEndBroker();
+            }
 			OrderStore.RemoveOrder( packetFIX.ClientOrderId);
 		    if( IsRecovered && !rejectReason ) {
 			    var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
@@ -767,7 +812,7 @@ namespace TickZoom.MBTFIX
 			    log.Warn( message);
 			    log.Error( ignore + handle);
 		    } else if( LogRecovery || IsRecovered) {
-			    log.Info( "RejectOrder(" + packetFIX.Text + ") Removed cancel order: " + packetFIX.ClientOrderId + " and original order: " + packetFIX.OriginalClientOrderId);
+			    log.Info( "RejectOrder(" + packetFIX.Text + ") Removed order: " + packetFIX.ClientOrderId);
 		    }
             if (SyncTicks.Enabled)
             {
@@ -860,7 +905,7 @@ namespace TickZoom.MBTFIX
             }
             catch (ApplicationException)
             {
-                if (!IsRecovery)
+                if (LogRecovery || !IsRecovery)
                 {
                     log.Warn("Order ID# " + clientOrderId + " was not found for update or replace.");
                 }
@@ -889,7 +934,10 @@ namespace TickZoom.MBTFIX
 				}
                 else
                 {
-                    log.Warn("Order ID# " + packetFIX.ClientOrderId + " was not found for replace.");
+                    if( LogRecovery || !IsRecovery)
+                    {
+                        log.Warn("Order ID# " + packetFIX.ClientOrderId + " was not found for replace.");
+                    }
 					return null;
 				}		
 			}
@@ -1239,8 +1287,11 @@ namespace TickZoom.MBTFIX
 			try {
                 createOrChangeOrder = OrderStore.GetOrderById(order.OriginalOrder.BrokerOrder);
 			} catch( ApplicationException ex) {
-				log.Warn("Order probably already canceled. " + ex.Message);
-				if( SyncTicks.Enabled) {
+                if (LogRecovery || !IsRecovery)
+                {
+                    log.Warn("Order probably already canceled. " + ex.Message);
+                }
+			    if( SyncTicks.Enabled) {
 					var tickSync = SyncTicks.GetTickSync(order.Symbol.BinaryIdentifier);
 					tickSync.RemovePhysicalOrder();
 				}
