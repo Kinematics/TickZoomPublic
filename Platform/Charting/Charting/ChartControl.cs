@@ -901,14 +901,6 @@ namespace TickZoom.Charting
 			double xWidth = xScale.Max - xScale.Min;
 			double xUpperLimit = xScale.Max - xWidth/6;
 			double xLowerLimit = xScale.Max - xWidth/3;
-            if( xCurrent < xScale.Min)
-            {
-                log.Error("Last bar was outside the visible area of the chart. Forcing ZoomToLast. xCurrent " + xCurrent + ", xScale.Min " + xScale.Min);
-                if (dataGraph.MasterPane != null)
-                {
-                    AutoZoom(dataGraph.GraphPane);
-                }
-            }
 			if( xCurrent > xUpperLimit) {
 				resetXScale = true;
 			}
@@ -919,8 +911,6 @@ namespace TickZoom.Charting
                     if (xCurrent > xScale.Max)
                     {
                         AutoZoom(dataGraph.GraphPane);
-                        resetXScaleSpeed *= 1.5f;
-                        log.Debug("resetXScaleSpeed = " + resetXScaleSpeed);
                     }
                     if (!double.IsNaN(xScale.Min))
                     {
