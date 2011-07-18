@@ -1,5 +1,6 @@
-using System.Threading;
 using TickZoom.Charting;
+using System.Text;
+using System.Threading;
 using TickZoom.Presentation;
 
 #region Header
@@ -211,17 +212,39 @@ namespace TickZoom.GUI
             UpdateCheckBoxes();
         }
 
+        private StringBuilder guiLog = new StringBuilder();
         private void Echo(string msg)
         {
-        	execute.OnUIThread( () => {
-	        	logOutput.Text += msg + "\r\n";
+        	execute.OnUIThread( () =>
+            {
+                guiLog.AppendLine(msg);
+                int lines = 0;
+                for (int i = 0; i < guiLog[i]; i++)
+                {
+                    if( guiLog[i] == '\n')
+                    {
+                        lines++;
+                    }
+                }
 	            int maxLines = 1000;
-	            var lines = logOutput.Lines;
-	            int skipLines = lines.Length - maxLines;
+	            int skipLines = lines - maxLines;
+                int skipTo = 0;
 	            if( skipLines > 0) {
-	                var newLines = lines.Skip(skipLines);
-	                logOutput.Lines = newLines.ToArray();
-	            }
+                    lines = 0;
+                    for (int i = 0; i < guiLog[i]; i++)
+                    {
+                        if (guiLog[i] == '\n')
+                        {
+                            lines++;
+                            if( lines == skipLines)
+                            {
+                                skipTo = i;
+                            }
+                        }
+                    }
+                }
+                guiLog.Remove(0, skipTo);
+                logOutput.Text = guiLog.ToString();
 	            logOutput.SelectionStart = logOutput.Text.Length;
 	            logOutput.ScrollToCaret();
         	});
@@ -334,13 +357,16 @@ namespace TickZoom.GUI
 
         private void loggingConfig_SelectedIndexChanged(object sender, EventArgs e)
         {
-            var control = (Control) sender;
+            var control = sender as System.Windows.Forms.Control;
             do
             {
                 control = control.FindForm().GetNextControl(control, true);
 
-            } while (!control.CanFocus);
-            control.Focus();
+            } while (control != null && !control.CanFocus);
+            if( control != null)
+            {
+                control.Focus();
+            }
         }
     }
 }

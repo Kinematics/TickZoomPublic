@@ -50,7 +50,7 @@ namespace TickZoom.Common
         public PhysicalOrderStoreDefault(string name)
         {
             storeName = name;
-            writeFileAction = SnapShot;
+            writeFileAction = SnapShotHandler;
             var appData = Factory.Settings["AppDataFolder"];
             dbFolder = Path.Combine(appData, "DataBase");
             Directory.CreateDirectory(dbFolder);
@@ -295,6 +295,18 @@ namespace TickZoom.Common
                 }
             }
             return result;
+        }
+
+        private void SnapShotHandler()
+        {
+            try
+            {
+                SnapShot();
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex.Message, ex);
+            }
         }
 
         private void SnapShot()
