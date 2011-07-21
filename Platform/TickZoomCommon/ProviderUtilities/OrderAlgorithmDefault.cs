@@ -935,7 +935,8 @@ namespace TickZoom.Common
                 return;
             }
             logicalOrderCache.SetActiveOrders(inputLogicals);
-			using( bufferedLogicalsLocker.Using()) {
+            using (bufferedLogicalsLocker.Using())
+            {
 				bufferedLogicals.Clear();
 				bufferedLogicals.AddLast(logicalOrderCache.ActiveOrders);
 			    canceledLogicals.AddLast(logicalOrderCache.ActiveOrders);
@@ -1303,15 +1304,23 @@ namespace TickZoom.Common
 
             if( bufferedLogicalsChanged)
             {
-                if( debug) log.Debug("Buffered logicals were updated so refreshing original logicals list ...");
-                using (bufferedLogicalsLocker.Using())
+                if (CheckForFilledOrders(bufferedLogicals))
                 {
-                    originalLogicals.Clear();
-                    if (bufferedLogicals != null)
-                    {
-                        originalLogicals.AddLast(bufferedLogicals);
-                    }
+                    if (debug) log.Debug("Found already filled orders in position change event. Ignoring until recent fills get posted.");
                     bufferedLogicalsChanged = false;
+                }
+                else
+                {
+                    if (debug) log.Debug("Buffered logicals were updated so refreshing original logicals list ...");
+                    using (bufferedLogicalsLocker.Using())
+                    {
+                        originalLogicals.Clear();
+                        if (bufferedLogicals != null)
+                        {
+                            originalLogicals.AddLast(bufferedLogicals);
+                        }
+                        bufferedLogicalsChanged = false;
+                    }
                 }
             }
 
