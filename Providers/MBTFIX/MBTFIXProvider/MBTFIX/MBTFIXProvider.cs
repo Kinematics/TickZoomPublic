@@ -112,6 +112,7 @@ namespace TickZoom.MBTFIX
 					}
 				}
 			}
+		    isBrokerStarted = true;
 		}
 
         public int ProcessOrders()
@@ -135,6 +136,7 @@ namespace TickZoom.MBTFIX
 					}
 				}
 			}
+		    isBrokerStarted = false;
 		}
 
         private void RequestSessionUpdate()
@@ -464,7 +466,7 @@ namespace TickZoom.MBTFIX
                         TrySendEndBroker();
                         break;
                     default:
-                        log.Warn("Received unknow server session status: " + packetFIX.TradingSessionStatus);
+                        log.Warn("Received unknown server session status: " + packetFIX.TradingSessionStatus);
                         break;
                 }    
             }
