@@ -1487,6 +1487,16 @@ namespace TickZoom.Common
             return false;
         }
 
+        public void ConfirmActive(CreateOrChangeOrder order, bool isRealTime)
+        {
+            if (debug) log.Debug("ConfirmActive(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
+            physicalOrderCache.AddOrder(order);
+            if (isRealTime)
+            {
+                PerformCompareProtected();
+            }
+        }
+
         public void ConfirmCreate(CreateOrChangeOrder order, bool isRealTime)
         {
             if( debug) log.Debug("ConfirmCreate(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);

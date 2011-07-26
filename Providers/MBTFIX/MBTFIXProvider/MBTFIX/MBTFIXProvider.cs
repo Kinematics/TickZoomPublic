@@ -621,8 +621,25 @@ namespace TickZoom.MBTFIX
 						// Ignore 
 						break;
 					case "A": // PendingNew
-						UpdateOrder( packetFIX, OrderState.Active, null);
-						break;
+                        symbol = null;
+                        try
+                        {
+                            symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+                        }
+                        catch (ApplicationException)
+                        {
+                            // symbol unknown.
+                        }
+                        if( symbol != null)
+                        {
+                            order = UpdateOrder(packetFIX, OrderState.Active, null);
+                            if (order != null)
+                            {
+                                var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
+                                algorithm.ConfirmActive(order, IsRecovered);
+                            }
+                        }
+                        break;
 					case "E": // Pending Replace
                         var clientOrderId = packetFIX.ClientOrderId;
                         var orderState = OrderState.Pending;

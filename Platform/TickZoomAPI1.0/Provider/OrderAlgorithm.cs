@@ -31,6 +31,7 @@ namespace TickZoom.Api
 {
     public interface PhysicalOrderConfirm
     {
+        void ConfirmActive(CreateOrChangeOrder order, bool isRealTime);
         void ConfirmCreate(CreateOrChangeOrder order, bool isRealTime);
         void ConfirmCancel(CreateOrChangeOrder order, bool isRealTime);
         void ConfirmChange(CreateOrChangeOrder order, bool isRealTime);
