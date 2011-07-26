@@ -481,7 +481,7 @@ namespace TickZoom.FIX
             {
                 return true;
             }
-            else if( messageFIX.Sequence < remoteSequence)
+            else if( messageFIX.Sequence < remoteSequence && messageFIX.Sequence > 1)
             {
                 if (debug) log.Debug("Already received sequence " + messageFIX.Sequence + ". Expecting " + remoteSequence + " as next sequence. Ignoring. \n" + messageFIX);
                 return true;
