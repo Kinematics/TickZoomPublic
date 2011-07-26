@@ -120,7 +120,11 @@ namespace TickZoom.Charting
 		public void ChartResize(object sender, EventArgs e)
 		{
 			if( debug) log.Debug("ChartResize()");
-		}
+            if (isDynamicUpdate && isAutoScroll)
+            {
+                AutoZoom(dataGraph.GraphPane);
+            }
+        }
 		
 		private delegate void WriteLineDelegate(string text);		
 		
@@ -910,7 +914,7 @@ namespace TickZoom.Charting
                 {
                     if (xCurrent > xScale.Max)
                     {
-                        AutoZoom(dataGraph.GraphPane);
+                        resetXScaleSpeed *= 1.5F;
                     }
                     if (!double.IsNaN(xScale.Min))
                     {
@@ -925,6 +929,10 @@ namespace TickZoom.Charting
                                      xScale.Min + ", resetXScaleSpeed " + resetXScaleSpeed);
                         }
                     }
+                    else
+                    {
+                        log.Warn("xScale.Min is " + xScale.Min);
+                    }
                     if (!double.IsNaN(xScale.Max))
                     {
                         var _max = MoveByPixels(xScale, xScale.Max, resetXScaleSpeed);
@@ -938,6 +946,10 @@ namespace TickZoom.Charting
                                      xScale.Max + ", resetXScaleSpeed " + resetXScaleSpeed);
                         }
                     }
+                    else
+                    {
+                        log.Warn("xScale.Max is " + xScale.Max);
+                    }
                     reset = true;
                 }
                 else
@@ -950,8 +962,9 @@ namespace TickZoom.Charting
 		
 		double MoveByPixels( Scale scale, double value, float movePixels) {
 			float rawPixels = scale.Transform(value);
-			float currPixels = (float) Math.Round(rawPixels);
-			return scale.ReverseTransform(currPixels+movePixels);
+            //float currPixels = (float) Math.Round(rawPixels);););
+			var result = scale.ReverseTransform(rawPixels+movePixels);
+		    return result;
 		}
 		
 		bool SetCommonXScale() {
@@ -1291,7 +1304,7 @@ namespace TickZoom.Charting
 		{
 			try {
                 if (trace) log.Trace("refreshTick()");
-                if (Visible)
+                if (this.FindForm().WindowState != FormWindowState.Minimized)
                 {
 					System.Windows.Forms.Timer timer = (System.Windows.Forms.Timer) sender;
 					if( layoutChange) {
