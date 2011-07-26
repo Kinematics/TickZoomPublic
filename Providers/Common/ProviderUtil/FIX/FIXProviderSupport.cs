@@ -452,7 +452,7 @@ namespace TickZoom.FIX
                 }
                 else
                 {
-                    log.Warn("Sending Time Accuracy Problem -- Resending Message.");
+                    if( debug) log.Debug("Sending Time Accuracy Problem -- Resending Message.");
                     textMessage.Sequence = fixFactory.GetNextSequence();
                     textMessage.SetDuplicate(true);
                     SendMessageInternal( textMessage);

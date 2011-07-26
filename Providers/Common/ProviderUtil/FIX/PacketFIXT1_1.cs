@@ -392,7 +392,7 @@ namespace TickZoom.FIX
                         }
                         catch( Exception ex)
                         {
-                            log.Warn("Sending time accuracy problem: " + sendUtcTime + "  Ignoring by using current time instead.\n" + ToHex());
+                            if( debug) log.Debug("Sending time accuracy problem: " + sendUtcTime + "  Ignoring by using current time instead.");
                             sendUtcTime = TickZoom.Api.TimeStamp.UtcNow.Internal;
                         }
 					}

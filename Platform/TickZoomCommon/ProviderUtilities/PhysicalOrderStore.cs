@@ -23,7 +23,7 @@ namespace TickZoom.Common
         private Dictionary<string, CreateOrChangeOrder> ordersByBrokerId = new Dictionary<string, CreateOrChangeOrder>();
         private Dictionary<long, CreateOrChangeOrder> ordersBySerial = new Dictionary<long, CreateOrChangeOrder>();
         private TaskLock ordersLocker = new TaskLock();
-        private int pendingExpireSeconds = 3;
+        //private int pendingExpireSeconds = 3;
         private string databasePath;
         private FileStream fs;
         private MemoryStream memory = null;
@@ -790,11 +790,11 @@ namespace TickZoom.Common
                     if( order.OrderState == OrderState.Pending)
                     {
                         var elapsed = now - order.LastStateChange;
-                        if( elapsed.TotalSeconds >= pendingExpireSeconds)
-                        {
-                            remove.Add(order);
-                            continue;
-                        }
+                        //if( elapsed.TotalSeconds >= pendingExpireSeconds)
+                        //{
+                        //    remove.Add(order);
+                        //    continue;
+                        //}
                     }
                     if (select(order))
                     {
