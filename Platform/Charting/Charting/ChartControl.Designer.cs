@@ -1,3 +1,4 @@
+using System;
 using ZedGraph;
 #region Copyright
 /*
@@ -117,6 +118,7 @@ namespace TickZoom.Charting
             this.dataGraph.Size = new System.Drawing.Size(772, 404);
             this.dataGraph.TabIndex = 0;
             this.dataGraph.MouseMoveEvent += new ZedGraph.ZedGraphControl.ZedMouseEventHandler(this.DataGraphMouseMoveEvent);
+		    this.dataGraph.MouseHover += new EventHandler(this.DataGraphMouseHoverEvent);
             this.dataGraph.ScrollEvent += new System.Windows.Forms.ScrollEventHandler(this.DataGraphScrollEvent);
             this.dataGraph.ContextMenuBuilder += new ZedGraph.ZedGraphControl.ContextMenuBuilderEventHandler(this.DataGraphContextMenuBuilder);
             // 

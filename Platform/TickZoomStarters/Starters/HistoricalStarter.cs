@@ -112,13 +112,13 @@ namespace TickZoom.Starters
         <level value=""INFO"" />
     </logger>
     <logger name=""TickZoom.FIX"">
-        <level value=""INFO"" />
+        <level value=""DEBUG"" />
     </logger>
     <logger name=""TickZoom.MBTFIX"">
-        <level value=""INFO"" />
+        <level value=""DEBUG"" />
     </logger>
     <logger name=""TickZoom.MBTQuotes"">
-        <level value=""INFO"" />
+        <level value=""DEBUG"" />
     </logger>
     <logger name=""TickZoom.Engine.SymbolReceiver"">
         <level value=""INFO"" />

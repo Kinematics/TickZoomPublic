@@ -224,7 +224,6 @@ namespace TickZoom.MBTFIX
 
         protected override void OnFinishRecovery()
         {
-            RequestSessionUpdate();
         }
 
         public override void OnStartSymbol(SymbolInfo symbol)
@@ -319,6 +318,7 @@ namespace TickZoom.MBTFIX
             }
             if (VerifyLoginAck(message))
             {
+                RequestSessionUpdate();
                 return;
             }
             else

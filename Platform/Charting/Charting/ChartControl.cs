@@ -570,12 +570,14 @@ namespace TickZoom.Charting
 			}
 		}
 
+
+	    private volatile bool tickUpdate = false;
 		public void UpdateTick() {
             if (trace) log.Trace("UpdateTick()");
 			if( !isBusy) {
 				isBusy = true;
 				AddBarPrivate();
-                FormatToolStripText();
+			    tickUpdate = true;
 			}
 		}
 		
@@ -732,6 +734,7 @@ namespace TickZoom.Charting
 		{
 			if ( dataGraph.MasterPane != null )
 			{
+			    isAutoScroll = true; // Turn on auto scroll when zooming to last.
 				AutoZoom( dataGraph.GraphPane);
 			}
 		}
@@ -1192,13 +1195,23 @@ namespace TickZoom.Charting
 			try { 
 				// Save the mouse location
 				mousePt = new PointF( e.X, e.Y );
-                FormatToolStripText();
+			    tickUpdate = true;
 			} catch( Exception ex) {
 				log.Notice(ex.ToString());
 			}
 		   // Return false to indicate we have not processed the MouseMoveEvent
 		   // ZedGraphControl should still go ahead and handle it
 		   return false;
+		}
+
+        private void DataGraphMouseHoverEvent(object sender, EventArgs ea)
+        {
+            //try { 
+            //    // Save the mouse location
+            //    FormatToolStripText();
+            //} catch( Exception ex) {
+            //    log.Notice(ex.ToString());
+            //}
 		}
 
 	    private TaskLock formatToolStripLocker = new TaskLock();
@@ -1270,7 +1283,7 @@ namespace TickZoom.Charting
                 toolStripString.Append(", ");
                 toolStripString.Append(intervalChartBar);
                 var text = toolStripString.ToString();
-                execute.OnUIThread(() => toolStripStatusXY.Text = text);
+                execute.OnUIThread(() => toolStripStatusXY.Text = text );
 
                 toolStripString.Length = 0;
                 var count = 0;
@@ -1296,7 +1309,11 @@ namespace TickZoom.Charting
                     toolStripString.Insert(0, "Indicators: ");
                 }
                 var text2 = toolStripString.ToString();
-                execute.OnUIThread(() => indicatorValues.Text = text2);
+                execute.OnUIThread(() =>
+                                       {
+                                           indicatorValues.Text = text2;
+                                           this.Refresh();
+                                       });
             }
         }
 
@@ -1306,6 +1323,11 @@ namespace TickZoom.Charting
                 if (trace) log.Trace("refreshTick()");
                 if (this.FindForm().WindowState != FormWindowState.Minimized)
                 {
+                    if( tickUpdate)
+                    {
+                        tickUpdate = false;
+                        FormatToolStripText();
+                    }
 					System.Windows.Forms.Timer timer = (System.Windows.Forms.Timer) sender;
 					if( layoutChange) {
 						setLayout();
@@ -1471,8 +1493,12 @@ namespace TickZoom.Charting
 		}
 		
 		void ToggleAutoScroll(object sender, EventArgs e) {
-			isAutoScroll = !isAutoScroll;	
-		}
+			isAutoScroll = !isAutoScroll;
+            if (isAutoScroll && isDynamicUpdate)
+            {
+                AutoZoom(dataGraph.GraphPane);
+            }
+        }
 			
 		void ToggleCompactMode(object sender, EventArgs e) {
 			isCompactMode = !isCompactMode;	
