@@ -37,6 +37,7 @@ namespace TickZoom.Common
 {
     public struct PhysicalOrderBinary
     {
+        public int sequence;
     	public OrderAction action;
         public OrderState orderState;
         public TimeStamp lastStateChange;
@@ -94,6 +95,12 @@ namespace TickZoom.Common
         {
             
         }
+
+		public CreateOrChangeOrderDefault(OrderAction orderAction, SymbolInfo symbol, LogicalOrder logical, OrderSide side, int size, double price)
+            : this(OrderState.Active,symbol,logical,side,size,price)
+		{
+		    binary.action = orderAction;
+		}
 		
 		public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, LogicalOrder logical, OrderSide side, int size, double price)
 		{
@@ -301,5 +308,11 @@ namespace TickZoom.Common
             get { return binary.originalOrder; }
             set { binary.originalOrder = value; }
 	    }
-	}
+
+        public int Sequence
+        {
+            get { return binary.sequence; }
+            set { binary.sequence = value; }
+        }
+    }
 }

@@ -1199,44 +1199,51 @@ namespace TickZoom.MBTFIX
 		{
 			createOrChangeOrder.OrderState = OrderState.Pending;
 			if( debug) log.Debug( "OnCreateBrokerOrder " + createOrChangeOrder);
-			OnCreateOrChangeBrokerOrder(createOrChangeOrder,null, false);
+            if( createOrChangeOrder.Action != OrderAction.Create)
+            {
+                throw new InvalidOperationException("Expected action Create but was " + createOrChangeOrder.Action);
+            }
+			OnCreateOrChangeBrokerOrder(createOrChangeOrder, false);
 		}
 	        
-		private void OnCreateOrChangeBrokerOrder(CreateOrChangeOrder createOrChangeOrder, object origBrokerOrder, bool isChange)
+		private void OnCreateOrChangeBrokerOrder(CreateOrChangeOrder order, bool resend)
 		{
-			var fixMsg = (FIXMessage4_4) FixFactory.Create();
+            var fixMsg = (FIXMessage4_4)(resend ? FixFactory.Create(order.Sequence) : FixFactory.Create());
+            order.Sequence = fixMsg.Sequence;
             OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
 			
-			if( debug) log.Debug( "Adding Order to open order list: " + createOrChangeOrder);
-			if( isChange) {
-				fixMsg.SetClientOrderId((string)createOrChangeOrder.BrokerOrder);
-				fixMsg.SetOriginalClientOrderId((string)origBrokerOrder);
-				var origOrder = OrderStore.GetOrderById((string) origBrokerOrder);
+			if( debug) log.Debug( "Adding Order to open order list: " + order);
+			if( order.Action == OrderAction.Change) {
+                var origBrokerOrder = order.OriginalOrder.BrokerOrder;
+                fixMsg.SetClientOrderId(order.BrokerOrder);
+				fixMsg.SetOriginalClientOrderId(origBrokerOrder);
+				var origOrder = OrderStore.GetOrderById(origBrokerOrder);
 				if( origOrder != null) {
-					origOrder.ReplacedBy = createOrChangeOrder;
-					if( debug) log.Debug("Setting replace property of " + origBrokerOrder + " to " + createOrChangeOrder.BrokerOrder);
+					origOrder.ReplacedBy = order;
+					if( debug) log.Debug("Setting replace property of " + origBrokerOrder + " to " + order.BrokerOrder);
 				}
 			} else {
-				fixMsg.SetClientOrderId((string)createOrChangeOrder.BrokerOrder);
+				fixMsg.SetClientOrderId(order.BrokerOrder);
 			}
 			fixMsg.SetAccount(AccountNumber);
-			if( isChange) {
+            if (order.Action == OrderAction.Change)
+            {
 				fixMsg.AddHeader("G");
 			} else {
 				fixMsg.AddHeader("D");
-				if( createOrChangeOrder.Symbol.Destination.ToLower() == "default") {
+				if( order.Symbol.Destination.ToLower() == "default") {
 					fixMsg.SetDestination("MBTX");
 				} else {
-					fixMsg.SetDestination(createOrChangeOrder.Symbol.Destination);
+					fixMsg.SetDestination(order.Symbol.Destination);
 				}
 			}
 			fixMsg.SetHandlingInstructions(1);
-			fixMsg.SetSymbol(createOrChangeOrder.Symbol.Symbol);
-			fixMsg.SetSide( GetOrderSide(createOrChangeOrder.Side));
-			switch( createOrChangeOrder.Type) {
+			fixMsg.SetSymbol(order.Symbol.Symbol);
+			fixMsg.SetSide( GetOrderSide(order.Side));
+			switch( order.Type) {
 				case OrderType.BuyLimit:
 					fixMsg.SetOrderType(2);
-					fixMsg.SetPrice(createOrChangeOrder.Price);
+					fixMsg.SetPrice(order.Price);
 					fixMsg.SetTimeInForce(1);
 					break;
 				case OrderType.BuyMarket:
@@ -1245,13 +1252,13 @@ namespace TickZoom.MBTFIX
 					break;
 				case OrderType.BuyStop:
 					fixMsg.SetOrderType(3);
-					fixMsg.SetPrice(createOrChangeOrder.Price);
-					fixMsg.SetStopPrice(createOrChangeOrder.Price);
+					fixMsg.SetPrice(order.Price);
+					fixMsg.SetStopPrice(order.Price);
 					fixMsg.SetTimeInForce(1);
 					break;
 				case OrderType.SellLimit:
 					fixMsg.SetOrderType(2);
-					fixMsg.SetPrice(createOrChangeOrder.Price);
+					fixMsg.SetPrice(order.Price);
 					fixMsg.SetTimeInForce(1);
 					break;
 				case OrderType.SellMarket:
@@ -1260,17 +1267,18 @@ namespace TickZoom.MBTFIX
 					break;
 				case OrderType.SellStop:
 					fixMsg.SetOrderType(3);
-					fixMsg.SetPrice(createOrChangeOrder.Price);
-					fixMsg.SetStopPrice(createOrChangeOrder.Price);
+					fixMsg.SetPrice(order.Price);
+					fixMsg.SetStopPrice(order.Price);
 					fixMsg.SetTimeInForce(1);
 					break;
 			}
 			fixMsg.SetLocateRequired("N");
-			fixMsg.SetTransactTime(createOrChangeOrder.UtcCreateTime);
-			fixMsg.SetOrderQuantity((int)createOrChangeOrder.Size);
+			fixMsg.SetTransactTime(order.UtcCreateTime);
+			fixMsg.SetOrderQuantity((int)order.Size);
 			fixMsg.SetOrderCapacity("A");
 			fixMsg.SetUserName();
-			if( isChange) {
+            if (order.Action == OrderAction.Change)
+            {
 				if( debug) log.Debug("Change order: \n" + fixMsg);
 			} else {
 				if( debug) log.Debug("Create new order: \n" + fixMsg);
@@ -1318,24 +1326,39 @@ namespace TickZoom.MBTFIX
 			}
 			createOrChangeOrder.OrderState = OrderState.Pending;
 		    createOrChangeOrder.ReplacedBy = order;
+            if( !object.ReferenceEquals(order.OriginalOrder,createOrChangeOrder))
+            {
+                throw new ApplicationException("Different objects!");
+            }
+
+            SendCancelOrder( order, false);
 			
-			var fixMsg = (FIXMessage4_4) FixFactory.Create();
-		    string newClientOrderId = order.BrokerOrder;
-			fixMsg.SetOriginalClientOrderId((string)order.OriginalOrder.BrokerOrder);
-			fixMsg.SetClientOrderId(newClientOrderId);
-			fixMsg.SetAccount(AccountNumber);
-			fixMsg.SetSide( GetOrderSide(createOrChangeOrder.Side));
-			fixMsg.AddHeader("F");
-			fixMsg.SetSymbol(createOrChangeOrder.Symbol.Symbol);
-			fixMsg.SetTransactTime(TimeStamp.UtcNow);
-			SendMessage(fixMsg);
 		}
+
+        private void SendCancelOrder( CreateOrChangeOrder order, bool resend)
+        {
+            var fixMsg = (FIXMessage4_4) (resend ? FixFactory.Create(order.Sequence) : FixFactory.Create());
+            order.Sequence = fixMsg.Sequence;
+            string newClientOrderId = order.BrokerOrder;
+            fixMsg.SetOriginalClientOrderId((string)order.OriginalOrder.BrokerOrder);
+            fixMsg.SetClientOrderId(newClientOrderId);
+            fixMsg.SetAccount(AccountNumber);
+            fixMsg.SetSide(GetOrderSide(order.OriginalOrder.Side));
+            fixMsg.AddHeader("F");
+            fixMsg.SetSymbol(order.Symbol.Symbol);
+            fixMsg.SetTransactTime(TimeStamp.UtcNow);
+            SendMessage(fixMsg);
+        }
 		
 		public void OnChangeBrokerOrder(CreateOrChangeOrder createOrChangeOrder)
 		{
 			createOrChangeOrder.OrderState = OrderState.Pending;
 			if( debug) log.Debug( "OnChangeBrokerOrder( " + createOrChangeOrder + ")");
-			OnCreateOrChangeBrokerOrder( createOrChangeOrder, createOrChangeOrder.OriginalOrder.BrokerOrder, true);
+            if (createOrChangeOrder.Action != OrderAction.Change)
+            {
+                throw new InvalidOperationException("Expected action Change but was " + createOrChangeOrder.Action);
+            }
+            OnCreateOrChangeBrokerOrder(createOrChangeOrder, false);
 		}
 
 	    public bool HasBrokerOrder(CreateOrChangeOrder order)
