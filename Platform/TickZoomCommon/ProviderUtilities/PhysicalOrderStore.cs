@@ -20,6 +20,7 @@ namespace TickZoom.Common
         private static readonly bool info = log.IsDebugEnabled;
         private static readonly bool debug = log.IsDebugEnabled;
         private static readonly bool trace = log.IsTraceEnabled;
+        private Dictionary<int, CreateOrChangeOrder> ordersBySequence = new Dictionary<int, CreateOrChangeOrder>();
         private Dictionary<string, CreateOrChangeOrder> ordersByBrokerId = new Dictionary<string, CreateOrChangeOrder>();
         private Dictionary<long, CreateOrChangeOrder> ordersBySerial = new Dictionary<long, CreateOrChangeOrder>();
         private TaskLock ordersLocker = new TaskLock();
@@ -407,6 +408,7 @@ namespace TickZoom.Common
                     }
                     writer.Write((int)order.Type);
                     writer.Write(order.UtcCreateTime.Internal);
+                    writer.Write(order.Sequence);
                 }
 
                 writer.Write(ordersBySerial.Count);
@@ -547,9 +549,11 @@ namespace TickZoom.Common
                     if (string.IsNullOrEmpty(tag)) tag = null;
                     var type = (OrderType)reader.ReadInt32();
                     var utcCreateTime= new TimeStamp(reader.ReadInt64());
+                    var sequence = reader.ReadInt32();
                     var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
                     var order = Factory.Utility.PhysicalOrder(action, orderState, symbolInfo, side, type, price, size,
                                                               logicalOrderId, logicalSerialNumber, brokerOrder, tag, utcCreateTime);
+                    order.Sequence = sequence;
                     uniqueIds.Add(id, order);
                     if (replaceId != 0)
                     {
@@ -578,11 +582,13 @@ namespace TickZoom.Common
                 using (ordersLocker.Using())
                 {
                     ordersByBrokerId.Clear();
+                    ordersBySequence.Clear();
                     ordersBySerial.Clear();
                     foreach (var kvp in uniqueIds)
                     {
                         var order = kvp.Value;
                         ordersByBrokerId[order.BrokerOrder] = order;
+                        ordersBySequence[order.Sequence] = order;
                         if( order.Action == OrderAction.Cancel && order.OriginalOrder == null)
                         {
                             throw new ApplicationException("CancelOrder w/o any original order setting: " + order);
@@ -613,6 +619,7 @@ namespace TickZoom.Common
             using( ordersLocker.Using())
             {
                 ordersByBrokerId.Clear();
+                ordersBySequence.Clear();
                 ordersBySerial.Clear();
             }
         }
@@ -627,6 +634,19 @@ namespace TickZoom.Common
             using (ordersLocker.Using())
             {
                 return ordersByBrokerId.TryGetValue((string) brokerOrder, out order);
+            }
+        }
+
+        public bool TryGetOrderBySequence(int sequence, out CreateOrChangeOrder order)
+        {
+            if (sequence == 0)
+            {
+                order = null;
+                return false;
+            }
+            using (ordersLocker.Using())
+            {
+                return ordersBySequence.TryGetValue(sequence, out order);
             }
         }
 
@@ -731,19 +751,23 @@ namespace TickZoom.Common
                 var clientId = current.Value;
                 if (clientId.OriginalOrder != null && order.OriginalOrder.BrokerOrder == clientId.OriginalOrder.BrokerOrder)
                 {
-                    if (debug) log.Debug("Cancel or Changed ignored because pervious order order working for: " + order);
+                    if (debug) log.Debug("Cancel or Changed ignored because previous order order working for: " + order);
                     return true;
                 }
             }
             return false;
         }
 
-        public void AddOrder(CreateOrChangeOrder order)
+        public void SetOrder(CreateOrChangeOrder order)
         {
             using (ordersLocker.Using())
             {
                 if (trace) log.Trace("Assigning order " + order.BrokerOrder + " with " + order.LogicalSerialNumber);
                 ordersByBrokerId[order.BrokerOrder] = order;
+                if( order.Sequence != 0)
+                {
+                    ordersBySequence[order.Sequence] = order;
+                }
                 if( order.LogicalSerialNumber != 0)
                 {
                     ordersBySerial[order.LogicalSerialNumber] = order;
@@ -787,26 +811,12 @@ namespace TickZoom.Common
                 foreach (var kvp in ordersByBrokerId)
                 {
                     var order = kvp.Value;
-                    if( order.OrderState == OrderState.Pending)
-                    {
-                        var elapsed = now - order.LastStateChange;
-                        //if( elapsed.TotalSeconds >= pendingExpireSeconds)
-                        //{
-                        //    remove.Add(order);
-                        //    continue;
-                        //}
-                    }
                     if (select(order))
                     {
                         list.Add(order);
                     }
                 }
             }
-            //foreach (var order in remove)
-            //{
-            //    log.Warn("Removing pending order due to " + pendingExpireSeconds + " second expiration: " + order);
-            //    RemoveOrder(order.BrokerOrder);
-            //}
             return list;
         }
 

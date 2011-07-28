@@ -32,7 +32,7 @@ namespace Test
                 var clientId = "TestString";
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit,
                                                           124.34, 1234, 14, 100000334, clientId, null, TimeStamp.UtcNow);
-                store.AddOrder(order);
+                store.SetOrder(order);
                 store.SetSequences(1,1);
                 var result = store.GetOrderById(clientId);
                 Assert.AreEqual(order.LogicalSerialNumber, result.LogicalSerialNumber);
@@ -50,7 +50,7 @@ namespace Test
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
                                                           OrderType.BuyLimit,
                                                           124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
-                store.AddOrder(order);
+                store.SetOrder(order);
                 store.SetSequences(1, 1);
                 var result = store.GetOrderBySerial(logicalSerial);
                 Assert.AreEqual(order.BrokerOrder, result.BrokerOrder);
@@ -68,10 +68,10 @@ namespace Test
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
                                                           OrderType.BuyLimit,
                                                           124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
-                store.AddOrder(order);
+                store.SetOrder(order);
                 order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit,
                                                       124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
-                store.AddOrder(order);
+                store.SetOrder(order);
                 var result = store.GetOrderBySerial(logicalSerial);
                 Assert.AreEqual(order.BrokerOrder, result.BrokerOrder);
             }
@@ -101,11 +101,11 @@ namespace Test
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
                                                           OrderType.BuyLimit,
                                                           124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
-                store.AddOrder(order);
+                store.SetOrder(order);
                 clientId = "TestString2";
                 order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit,
                                                       124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
-                store.AddOrder(order);
+                store.SetOrder(order);
                 var result = store.GetOrderBySerial(logicalSerial);
                 Assert.AreEqual(clientId, result.BrokerOrder);
             }
@@ -122,10 +122,10 @@ namespace Test
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
                                                           OrderType.BuyLimit,
                                                           124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
-                store.AddOrder(order);
+                store.SetOrder(order);
                 order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit,
                                                       124.34, 1234, 14, logicalSerial + 1, clientId, null, TimeStamp.UtcNow);
-                store.AddOrder(order);
+                store.SetOrder(order);
                 var list = store.GetOrders((o) => o.Symbol.Symbol == "EUR/USD");
                 Assert.AreEqual(1, list.Count);
                 Assert.AreEqual(order.BrokerOrder, list[0].BrokerOrder);
@@ -181,12 +181,12 @@ namespace Test
 
             using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
-                store.AddOrder(order1);
+                store.SetOrder(order1);
                 store.ForceSnapShot();
                 store.WaitForSnapshot();
 
                 // Replace order in store to make new snapshot.
-                store.AddOrder(order2);
+                store.SetOrder(order2);
                 store.ForceSnapShot();
                 store.WaitForSnapshot();
             }
@@ -261,12 +261,12 @@ namespace Test
             using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 store.SnapshotRolloverSize = 1000;
-                store.AddOrder(order1);
+                store.SetOrder(order1);
                 store.ForceSnapShot();
                 store.WaitForSnapshot();
 
                 // Replace order in store to make new snapshot.
-                store.AddOrder(order2);
+                store.SetOrder(order2);
                 store.ForceSnapShot();
                 store.WaitForSnapshot();
 

@@ -188,6 +188,11 @@ namespace TickZoom.Common
                 sb.Append(" ");
                 sb.Append(binary.tag);
             }
+            if (binary.sequence != 0)
+            {
+                sb.Append(" sequence: ");
+                sb.Append(binary.sequence);
+            }
             return sb.ToString();
         }
 

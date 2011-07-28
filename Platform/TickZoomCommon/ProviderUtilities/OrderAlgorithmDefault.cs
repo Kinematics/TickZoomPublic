@@ -170,7 +170,7 @@ namespace TickZoom.Common
                 else
                 {
                     if (debug) log.Debug("Cancel Broker Order: " + physical);
-                    physicalOrderCache.AddOrder(cancelOrder);
+                    physicalOrderCache.SetOrder(cancelOrder);
                     sentPhysicalOrders++;
                     TryAddPhysicalOrder(cancelOrder);
                     physicalOrderHandler.OnCancelBrokerOrder(cancelOrder);
@@ -192,7 +192,7 @@ namespace TickZoom.Common
                 }
                 if (debug) log.Debug("Change Broker Order: " + createOrChange);
 				sentPhysicalOrders++;
-                physicalOrderCache.AddOrder(createOrChange);
+                physicalOrderCache.SetOrder(createOrChange);
 				TryAddPhysicalOrder(createOrChange);
                 physicalOrderHandler.OnChangeBrokerOrder(createOrChange);
 			}
@@ -214,7 +214,7 @@ namespace TickZoom.Common
                 if( debug) log.Debug("Ignoring broker order as physical order cache has a create order already.");
                 return;
             }
-            physicalOrderCache.AddOrder(physical);
+            physicalOrderCache.SetOrder(physical);
 
             sentPhysicalOrders++;
             TryAddPhysicalOrder(physical);
@@ -1465,7 +1465,7 @@ namespace TickZoom.Common
         public void ConfirmChange(CreateOrChangeOrder order, bool isRealTime)
         {
             if (debug) log.Debug("ConfirmChange(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
-            physicalOrderCache.AddOrder(order);
+            physicalOrderCache.SetOrder(order);
             if( order.OriginalOrder != null)
             {
                 physicalOrderCache.RemoveOrder(order.OriginalOrder.BrokerOrder);
@@ -1490,7 +1490,7 @@ namespace TickZoom.Common
         public void ConfirmActive(CreateOrChangeOrder order, bool isRealTime)
         {
             if (debug) log.Debug("ConfirmActive(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
-            physicalOrderCache.AddOrder(order);
+            physicalOrderCache.SetOrder(order);
             if (isRealTime)
             {
                 PerformCompareProtected();
@@ -1500,7 +1500,7 @@ namespace TickZoom.Common
         public void ConfirmCreate(CreateOrChangeOrder order, bool isRealTime)
         {
             if( debug) log.Debug("ConfirmCreate(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
-            physicalOrderCache.AddOrder(order);
+            physicalOrderCache.SetOrder(order);
             if (SyncTicks.Enabled)
             {
                 tickSync.SetReprocessPhysicalOrders();

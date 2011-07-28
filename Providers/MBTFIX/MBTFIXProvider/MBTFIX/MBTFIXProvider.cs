@@ -1030,7 +1030,7 @@ namespace TickZoom.MBTFIX
 					if( debug) log.Debug("Order completely filled or canceled. Id: " + packetFIX.ClientOrderId + ".  Executed: " + packetFIX.CumulativeQuantity);
 				}
 			}
-            OrderStore.AddOrder(order);
+            OrderStore.SetOrder(order);
             OrderStore.SetSequences(RemoteSequence,FixFactory.LastSequence);
 			if( trace) {
 				log.Trace("Updated order list:");
@@ -1210,6 +1210,7 @@ namespace TickZoom.MBTFIX
 		{
             var fixMsg = (FIXMessage4_4)(resend ? FixFactory.Create(order.Sequence) : FixFactory.Create());
             order.Sequence = fixMsg.Sequence;
+            OrderStore.SetOrder(order);
             OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
 			
 			if( debug) log.Debug( "Adding Order to open order list: " + order);
@@ -1339,6 +1340,7 @@ namespace TickZoom.MBTFIX
         {
             var fixMsg = (FIXMessage4_4) (resend ? FixFactory.Create(order.Sequence) : FixFactory.Create());
             order.Sequence = fixMsg.Sequence;
+            OrderStore.SetOrder(order);
             string newClientOrderId = order.BrokerOrder;
             fixMsg.SetOriginalClientOrderId((string)order.OriginalOrder.BrokerOrder);
             fixMsg.SetClientOrderId(newClientOrderId);

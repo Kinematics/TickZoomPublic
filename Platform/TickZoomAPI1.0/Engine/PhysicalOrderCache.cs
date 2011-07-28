@@ -5,7 +5,7 @@ namespace TickZoom.Api
 {
     public interface PhysicalOrderCache : IDisposable
     {
-        void AddOrder(CreateOrChangeOrder order);
+        void SetOrder(CreateOrChangeOrder order);
         CreateOrChangeOrder RemoveOrder(string clientOrderId);
         Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol);
         bool HasCancelOrder(PhysicalOrder order);
@@ -26,6 +26,7 @@ namespace TickZoom.Api
         bool Recover();
         void Clear();
         bool TryGetOrderById(string brokerOrder, out CreateOrChangeOrder order);
+        bool TryGetOrderBySequence(int sequence, out CreateOrChangeOrder order);
         CreateOrChangeOrder GetOrderById(string brokerOrder);
         CreateOrChangeOrder RemoveOrder(string clientOrderId);
         bool TryGetOrderBySerial(long logicalSerialNumber, out CreateOrChangeOrder order);

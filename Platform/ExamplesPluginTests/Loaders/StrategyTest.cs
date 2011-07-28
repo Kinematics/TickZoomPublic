@@ -1167,14 +1167,29 @@ namespace Loaders
 			}
    		}
 			
-		public IEnumerable<string> GetModelNames() {
-   			var starter = SetupStarter(AutoTestMode.Design);
-			var loaderInstance = GetLoaderInstance();
-			loaderInstance.OnInitialize(starter.ProjectProperties);
-			loaderInstance.OnLoad(starter.ProjectProperties);
-    		foreach( var model in GetAllModels(loaderInstance.TopModel)) {
-    			yield return model.Name;
-    		}
+		public IEnumerable<string> GetModelNames()
+		{
+		    ModelLoaderInterface loaderInstance = null;
+		    var result = false;
+            try
+            {
+                var starter = SetupStarter(AutoTestMode.Design);
+                loaderInstance = GetLoaderInstance();
+                loaderInstance.OnInitialize(starter.ProjectProperties);
+                loaderInstance.OnLoad(starter.ProjectProperties);
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex.Message, ex);
+            }
+            if( result)
+            {
+                foreach (var model in GetAllModels(loaderInstance.TopModel))
+                {
+                    yield return model.Name;
+                }
+            }
 		}
 
    		public IEnumerable<SymbolInfo> GetSymbols() {

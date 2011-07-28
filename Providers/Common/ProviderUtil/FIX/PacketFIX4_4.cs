@@ -100,6 +100,11 @@ namespace TickZoom.FIX
             leavesQuantity = 0;
             longQuantity = 0;
             shortQuantity = 0;
+	        subscriptionRequestType = 0;
+    	    tradingSessionRequestId = null;
+	        tradingSessionId = null;
+	        tradingSessionStatus = 0;
+	        tradingSessionSubId = null;
         }
 
 		protected override bool HandleKey(int key)
