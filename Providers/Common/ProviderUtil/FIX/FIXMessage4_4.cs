@@ -40,7 +40,13 @@ namespace TickZoom.FIX
 			message.Sequence = GetNextSequence();
 			return message;
 		}
-	}
+        public override FIXTMessage1_1 Create(int sequence)
+        {
+            var message = new FIXMessage4_4(Sender, Destination);
+            message.Sequence = sequence;
+            return message;
+        }
+    }
 	public class FIXMessage4_4 : FIXTMessage1_1 {
 		internal FIXMessage4_4(string sender,string destination) : base("FIX.4.4",sender,destination) {
 		}

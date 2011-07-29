@@ -1164,7 +1164,6 @@ namespace TickZoom.MBTFIX
             {
                 if( !algorithm.IsPositionSynced)
                 {
-                    OrderStore.ClearPendingOrders(symbol);
                     algorithm.TrySyncPosition(strategyPositions);
                 }
 
@@ -1284,6 +1283,10 @@ namespace TickZoom.MBTFIX
 			} else {
 				if( debug) log.Debug("Create new order: \n" + fixMsg);
 			}
+            if( resend)
+            {
+                fixMsg.SetDuplicate(true);
+            }
 			SendMessage( fixMsg);
 		}
 
@@ -1306,7 +1309,18 @@ namespace TickZoom.MBTFIX
 		private long GetUniqueOrderId() {
 			return TimeStamp.UtcNow.Internal;
 		}
-		
+
+        protected override void ResendOrder(CreateOrChangeOrder order)
+        {
+            if( order.Action == OrderAction.Cancel)
+            {
+                SendCancelOrder( order, true);
+            } else
+            {
+                OnCreateOrChangeBrokerOrder(order, true);
+            }
+        }
+
 		public void OnCancelBrokerOrder(CreateOrChangeOrder order)
 		{
 			if( debug) log.Debug( "OnCancelBrokerOrder " + order);
@@ -1349,6 +1363,10 @@ namespace TickZoom.MBTFIX
             fixMsg.AddHeader("F");
             fixMsg.SetSymbol(order.Symbol.Symbol);
             fixMsg.SetTransactTime(TimeStamp.UtcNow);
+            if (resend)
+            {
+                fixMsg.SetDuplicate(true);
+            }
             SendMessage(fixMsg);
         }
 		

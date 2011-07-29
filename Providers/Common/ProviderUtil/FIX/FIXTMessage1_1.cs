@@ -162,5 +162,10 @@ namespace TickZoom.FIX
 			return hashString.Replace("-","");
 		}
 
+	    public bool IsDuplicate
+	    {
+            get { return duplicate;  }
+	    }
+
 	}
 }

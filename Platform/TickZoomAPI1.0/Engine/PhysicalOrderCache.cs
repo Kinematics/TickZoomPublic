@@ -33,7 +33,6 @@ namespace TickZoom.Api
         CreateOrChangeOrder GetOrderBySerial(long logicalSerialNumber);
         void UpdateSequence(int remoteSequence, int localSequence);
         void SetSequences(int remoteSequence, int localSequence);
-        void ClearPendingOrders(SymbolInfo symbol);
         List<CreateOrChangeOrder> GetOrders(Func<CreateOrChangeOrder, bool> select);
         string LogOrders();
         void Dispose();

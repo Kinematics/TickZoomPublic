@@ -541,54 +541,82 @@ namespace TickZoom.FIX
             return message;
         }
 
+
+	    protected abstract void ResendOrder(CreateOrChangeOrder order);
+
         private bool HandleResend(Message message)
         {
 			var messageFIX = (MessageFIXT1_1) message;
 			var result = false;
 			int end = messageFIX.EndSeqNum == 0 ? fixFactory.LastSequence : messageFIX.EndSeqNum;
 			if( debug) log.Debug( "Found resend request for " + messageFIX.BegSeqNum + " to " + end + ": " + messageFIX);
-            var firstSequence = fixFactory.FirstSequence;
-            var lastSequence = fixFactory.LastSequence;
-            FIXTMessage1_1 textMessage;
-            if (messageFIX.BegSeqNum < firstSequence)
+            if (messageFIX.BegSeqNum <= end)
             {
-                textMessage = GapFillMessage(messageFIX.BegSeqNum, firstSequence);
-                SendMessageInternal(textMessage);
-            }
-            int first = messageFIX.BegSeqNum < firstSequence ? firstSequence : messageFIX.BegSeqNum;
-			for( int i = first; i <= end; i++) {
-                if( !fixFactory.TryGetHistory(i,out textMessage))
+                var previous = messageFIX.BegSeqNum;
+                for( var i = previous; i<=end; i++)
                 {
-                    textMessage = GapFillMessage(i);
-                }
-                else
-                {
-                    switch (textMessage.Type)
+                    CreateOrChangeOrder order;
+                    if( orderStore.TryGetOrderBySequence( i, out order))
                     {
-                        case "A": // Logon
-                        case "5": // Logoff
-                        case "0": // Heartbeat
-                        case "1": // Heartbeat
-                        case "2": // Resend request.
-                        case "4": // Reset sequence.
-                            textMessage = GapFillMessage(i);
-                            break;
-                        default:
-                            textMessage.SetDuplicate(true);
-                            if (debug) log.Debug("Resending message " + i + "...");
-                            break;
+                        if( previous < i)
+                        {
+                            var gapMessage = GapFillMessage(previous, i);
+                            SendMessageInternal(gapMessage);
+                        }
+                        ResendOrder(order);
+                        previous = i + 1;
                     }
                 }
-                SendMessageInternal(textMessage);
+                if( previous < end)
+                {
+                    var textMessage = GapFillMessage(previous, end + 1);
+                    SendMessageInternal(textMessage);
+                }
             }
-            if( messageFIX.EndSeqNum > lastSequence)
-            {
-                textMessage = GapFillMessage(lastSequence + 1, messageFIX.EndSeqNum);
-                SendMessageInternal(textMessage);
-            }
-            isResendComplete = true;  // Force resending any "resend requests".
-			return true;
-		}
+            return true;
+
+            //var firstSequence = fixFactory.FirstSequence;
+            //var lastSequence = fixFactory.LastSequence;
+            //FIXTMessage1_1 textMessage;
+            //if (messageFIX.BegSeqNum < firstSequence)
+            //{
+            //    textMessage = GapFillMessage(messageFIX.BegSeqNum, firstSequence);
+            //    SendMessageInternal(textMessage);
+            //}
+            //int first = messageFIX.BegSeqNum < firstSequence ? firstSequence : messageFIX.BegSeqNum;
+            //for( int i = first; i <= end; i++) {
+            //    if( !fixFactory.TryGetHistory(i,out textMessage))
+            //    {
+            //        textMessage = GapFillMessage(i);
+            //    }
+            //    else
+            //    {
+            //        switch (textMessage.Type)
+            //        {
+            //            case "A": // Logon
+            //            case "5": // Logoff
+            //            case "0": // Heartbeat
+            //            case "1": // Heartbeat
+            //            case "2": // Resend request.
+            //            case "4": // Reset sequence.
+            //                textMessage = GapFillMessage(i);
+            //                break;
+            //            default:
+            //                textMessage.SetDuplicate(true);
+            //                if (debug) log.Debug("Resending message " + i + "...");
+            //                break;
+            //        }
+            //    }
+            //    SendMessageInternal(textMessage);
+            //}
+            //if( messageFIX.EndSeqNum > lastSequence)
+            //{
+            //    textMessage = GapFillMessage(lastSequence + 1, messageFIX.EndSeqNum);
+            //    SendMessageInternal(textMessage);
+            //}
+            //isResendComplete = true;  // Force resending any "resend requests".
+            //return true;
+        }
 
 		protected void IncreaseRetryTimeout() {
 			retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000L;
@@ -831,7 +859,10 @@ namespace TickZoom.FIX
 		}
 	    
 	    public void SendMessage(FIXTMessage1_1 fixMsg) {
-	    	fixFactory.AddHistory(fixMsg);
+            if( !fixMsg.IsDuplicate)
+            {
+                fixFactory.AddHistory(fixMsg);
+            }
             OrderStore.UpdateSequence(RemoteSequence, FixFactory.LastSequence);
             SendMessageInternal(fixMsg);
 	    }

@@ -780,27 +780,6 @@ namespace TickZoom.Common
             }
         }
 
-        public void ClearPendingOrders(SymbolInfo symbol)
-        {
-            var remove = new List<CreateOrChangeOrder>();
-            using (ordersLocker.Using())
-            {
-                foreach (var kvp in ordersByBrokerId)
-                {
-                    var order = kvp.Value;
-                    if (order.Symbol.BinaryIdentifier == symbol.BinaryIdentifier && order.OrderState == OrderState.Pending)
-                    {
-                        remove.Add(order);
-                    }
-                }
-            }
-            foreach (var order in remove)
-            {
-                log.Warn("Removing pending order due to recovery from snapshot: " + order);
-                RemoveOrder(order.BrokerOrder);
-            }
-        }
-
         public List<CreateOrChangeOrder> GetOrders(Func<CreateOrChangeOrder,bool> select)
         {
             var list = new List<CreateOrChangeOrder>();
